@@ -1,4 +1,4 @@
 #!/bin/bash
-echo "time" | tee results.csv
-date +%s | tee -a results.csv
+echo "time,seconds" | tee results.csv
+echo "`date +%s` `date +%S`" | tee -a results.csv
 
