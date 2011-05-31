@@ -1,2 +1,3 @@
 #!/bin/bash
-date +%s
+echo "<measurement><name>Now</name><value>`date +%s`</value></measurement>"
+
