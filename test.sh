@@ -1,4 +1,4 @@
 #!/bin/bash
-echo "time=`date +%s`" | tee results.properties
-echo "seconds=`date +%S`" | tee -a results.properties
+echo "label=seconds" | tee results.properties
+echo "y=`date +%S`" | tee -a results.properties
 
