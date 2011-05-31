@@ -1,4 +1,4 @@
 #!/bin/bash
-echo "label=seconds" | tee results.properties
-echo "y=`date +%S`" | tee -a results.properties
+echo "LABEL=seconds" | tee results.properties
+echo "YVALUE=`date +%S`" | tee -a results.properties
 
