@@ -34,7 +34,7 @@ getProponentSlots = do (GameState p1 p2,_) <- get
                        return p1
 
 getProponentSlot :: Int -> MoveStep Slot
-getProponentSlot n = do slots <- getProponentSlots
+getProponentSlot n = do Slots slots <- getProponentSlots
                         return $ slots ! n
 
 getProponentSlotField :: Int -> MoveStep Value
