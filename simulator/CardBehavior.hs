@@ -12,8 +12,7 @@ identity x = do incAppCount
                 return x
 
 zero :: MoveStep Value
-zero = do incAppCount -- DOES ZERO COUNT AS A FUNCTION APPLICATION???
-          return (ValueNum 0)
+zero = return (ValueNum 0)
 
 successor :: Value -> MoveStep Value
 successor (ValueNum n) = do incAppCount
