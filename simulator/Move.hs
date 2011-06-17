@@ -5,5 +5,7 @@ import Card
 data Application = LeftApplication | RightApplication
                  deriving (Eq, Show)
 
-data Move = Move Application Card Int
+type SlotNumber = Int
+
+data Move = Move Application Card SlotNumber
           deriving (Eq, Show)
