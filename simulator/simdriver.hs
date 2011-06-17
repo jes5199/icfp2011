@@ -11,9 +11,11 @@ main = do putStrLn "Lambda: The Gathering version $Date:: 2011-06-17 18:39:42 +0
 
 playTurn :: GameState -> Int -> IO ()
 playTurn state turnNumber = do putStrLn ("###### turn " ++ show turnNumber)
-                               state' <- playPly 0 state
-                               state'' <- playPly 1 state'
-                               playTurn state'' (turnNumber+1)
+                               state1 <- playPly 0 state
+                               let state2 = switchPlayer state1
+                               state3 <- playPly 1 state2
+                               let state4 = switchPlayer state3
+                               playTurn state4 (turnNumber+1)
 
 playPly :: Int -> GameState -> IO GameState
 playPly playerNumber state =
@@ -28,11 +30,11 @@ playPly playerNumber state =
        1 -> do card <- askCard
                slotNumber <- askSlot
                putStrLn $ "player " ++ show playerNumber ++ " applied card " ++ show card ++ " to slot " ++ show slotNumber
-               return state
+               return $ simulate state (Move LeftApplication card slotNumber)
        2 -> do slotNumber <- askSlot
                card <- askCard
                putStrLn $ "player " ++ show playerNumber ++ " applied slot " ++ show slotNumber ++ " to card " ++ show card
-               return state
+               return $ simulate state (Move RightApplication card slotNumber)
 
 readInt :: IO Int
 readInt = do str <- getLine
@@ -46,10 +48,3 @@ askCard = do putStrLn "card name?"
 askSlot :: IO Int
 askSlot = do putStrLn "slot no?"
              readInt
-
-{-
-let state = initialState
-              move = Move LeftApplication IdentityCard 1
-              result = simulate state move
-          print result
--}

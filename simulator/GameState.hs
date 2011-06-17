@@ -1,4 +1,4 @@
-module GameState (GameState(..),Slots(..),Slot(..),initialState,Who(..),updateVitality,updateField,test_GameState,Vitality,initialSide) where
+module GameState (GameState(..),Slots(..),Slot(..),initialState,Who(..),updateVitality,updateField,test_GameState,Vitality,initialSide,switchPlayer) where
 
 import Test.HUnit
 import Data.Array
@@ -39,6 +39,12 @@ data Who = FirstPlayer | SecondPlayer
 
 data GameState = GameState { playerToMove :: Who, firstPlayerBoard :: Slots, secondPlayerBoard :: Slots }
                deriving (Eq, Show)
+
+switchPlayer :: GameState -> GameState
+switchPlayer (GameState FirstPlayer side1 side2) =
+  GameState SecondPlayer side1 side2
+switchPlayer (GameState SecondPlayer side1 side2) =
+  GameState FirstPlayer side1 side2
 
 initialState :: GameState
 initialState = GameState FirstPlayer initialSide initialSide
