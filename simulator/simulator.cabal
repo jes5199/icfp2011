@@ -7,9 +7,13 @@ license-file: ""
 copyright:
 maintainer:
 build-depends: HUnit -any, HUnit -any, HUnit -any, HUnit -any,
-               HUnit -any, HUnit -any, HUnit -any, HUnit -any, array -any,
-               array -any, array -any, array -any, base -any, base -any,
-               base -any, base -any, base -any, base -any, base -any, base -any
+               HUnit -any, HUnit -any, HUnit -any, HUnit -any, HUnit -any,
+               HUnit -any, HUnit -any, HUnit -any, HUnit -any, HUnit -any,
+               HUnit -any, HUnit -any, array -any, array -any, array -any,
+               array -any, array -any, array -any, array -any, array -any,
+               base -any, base -any, base -any, base -any, base -any, base -any,
+               base -any, base -any, base -any, base -any, base -any, base -any,
+               base -any, base -any, base -any, base -any
 stability:
 homepage:
 package-url:
@@ -45,7 +49,7 @@ includes:
 install-includes:
 include-dirs:
 hs-source-dirs: .
-other-modules:
+other-modules: Value Simulator Move GameState CardBehavior Card
 ghc-prof-options:
 ghc-shared-options:
 ghc-options:
@@ -74,7 +78,7 @@ includes:
 install-includes:
 include-dirs:
 hs-source-dirs: .
-other-modules:
+other-modules: Value Simulator Move GameState CardBehavior Card
 ghc-prof-options:
 ghc-shared-options:
 ghc-options:
