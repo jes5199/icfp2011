@@ -1,11 +1,12 @@
 module Strategy(test_Strategy, buildValue) where
 
-import Test.HUnit
+import Control.Monad.State
+import Test.HUnit ( (~?=) )
 import Value
 import Move
 import Card
 
-type Slot = Int
+type SlotNum = Int
 
 -- Replace any instance of ValueNum with an equivalent tree of
 -- ValueCards and ValueApplications.
@@ -42,7 +43,7 @@ isRightVine (ValueApplication _ _) = False
 -- Build a value which satisfies the isVine predicate.
 -- Assumes:
 -- - the slot previously held the identity function.
-buildVine :: Slot -> Value -> [Move]
+buildVine :: SlotNum -> Value -> [Move]
 buildVine slot vine = buildVine' vine []
     where buildVine' (ValueCard c) = (Move RightApplication c slot :)
           buildVine' (ValueNum _) = error "call translateNums before buildVine"
@@ -52,7 +53,7 @@ buildVine slot vine = buildVine' vine []
 
 -- Apply the value (which must satisfy the isRightVine predicate) to
 -- the contents of the given slot.
-applyRightVine :: Slot -> Value -> [Move]
+applyRightVine :: SlotNum -> Value -> [Move]
 applyRightVine slot (ValueCard c) = [Move RightApplication c slot]
 applyRightVine slot (ValueApplication (ValueCard c) v)
     = [Move LeftApplication KCard slot, Move LeftApplication SCard slot, Move RightApplication c slot]
@@ -64,21 +65,26 @@ applyRightVine _ _ = error "applyRightVine: not a right vine"
 -- predicate.
 -- Assumes:
 -- - the slot previously held the identity function.
-buildVrv :: Slot -> Value -> [Move]
+buildVrv :: SlotNum -> Value -> [Move]
 buildVrv slot (ValueApplication v rv) = buildVine slot v ++ applyRightVine slot rv
 buildVrv slot _ = error "buildVrv: not a ValueApplication"
 
 -- Build a general value.  Requires temporary slots.
 -- Assumes:
 -- - the destination slot and all temporary slots currently hold the identity function.
-buildValue :: [Slot] -> Slot -> Value -> [Move]
-buildValue tempSlots destSlot v | isVine v = buildVine destSlot v
-buildValue tempSlots destSlot (ValueApplication f x)
-    | isRightVine x = buildValue tempSlots destSlot f ++ applyRightVine destSlot x
-    | otherwise = (buildValue (evenElems tempSlots) destSlot f
-                   ++ buildValue (tail (oddElems tempSlots)) (head (oddElems tempSlots)) x
-                   ++ applyRightVine destSlot (translateNums (ValueApplication (ValueCard GetCard)
-                                                              (ValueNum (head (oddElems tempSlots))))))
+buildValue :: SlotNum -> Value -> State [SlotNum] [Move]
+buildValue destSlot v | isVine v = return $ buildVine destSlot v
+buildValue destSlot (ValueApplication f x)
+    | isRightVine x = do moves1 <- buildValue destSlot f
+                         let moves2 = applyRightVine destSlot x
+                         return $ moves1 ++ moves2
+    | otherwise = do moves1 <- buildValue destSlot f
+                     availableSlots <- get
+                     let slotToUse = head availableSlots
+                     put $ tail availableSlots
+                     moves2 <- buildValue slotToUse x
+                     let moves3 = applyRightVine destSlot $ translateNums $ ValueApplication (ValueCard GetCard) (ValueNum slotToUse)
+                     return $ moves1 ++ moves2 ++ moves3
 
 evenElems :: [a] -> [a]
 evenElems (x:_:xs) = x : evenElems xs
@@ -130,7 +136,7 @@ test_Strategy = [
    ~?= [Move RightApplication GetCard 10, Move LeftApplication KCard 10, Move LeftApplication SCard 10,
         Move RightApplication GetCard 10, Move LeftApplication KCard 10, Move LeftApplication SCard 10,
         Move RightApplication SuccCard 10, Move RightApplication ZeroCard 10])
-  ] :: [Test]
+  ]
     where zero = ValueCard ZeroCard
           succ = ValueCard SuccCard
           dbl = ValueCard DoubleCard
