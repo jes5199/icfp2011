@@ -28,6 +28,17 @@ isVine (ValueApplication (ValueCard _) v) = isVine v
 isVine (ValueApplication v (ValueCard _)) = isVine v
 isVine (ValueApplication _ _) = False
 
+-- Determine whether the given value is in "right vine" form.  "Right
+-- vine" form requires that:
+-- - There are no ValueNums anywhere in the tree
+-- - Every application has a ValueCard for its LHS.
+-- That is, the "vine" grows exclusively downward and to the right.
+isRightVine :: Value -> Bool
+isRightVine (ValueCard _) = True
+isRightVine (ValueNum _) = False
+isRightVine (ValueApplication (ValueCard _) v) = isRightVine v
+isRightVine (ValueApplication _ _) = False
+
 -- Build a value which satisfies the isVine predicate.
 -- Assumes:
 -- - the slot previously held the identity function.
@@ -54,6 +65,12 @@ test_Strategy = [
   isVine (ValueApplication succ (ValueApplication succ zero)) ~?= True,
   isVine (ValueApplication (ValueApplication k succ) zero) ~?= True,
   isVine (ValueApplication (ValueApplication k succ) (ValueApplication k succ)) ~?= False,
+  isRightVine dbl ~?= True,
+  isRightVine (ValueNum 1) ~?= False,
+  isRightVine (ValueApplication succ zero) ~?= True,
+  isRightVine (ValueApplication succ (ValueApplication succ zero)) ~?= True,
+  isRightVine (ValueApplication (ValueApplication k succ) zero) ~?= False,
+  isRightVine (ValueApplication (ValueApplication k succ) (ValueApplication k succ)) ~?= False,
   buildVine 10 dbl ~?= [Move RightApplication DoubleCard 10],
   buildVine 10 (ValueApplication succ zero) ~?= [Move RightApplication ZeroCard 10, Move LeftApplication SuccCard 10],
   (buildVine 10 (ValueApplication succ (ValueApplication succ zero))
