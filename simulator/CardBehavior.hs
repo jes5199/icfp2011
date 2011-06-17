@@ -28,6 +28,8 @@ apply (ValueApplication (ValueCard KCard) x) y = incAppCount >> doK x y
 apply (ValueCard IncCard) i = incAppCount >> doInc i
 apply (ValueCard DecCard) i = incAppCount >> doDec i
 
+apply (ValueCard DecCard) i = incAppCount >> doCopy i
+
 apply x y = error (show x ++ " APPLIED TO " ++ show y)
 -- need more
 
@@ -113,7 +115,12 @@ doHelp :: Value -> Value -> Value -> MoveStep Value
 doHelp = undefined
 
 doCopy :: Value -> MoveStep Value
-doCopy = undefined
+doCopy (ValueNum i) = if i >= 0 && i <= 255
+                     then getOpponentField i -- note that this is NOT (255-i)!
+                     else throwError copyRangeMsg
+doCopy _ = throwError copyNANmsg
+copyRangeMsg = "copy out of range"
+copyNANmsg = "copy applied to non-number"
 
 doRevive :: Value -> MoveStep Value
 doRevive = undefined
