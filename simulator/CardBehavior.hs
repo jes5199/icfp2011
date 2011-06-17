@@ -79,9 +79,11 @@ doK x y = return x
 doInc :: Value -> MoveStep Value
 doInc (ValueNum i) = if i >= 0 && i <= 255
                      then do v <- getProponentVitality i
-                             let v' = if v == 65535
-                                      then 65535
-                                      else v+1
+                             let v' = case v of
+                                   65535 -> 65535
+                                   0 -> 0
+                                   -1 -> -1
+                                   _ -> v+1
                              putProponentVitality v' i
                              return $ ValueCard IdentityCard
                      else throwError incRangeMsg
@@ -192,7 +194,13 @@ test_CardBehavior = [
   runMove (doInc (ValueNum 256)) initialState ~?=
     (initialState,Left incRangeMsg),
   runMove (doInc (ValueNum 0)) initialState ~?=
-    ((GameState FirstPlayer (updateVitality 10001 0 initialSide) initialSide),
+    (GameState FirstPlayer (updateVitality 10001 0 initialSide) initialSide,
+     Right $ ValueCard IdentityCard),
+  runMove (doInc (ValueNum 0)) (GameState FirstPlayer (updateVitality 0 0 initialSide) initialSide) ~?=
+    (GameState FirstPlayer (updateVitality 0 0 initialSide) initialSide,
+     Right $ ValueCard IdentityCard),
+  runMove (doInc (ValueNum 0)) (GameState FirstPlayer (updateVitality 65535 0 initialSide) initialSide) ~?=
+    (GameState FirstPlayer (updateVitality 65535 0 initialSide) initialSide,
      Right $ ValueCard IdentityCard)
   {-
   -- Infinite loop example
