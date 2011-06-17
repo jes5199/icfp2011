@@ -1,4 +1,4 @@
-module Move (Application(..),Move(..)) where
+module Move (Application(..),Move(..),SlotNumber) where
 
 import Card
 

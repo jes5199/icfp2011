@@ -13,7 +13,7 @@ simulate gameState move = gameState
 
 apply :: Move -> MoveStep Value
 apply (Move applicationDirection card slotNumber)
-    = do oldValue <- getProponentSlotField slotNumber -- TODO: error handling needed if slot number bad???
+    = do oldValue <- getProponentField slotNumber -- TODO: error handling needed if slot number bad???
          case applicationDirection of
            LeftApplication -> return (ValueApplication (ValueCard card) oldValue)
            RightApplication -> return (ValueApplication oldValue (ValueCard card))

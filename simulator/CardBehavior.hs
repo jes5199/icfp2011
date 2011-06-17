@@ -57,7 +57,7 @@ dblNANmsg = "dbl applied to non-number"
 
 doGet :: Value -> MoveStep Value
 doGet (ValueNum i) = if i >= 0 && i <= 255
-                     then getProponentSlotField i
+                     then getProponentField i
                      else throwError getRangeMsg
 doGet _ = throwError getNANmsg
 getRangeMsg = "get out of range"
@@ -76,7 +76,17 @@ doK :: Value -> Value -> MoveStep Value
 doK x y = return x
 
 doInc :: Value -> MoveStep Value
-doInc = undefined
+doInc (ValueNum i) = if i >= 0 && i <= 255
+                     then do v <- getProponentVitality i
+                             let v' = if v == 65535
+                                      then 65535
+                                      else v+1
+                             putProponentVitality i v'
+                             return $ ValueCard IdentityCard
+                     else throwError incRangeMsg
+doInc _ = throwError incNANmsg
+incRangeMsg = "inc out of range"
+incNANmsg = "inc applied to non-number"
 
 doDec :: Value -> MoveStep Value
 doDec = undefined
@@ -169,7 +179,12 @@ test_CardBehavior = [
                     (ValueCard SuccCard)))
                   (ValueCard SuccCard))
            (ValueCard ZeroCard)) initialState ~?=
-    (initialState,Right $ ValueNum 2)
+    (initialState,Right $ ValueNum 2),
+
+  runMove (doK (ValueNum 3) (ValueNum 6)) initialState ~?=
+    (initialState,Right $ ValueNum 3),
+  runMove (doK (ValueCard SCard) (ValueCard SuccCard)) initialState ~?=
+    (initialState,Right $ ValueCard SCard)
   {-
   -- Infinite loop example
   runMove (doS (ValueCard IdentityCard) (ValueCard IdentityCard)
