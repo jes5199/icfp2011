@@ -8,3 +8,8 @@ cd simulator
 make
 ./simtester
 cd ..
+
+cd brain
+make
+./braintester
+cd ..
