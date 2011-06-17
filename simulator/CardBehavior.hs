@@ -7,37 +7,32 @@ import Value
 import Card
 import MoveStep
 
-identity :: Value -> MoveStep Value
-identity x = do incAppCount
-                return x
+doIdentity :: Value -> MoveStep Value
+doIdentity x = return x
 
-zero :: MoveStep Value
-zero = do incAppCount -- DOES ZERO COUNT AS A FUNCTION APPLICATION???
-          return (ValueNum 0)
+doZero :: MoveStep Value
+doZero = return (ValueNum 0)
 
-successor :: Value -> MoveStep Value
-successor (ValueNum n) = do incAppCount
-                            return $ ValueNum $ case n of
-                              65535 -> 65535
-                              _ -> n+1
-successor _ = throwError succNANmsg
+doSucc :: Value -> MoveStep Value
+doSucc (ValueNum n) = return $ ValueNum $ if n == 65535
+                                          then 65535
+                                          else n+1
+doSucc _ = throwError succNANmsg
 -- definition is separate for benefit of unit test
 succNANmsg = "succ applied to non-number"
 
-dbl :: Value -> MoveStep Value
-dbl (ValueNum n) = do incAppCount
-                      return $ ValueNum $ if n > 32767
-                                          then 65535
-                                          else n * 2
-dbl _  = throwError dblNANmsg
+doDbl :: Value -> MoveStep Value
+doDbl (ValueNum n) = return $ ValueNum $ if n > 32767
+                                         then 65535
+                                         else n * 2
+doDbl _  = throwError dblNANmsg
 dblNANmsg = "dbl applied to non-number"
 
-get :: Value -> MoveStep Value
-get (ValueNum i) = do incAppCount
-                      if i >= 0 && i <= 255
-                        then getProponentSlotField i
-                        else throwError getRangeMsg
-get _ = throwError getNANmsg
+doGet :: Value -> MoveStep Value
+doGet (ValueNum i) = if i >= 0 && i <= 255
+                     then getProponentSlotField i
+                     else throwError getRangeMsg
+doGet _ = throwError getNANmsg
 getRangeMsg = "get out of range"
 getNANmsg = "get applied to non-number"
 
@@ -72,43 +67,43 @@ zombie :: Value -> Value -> MoveStep Value
 zombie = undefined
 
 test_CardBehavior = [
-  runMove (identity (ValueNum 3)) initialState ~?=
+  runMove (doIdentity (ValueNum 3)) initialState ~?=
   (initialState,Right $ ValueNum 3),
-  runMove (identity (ValueCard IdentityCard)) initialState ~?=
+  runMove (doIdentity (ValueCard IdentityCard)) initialState ~?=
   (initialState,Right $ ValueCard IdentityCard),
 
-  runMove zero initialState ~?= (initialState,Right $ ValueNum 0),
+  runMove doZero initialState ~?= (initialState,Right $ ValueNum 0),
 
-  runMove (successor (ValueNum 3)) initialState ~?=
+  runMove (doSucc (ValueNum 3)) initialState ~?=
   (initialState,Right $ ValueNum 4),
-  runMove (successor (ValueNum 0)) initialState ~?=
+  runMove (doSucc (ValueNum 0)) initialState ~?=
   (initialState,Right $ ValueNum 1),
-  runMove (successor (ValueNum 65534)) initialState ~?=
+  runMove (doSucc (ValueNum 65534)) initialState ~?=
   (initialState,Right $ ValueNum 65535),
-  runMove (successor (ValueNum 65535)) initialState ~?=
+  runMove (doSucc (ValueNum 65535)) initialState ~?=
   (initialState,Right $ ValueNum 65535),
-  runMove (successor (ValueCard IdentityCard)) initialState ~?=
+  runMove (doSucc (ValueCard IdentityCard)) initialState ~?=
   (initialState,Left succNANmsg),
 
-  runMove (dbl (ValueNum 0)) initialState ~?=
+  runMove (doDbl (ValueNum 0)) initialState ~?=
   (initialState,Right $ ValueNum 0),
-  runMove (dbl (ValueNum 7)) initialState ~?=
+  runMove (doDbl (ValueNum 7)) initialState ~?=
   (initialState,Right $ ValueNum 14),
-  runMove (dbl (ValueNum 32767)) initialState ~?=
+  runMove (doDbl (ValueNum 32767)) initialState ~?=
   (initialState,Right $ ValueNum 65534),
-  runMove (dbl (ValueNum 32768)) initialState ~?=
+  runMove (doDbl (ValueNum 32768)) initialState ~?=
   (initialState,Right $ ValueNum 65535),
-  runMove (dbl (ValueNum 65535)) initialState ~?=
+  runMove (doDbl (ValueNum 65535)) initialState ~?=
   (initialState,Right $ ValueNum 65535),
-  runMove (dbl (ValueCard IdentityCard)) initialState ~?=
+  runMove (doDbl (ValueCard IdentityCard)) initialState ~?=
   (initialState,Left dblNANmsg),
 
-  runMove (get (ValueNum 0)) initialState ~?=
+  runMove (doGet (ValueNum 0)) initialState ~?=
   (initialState,Right $ ValueCard IdentityCard),
-  runMove (get (ValueNum 255)) initialState ~?=
+  runMove (doGet (ValueNum 255)) initialState ~?=
   (initialState,Right $ ValueCard IdentityCard),
-  runMove (get (ValueNum 256)) initialState ~?=
+  runMove (doGet (ValueNum 256)) initialState ~?=
   (initialState,Left getRangeMsg),
-  runMove (get (ValueCard IdentityCard)) initialState ~?=
+  runMove (doGet (ValueCard IdentityCard)) initialState ~?=
   (initialState,Left getNANmsg)
   ]
