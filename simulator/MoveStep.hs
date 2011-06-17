@@ -2,8 +2,8 @@ module MoveStep where -- export everything :)
 
 import Control.Monad.State
 import Control.Monad.Error
+import GameState
 
-type GameState = String
 type MoveStep = ErrorT String (State (GameState,Int))
 
 getGameState :: MoveStep GameState
