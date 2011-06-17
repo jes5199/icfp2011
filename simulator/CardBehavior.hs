@@ -2,59 +2,58 @@ module CardBehavior (test_CardBehavior) where
 
 import Test.HUnit
 import GameState
-import Function
+import Value
 import Card
 
-type GameStep = GameState -> (GameState,Maybe Function)
+type GameStep = GameState -> (GameState,Maybe Value)
 
-identity :: Function -> GameStep
+identity :: Value -> GameStep
 identity f state = (state,Just f)
 
 zero :: GameStep
 zero = undefined
 
-succ :: Function -> GameStep
+succ :: Value -> GameStep
 succ = undefined
 
-dbl :: Function -> GameStep
+dbl :: Value -> GameStep
 dbl = undefined
 
-get :: Function -> GameStep
+get :: Value -> GameStep
 get = undefined
 
-put :: Function -> Function -> GameStep
+put :: Value -> Value -> GameStep
 put = undefined
 
-s :: Function -> Function -> Function -> GameStep
+s :: Value -> Value -> Value -> GameStep
 s = undefined
 
-k :: Function -> Function -> GameStep
+k :: Value -> Value -> GameStep
 k = undefined
 
-inc :: Function -> GameStep
+inc :: Value -> GameStep
 inc = undefined
 
-dec :: Function -> GameStep
+dec :: Value -> GameStep
 dec = undefined
 
-attack :: Function -> Function -> Function -> GameStep
+attack :: Value -> Value -> Value -> GameStep
 attack = undefined
 
-help :: Function -> Function -> Function -> GameStep
+help :: Value -> Value -> Value -> GameStep
 help = undefined
 
-copy :: Function -> GameStep
+copy :: Value -> GameStep
 copy = undefined
 
-revive :: Function -> GameStep
+revive :: Value -> GameStep
 revive = undefined
 
-zombie :: Function -> Function -> GameStep
+zombie :: Value -> Value -> GameStep
 zombie = undefined
 
 test_CardBehavior = [
-  identity (FunctionValue 3) initialState ~?= (initialState,Just $
-                                                            FunctionValue 3),
-  identity (FunctionCard IdentityCard) initialState ~?=
-  (initialState,Just $ FunctionCard IdentityCard)
+  identity (ValueNum 3) initialState ~?= (initialState,Just $ ValueNum 3),
+  identity (ValueCard IdentityCard) initialState ~?=
+  (initialState,Just $ ValueCard IdentityCard)
   ] :: [Test]

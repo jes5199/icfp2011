@@ -2,9 +2,9 @@ module GameState (GameState(..),initialState) where
 
 import Data.Array
 import Card
-import Function
+import Value
 
-data Slot = Slot { vitality :: Int, field :: Function }
+data Slot = Slot { vitality :: Int, field :: Value }
           deriving (Eq, Show)
 
 type Slots = Array Int Slot
@@ -15,5 +15,5 @@ data GameState = GameState Slots Slots
 initialState :: GameState
 initialState = GameState a a
   where
-    a = array (0,255::Int) [(n,Slot 10000 (cardToFunction IdentityCard)) |
+    a = array (0,255::Int) [(n,Slot 10000 (cardToValue IdentityCard)) |
                             n <- [0..255]]
