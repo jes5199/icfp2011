@@ -102,7 +102,7 @@ test_Strategy = [
   (applyRightVine 10 (ValueApplication dbl (ValueApplication succ zero))
    ~?= [Move LeftApplication KCard 10, Move LeftApplication SCard 10, Move RightApplication DoubleCard 10,
         Move LeftApplication KCard 10, Move LeftApplication SCard 10, Move RightApplication SuccCard 10,
-        Move RightApplication ZeroCard 10]), -- TODO: I'm not certain this is correct --Paul
+        Move RightApplication ZeroCard 10]),
   buildVrv 10 (ValueApplication succ zero) ~?= [Move RightApplication SuccCard 10, Move RightApplication ZeroCard 10],
   (buildVrv 10 (ValueApplication (ValueApplication (ValueApplication s (ValueApplication k get)) get)
                 (ValueApplication succ zero)) -- get(get(1))
