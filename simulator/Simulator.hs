@@ -9,7 +9,11 @@ import Data.Array
 import MoveStep
 import Control.Monad.Error
 
-simulate gameState move = gameState
+simulate :: GameState -> Move -> GameState
+simulate gameState move = fst $ runMove moveStep gameState
+    where moveStep = do newValue <- apply move
+                        newValue' <- catchError (reduce newValue) (\e -> return (ValueCard IdentityCard))
+                        storeResult newValue' move
 
 apply :: Move -> MoveStep Value
 apply (Move applicationDirection card slotNumber)
