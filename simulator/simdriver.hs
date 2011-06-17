@@ -20,7 +20,7 @@ playTurn state turnNumber = do putStrLn ("###### turn " ++ show turnNumber)
 playPly :: Int -> GameState -> IO GameState
 playPly playerNumber state =
   do putStrLn ("*** player " ++ show playerNumber ++ "'s turn, with slots:")
-     putStrLn $ show $ case playerNumber of
+     putStr $ show $ case playerNumber of
        0 -> firstPlayerBoard state
        1 -> secondPlayerBoard state
      putStrLn "(slots {10000,I} are omitted)"
