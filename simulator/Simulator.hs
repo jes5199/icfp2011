@@ -6,20 +6,23 @@ import Move
 import Card
 import Value
 import Data.Array
+import MoveStep
+import Control.Monad.Error
 
-simulate gameState who move = gameState
+simulate gameState move = gameState
 
-apply :: GameState -> Who -> Move -> Value
+apply :: Move -> MoveStep Value
 apply = undefined
 
-reduce :: Value -> (GameState,Maybe Value)
+reduce :: Value -> MoveStep Value
 reduce = undefined
 
-storeResult :: (GameState, Maybe Value) -> Move -> GameState
-storeResult = undefined
+storeResult :: Value -> Move -> MoveStep ()
+storeResult v (Move _ _ slot) = transformProponentSlots (updateField v slot)
 
 test_Simulator = [
-  simulate initialState FirstPlayer trivialMove ~?= initialState --,
+  simulate initialState trivialMove ~?= initialState,
+  runMove (storeResult (ValueNum 0) (Move undefined undefined 3)) initialState ~?= (resultOfMove, Right ())
 --  simulate initialState FirstPlayer moveWithResult ~?= resultOfMove
   ]
   where
