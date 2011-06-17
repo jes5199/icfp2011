@@ -1,0 +1,6 @@
+*~
+*.hi
+*.o
+simdriver
+simtester
+dist
