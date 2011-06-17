@@ -1,8 +1,20 @@
 require 'set'
 require 'pp'
 require 'yaml'
+STDOUT.sync = true
+STDERR.sync = true
+
+def nski(expr)
+  $c = 0
+  ski(expr)
+end
 
 def ski(expr)
+  $c ||= 0
+  $c += 1
+  if $c > 1000
+    raise SystemStackError
+  end
   #puts expr.inspect
   return expr unless expr.is_a?(Array)
   expr = expr.map do |ex|
@@ -66,12 +78,13 @@ p things
 
   new_things.map! do |thing|
     #puts "skiing #{thing.inspect}"
-    #STDOUT.flush
     begin
-      thing = ski(thing)
+      nthing = nski(thing)
+      puts(thing.inspect + " -> " + nthing.inspect)
+      nthing
     rescue SystemStackError
       #STDERR.puts( "Non-terminating: " + thing.inspect )
-      STDERR.print( "." ) ; STDERR.flush
+      STDERR.print( "." )
       evils << thing
     end
   end.uniq!
@@ -84,14 +97,15 @@ p things
     begin
       real = thing.dup
       thing = [thing] + ['a', 'b']
-      out = ski(thing)
+      out = nski(thing)
       puts(thing.inspect + " => " + out.inspect)
       if out == ['s', ['k', 'a'], ['k', 'b'] ]
         STDERR.puts("Candidate: " + real.inspect)
         STDOUT.puts("Candidate: " + real.inspect)
       end
     rescue SystemStackError
-      STDERR.puts( "Non-terminating: " + thing.inspect )
+      #STDERR.puts( "Non-terminating: " + thing.inspect )
+      STDERR.print( "," )
       evils << real
     end
   end
