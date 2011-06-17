@@ -27,12 +27,15 @@ apply k@(ValueCard KCard) x =
 apply (ValueApplication (ValueCard KCard) x) y = incAppCount >> doK x y
 apply (ValueCard IncCard) i = incAppCount >> doInc i
 apply (ValueCard DecCard) i = incAppCount >> doDec i
-
+apply (ValueApplication (ValueApplication (ValueCard AttackCard) i) j) n =
+  incAppCount >> doAttack i j n
+apply (ValueApplication (ValueApplication (ValueCard HelpCard) i) j) n =
+  incAppCount >> doHelp i j n
 apply (ValueCard CopyCard) i = incAppCount >> doCopy i
 apply (ValueCard ReviveCard) i = incAppCount >> doRevive i
-
+apply (ValueApplication (ValueCard ZombieCard) i) x =
+  incAppCount >> doZombie i x
 apply x y = error (show x ++ " APPLIED TO " ++ show y)
--- need more
 
 
 applyNumMsg = "Number on left of application"
