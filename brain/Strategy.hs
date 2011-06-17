@@ -50,6 +50,15 @@ buildVine slot vine = buildVine' vine []
           buildVine' (ValueApplication v (ValueCard c)) = buildVine' v . (Move RightApplication c slot :)
           buildVine' (ValueApplication v w) = error "buildVine': not a vine"
 
+-- Apply the value (which must satisfy the isRightVine predicate) to
+-- the contents of the given slot.
+applyRightVine :: Slot -> Value -> [Move]
+applyRightVine slot (ValueCard c) = [Move RightApplication c slot]
+applyRightVine slot (ValueApplication (ValueCard c) v)
+    = [Move LeftApplication KCard slot, Move LeftApplication SCard slot, Move RightApplication c slot]
+      ++ applyRightVine slot v
+applyRightVine _ _ = error "applyRightVine: not a right vine"
+
 test_Strategy = [
   translateNums (ValueNum 0) ~?= zero,
   translateNums (ValueNum 1) ~?= app succ zero,
@@ -76,7 +85,15 @@ test_Strategy = [
   (buildVine 10 (ValueApplication succ (ValueApplication succ zero))
    ~?= [Move RightApplication ZeroCard 10, Move LeftApplication SuccCard 10, Move LeftApplication SuccCard 10]),
   (buildVine 10 (ValueApplication (ValueApplication k succ) zero)
-   ~?= [Move RightApplication SuccCard 10, Move LeftApplication KCard 10, Move RightApplication ZeroCard 10])
+   ~?= [Move RightApplication SuccCard 10, Move LeftApplication KCard 10, Move RightApplication ZeroCard 10]),
+  applyRightVine 10 zero ~?= [Move RightApplication ZeroCard 10],
+  (applyRightVine 10 (ValueApplication succ zero)
+   ~?= [Move LeftApplication KCard 10, Move LeftApplication SCard 10, Move RightApplication SuccCard 10,
+        Move RightApplication ZeroCard 10]),
+  (applyRightVine 10 (ValueApplication dbl (ValueApplication succ zero))
+   ~?= [Move LeftApplication KCard 10, Move LeftApplication SCard 10, Move RightApplication DoubleCard 10,
+        Move LeftApplication KCard 10, Move LeftApplication SCard 10, Move RightApplication SuccCard 10,
+        Move RightApplication ZeroCard 10]) -- TODO: I'm not certain this is correct --Paul
   ] :: [Test]
     where zero = ValueCard ZeroCard
           succ = ValueCard SuccCard
