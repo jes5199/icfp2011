@@ -1,4 +1,4 @@
-module Strategy(test_Strategy, buildValue) where
+module Strategy(test_Strategy, buildValue, translateNums, translateLambda) where
 
 import Control.Monad.State
 import Test.HUnit ( (~?=) )
@@ -17,6 +17,27 @@ translateNums (ValueNum i) | i < 0 = error "negative value in translateNums"
                            | i `mod` 2 == 1 = ValueApplication (ValueCard SuccCard) (translateNums (ValueNum (i-1)))
                            | otherwise = ValueApplication (ValueCard DoubleCard) (translateNums (ValueNum (i `div` 2)))
 translateNums (ValueCard c) = ValueCard c
+
+-- Replace any instance of ValueLambda with an equivalent tree making
+-- use of S, K, I, etc.
+translateLambda (ValueApplication f x) = ValueApplication (translateLambda f) (translateLambda x)
+translateLambda (ValueNum i) = ValueNum i
+translateLambda (ValueCard c) = ValueCard c
+translateLambda (ValueVariable varName) = ValueVariable varName
+translateLambda (ValueLambda varName value)
+    = case translateLambda value of
+        ValueCard IdentityCard -> ValueCard PutCard
+        ValueVariable x | varName == x -> ValueCard IdentityCard
+        value | not (value `includes` varName) -> ValueApplication (ValueCard KCard) value
+        ValueApplication f (ValueVariable x) | varName == x && not (f `includes` varName) -> f
+        ValueApplication f x
+            -> ValueApplication (ValueApplication (ValueCard SCard) (translateLambda (ValueLambda varName f)))
+                                (translateLambda (ValueLambda varName x))
+    where ValueVariable x `includes` varName = x == varName
+          ValueApplication f x `includes` varName = (f `includes` varName) || (x `includes` varName)
+          ValueLambda varNameInner value `includes` varName | varNameInner == varName = False
+                                                            | otherwise = value `includes` varName
+          _ `includes` varName = False
 
 -- Determine whether the given value is in "vine" form.  "Vine" form
 -- requires that:
@@ -135,7 +156,15 @@ test_Strategy = [
                 (ValueApplication succ zero)) -- get(get(1))
    ~?= [Move RightApplication GetCard 10, Move LeftApplication KCard 10, Move LeftApplication SCard 10,
         Move RightApplication GetCard 10, Move LeftApplication KCard 10, Move LeftApplication SCard 10,
-        Move RightApplication SuccCard 10, Move RightApplication ZeroCard 10])
+        Move RightApplication SuccCard 10, Move RightApplication ZeroCard 10]),
+  translateLambda (ValueLambda "x" (ValueLambda "y" (ValueVariable "y"))) ~?= ValueCard PutCard,
+  translateLambda (ValueLambda "x" (ValueVariable "x")) ~?= ValueCard IdentityCard,
+  translateLambda (ValueLambda "x" (ValueApplication (ValueCard IncCard) (ValueVariable "x"))) ~?= ValueCard IncCard,
+  translateLambda (ValueLambda "x" (ValueLambda "y" (ValueVariable "x"))) ~?= ValueCard KCard,
+  translateLambda (ValueLambda "x" (ValueApplication (ValueCard IncCard) (ValueApplication (ValueCard SuccCard) (ValueVariable "x")))) ~?= ValueApplication (ValueApplication (ValueCard SCard) (ValueApplication (ValueCard KCard) (ValueCard IncCard))) (ValueCard SuccCard),
+  translateLambda (ValueLambda "x" (ValueLambda "y" (ValueApplication (ValueApplication (ValueCard PutCard) (ValueVariable "x")) (ValueVariable "y")))) ~?= (ValueCard PutCard),
+  translateLambda (ValueLambda "x" (ValueLambda "y" (ValueApplication (ValueApplication (ValueCard ZombieCard) (ValueVariable "x")) (ValueVariable "y")))) ~?= (ValueCard ZombieCard),
+  translateLambda (ValueLambda "bullet" (ValueApplication (ValueApplication (ValueCard PutCard) (ValueApplication (ValueVariable "gun") (ValueVariable "bullet"))) (ValueVariable "value"))) ~?= (ValueApplication (ValueApplication (ValueCard SCard) (ValueApplication (ValueApplication (ValueCard SCard) (ValueApplication (ValueCard KCard) (ValueCard PutCard))) (ValueVariable "gun"))) (ValueApplication (ValueCard KCard) (ValueVariable "value")))
   ]
     where zero = ValueCard ZeroCard
           succ = ValueCard SuccCard

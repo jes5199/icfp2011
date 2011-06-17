@@ -6,7 +6,7 @@ import Language.Haskell.Syntax
 import Value
 import Card
 
-parse s = show (transform meat)
+parse s = transform meat
     where ParseOk (HsModule _ _ _ _ [decl]) = parseModule ("the_value = " ++ s)
           HsPatBind _ _ (HsUnGuardedRhs meat) _ = decl
           transform (HsLambda _ [HsPVar (HsIdent varName)] value) = ValueLambda varName (transform value)
