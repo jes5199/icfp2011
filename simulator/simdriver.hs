@@ -18,7 +18,9 @@ playTurn state turnNumber = do putStrLn ("###### turn " ++ show turnNumber)
 playPly :: Int -> GameState -> IO GameState
 playPly playerNumber state =
   do putStrLn ("*** player " ++ show playerNumber ++ "'s turn, with slots:")
-     putStrLn "... slots that difer go here"
+     putStrLn $ show $ case playerNumber of
+       0 -> firstPlayerBoard state
+       1 -> secondPlayerBoard state
      putStrLn "(slots {10000,I} are omitted)"
      putStrLn "(1) apply card to slot, or (2) apply slot to card?"
      applicationDir <- readInt

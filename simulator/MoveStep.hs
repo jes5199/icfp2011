@@ -65,9 +65,9 @@ putProponentVitality v n = transformProponentSlots (updateVitality v n)
 
 getOpponentSlots :: MoveStep Slots
 getOpponentSlots = do GameState who p1 p2 <- getGameState
-                       case who of
-                         FirstPlayer  -> return p2
-                         SecondPlayer -> return p1
+                      case who of
+                        FirstPlayer  -> return p2
+                        SecondPlayer -> return p1
 
 transformOpponentSlots :: (Slots -> Slots) -> MoveStep ()
 transformOpponentSlots transform
@@ -78,15 +78,15 @@ transformOpponentSlots transform
 
 getOpponentSlot :: SlotNumber -> MoveStep Slot
 getOpponentSlot n = do Slots slots <- getOpponentSlots
-                        return $ slots ! n
+                       return $ slots ! n
 
 getOpponentField :: SlotNumber -> MoveStep Value
 getOpponentField n = do s <- getOpponentSlot n
-                         return $ field s
+                        return $ field s
 
 getOpponentVitality :: SlotNumber -> MoveStep Vitality
 getOpponentVitality n = do s <- getOpponentSlot n
-                            return $ vitality s
+                           return $ vitality s
 
 putOpponentField :: Value -> SlotNumber -> MoveStep ()
 putOpponentField v n = transformOpponentSlots (updateField v n)
