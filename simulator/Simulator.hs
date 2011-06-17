@@ -19,7 +19,9 @@ apply (Move applicationDirection card slotNumber)
            RightApplication -> return (ValueApplication oldValue (ValueCard card))
 
 reduce :: Value -> MoveStep Value
-reduce = undefined
+reduce n@(ValueNum _) = return n
+reduce c@(ValueCard _) = return c
+reduce c@(ValueApplication (ValueCard IdentityCard) x) = incAppCount >> doI x
 
 storeResult :: Value -> Move -> MoveStep ()
 storeResult v (Move _ _ slot) = transformProponentSlots (updateField v slot)
@@ -28,7 +30,9 @@ test_Simulator = [
   simulate initialState trivialMove ~?= initialState,
   runMove (storeResult (ValueNum 0) (Move undefined undefined 3)) initialState ~?= (resultOfMove, Right ()),
   (runMove (apply $ Move LeftApplication ZeroCard 1) initialState
-   ~?= (initialState, Right (ValueApplication (ValueCard ZeroCard) (ValueCard IdentityCard))))
+   ~?= (initialState, Right (ValueApplication (ValueCard ZeroCard) (ValueCard IdentityCard)))),
+  (runMove (apply $ Move RightApplication ZeroCard 1) initialState
+   ~?= (initialState, Right (ValueApplication (ValueCard IdentityCard) (ValueCard ZeroCard))))
 --  simulate initialState FirstPlayer moveWithResult ~?= resultOfMove
   ]
   where
