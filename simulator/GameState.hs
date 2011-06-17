@@ -1,4 +1,4 @@
-module GameState (GameState(..),initialState) where
+module GameState (GameState(..),Slots,Slot(..),initialState) where
 
 import Data.Array
 import Card

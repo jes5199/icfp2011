@@ -1,17 +1,12 @@
 module MoveStep where -- export everything :)
 
+import Data.Array
 import Control.Monad.State
 import Control.Monad.Error
 import GameState
+import Value
 
 type MoveStep = ErrorT String (State (GameState,Int))
-
-getGameState :: MoveStep GameState
-getGameState = get >>= (return . fst)
-
-putGameState :: GameState -> MoveStep ()
-putGameState s = do (_,c) <- get
-                    put (s,c)
 
 getAppCount :: MoveStep Int
 getAppCount = get >>= (return . snd)
@@ -26,6 +21,25 @@ incAppCount = do c <- getAppCount
                  case c' of
                    1000 -> throwError "AppLimitExceeded"
                    _ -> putAppCount c'
+
+getGameState :: MoveStep GameState
+getGameState = get >>= (return . fst)
+
+putGameState :: GameState -> MoveStep ()
+putGameState s = do (_,c) <- get
+                    put (s,c)
+
+getProponentSlots :: MoveStep Slots
+getProponentSlots = do (GameState p1 p2,_) <- get
+                       return p1
+
+getProponentSlot :: Int -> MoveStep Slot
+getProponentSlot n = do slots <- getProponentSlots
+                        return $ slots ! n
+
+getProponentSlotField :: Int -> MoveStep Value
+getProponentSlotField n = do s <- getProponentSlot n
+                             return $ field s
 
 -- Executes the lambda function corresponding to a move, incorporates
 -- side effects into the GameState, and stops execution if an error

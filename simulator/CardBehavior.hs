@@ -1,6 +1,6 @@
 module CardBehavior (test_CardBehavior) where
 
-import Control.Monad.Error
+import Control.Monad.Error (throwError)
 import Test.HUnit
 import GameState
 import Value
@@ -8,8 +8,8 @@ import Card
 import MoveStep
 
 identity :: Value -> MoveStep Value
-identity f = do incAppCount
-                return f
+identity x = do incAppCount
+                return x
 
 zero :: MoveStep Value
 zero = do incAppCount -- DOES ZERO COUNT AS A FUNCTION APPLICATION???
@@ -21,7 +21,7 @@ successor (ValueNum n) = do incAppCount
                               65535 -> 65535
                               _ -> n+1
 successor _ = throwError succNANmsg
--- separate definition for benefit of unit test
+-- definition is separate for benefit of unit test
 succNANmsg = "succ applied to non-number"
 
 dbl :: Value -> MoveStep Value
@@ -33,7 +33,13 @@ dbl _  = throwError dblNANmsg
 dblNANmsg = "dbl applied to non-number"
 
 get :: Value -> MoveStep Value
-get = undefined
+get (ValueNum i) = do incAppCount
+                      if i >= 0 && i <= 255
+                        then getProponentSlotField i
+                        else throwError getRangeMsg
+get _ = throwError getNANmsg
+getRangeMsg = "get out of range"
+getNANmsg = "get applied to non-number"
 
 put :: Value -> Value -> MoveStep Value
 put = undefined
@@ -95,5 +101,14 @@ test_CardBehavior = [
   runMove (dbl (ValueNum 65535)) initialState ~?=
   (initialState,Right $ ValueNum 65535),
   runMove (dbl (ValueCard IdentityCard)) initialState ~?=
-  (initialState,Left dblNANmsg)
+  (initialState,Left dblNANmsg),
+
+  runMove (get (ValueNum 0)) initialState ~?=
+  (initialState,Right $ ValueCard IdentityCard),
+  runMove (get (ValueNum 255)) initialState ~?=
+  (initialState,Right $ ValueCard IdentityCard),
+  runMove (get (ValueNum 256)) initialState ~?=
+  (initialState,Left getRangeMsg),
+  runMove (get (ValueCard IdentityCard)) initialState ~?=
+  (initialState,Left getNANmsg)
   ]
