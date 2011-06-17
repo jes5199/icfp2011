@@ -1,4 +1,4 @@
-module CardBehavior (test_CardBehavior) where
+module CardBehavior (test_CardBehavior,apply) where
 
 import Control.Monad.Error (throwError)
 import Test.HUnit
