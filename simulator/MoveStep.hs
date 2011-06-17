@@ -30,8 +30,17 @@ putGameState s = do (_,c) <- get
                     put (s,c)
 
 getProponentSlots :: MoveStep Slots
-getProponentSlots = do (GameState _ p1 p2,_) <- get
-                       return p1
+getProponentSlots = do GameState who p1 p2 <- getGameState
+                       case who of
+                         FirstPlayer  -> return p1
+                         SecondPlayer -> return p2
+
+transformProponentSlots :: (Slots -> Slots) -> MoveStep ()
+transformProponentSlots transform
+    = do GameState who p1 p2 <- getGameState
+         case who of
+           FirstPlayer  -> putGameState (GameState who (transform p1) p2)
+           SecondPlayer -> putGameState (GameState who p1 (transform p2))
 
 getProponentSlot :: Int -> MoveStep Slot
 getProponentSlot n = do Slots slots <- getProponentSlots

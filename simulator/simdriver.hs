@@ -8,5 +8,5 @@ import Simulator
 main :: IO ()
 main = do let state = initialState
               move = Move LeftApplication IdentityCard 1
-              result = simulate state FirstPlayer move
+              result = simulate state move
           print result
