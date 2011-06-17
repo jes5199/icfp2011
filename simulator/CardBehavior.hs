@@ -11,13 +11,21 @@ identity :: Value -> GameStep
 identity f state = (state,Just f)
 
 zero :: GameStep
-zero = undefined
+zero state = (state, Just $ ValueNum 0)
 
 succ :: Value -> GameStep
-succ = undefined
+succ (ValueNum n) state = (state, Just $ ValueNum m)
+  where m = case n of
+              65535 -> 65535
+              _ -> n+1
+succ _ state = (state, Nothing)
 
 dbl :: Value -> GameStep
-dbl = undefined
+dbl (ValueNum n) state = (state, Just $ ValueNum m)
+  where m = if n > 32767
+              then 65535
+              else n * 2
+dbl _ state = (state, Nothing)
 
 get :: Value -> GameStep
 get = undefined
