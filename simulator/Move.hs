@@ -1,9 +1,6 @@
-module Move (Application(..),Move(..),Who(..)) where
+module Move (Application(..),Move(..)) where
 
 import Card
-
-data Who = FirstPlayer | SecondPlayer
-         deriving (Eq, Show)
 
 data Application = LeftApplication | RightApplication
                  deriving (Eq, Show)

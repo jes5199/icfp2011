@@ -25,4 +25,6 @@ test_Simulator = [
   where
     trivialMove = Move LeftApplication IdentityCard 2
     moveWithResult = Move RightApplication ZeroCard 3
-    resultOfMove = GameState (updateField (ValueNum 0) 3 (firstPlayerBoard initialState)) (secondPlayerBoard initialState)
+    resultOfMove = GameState FirstPlayer
+                             (updateField (ValueNum 0) 3 (firstPlayerBoard initialState))
+                             (secondPlayerBoard initialState)

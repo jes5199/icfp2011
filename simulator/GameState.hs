@@ -1,4 +1,4 @@
-module GameState (GameState(..),Slots(..),Slot(..),initialState,updateVitality,updateField,test_GameState) where
+module GameState (GameState(..),Slots(..),Slot(..),initialState,Who(..),updateVitality,updateField,test_GameState) where
 
 import Test.HUnit
 import Data.Array
@@ -24,7 +24,10 @@ instance Show Slots where
         where isInteresting (_, Slot 10000 (ValueCard IdentityCard)) = False
               isInteresting _ = True
 
-data GameState = GameState { firstPlayerBoard :: Slots, secondPlayerBoard :: Slots }
+data Who = FirstPlayer | SecondPlayer
+         deriving (Eq, Show)
+
+data GameState = GameState { playerToMove :: Who, firstPlayerBoard :: Slots, secondPlayerBoard :: Slots }
                deriving (Eq, Show)
 
 transformSlot :: (Slot -> Slot) -> Int -> Slots -> Slots
@@ -37,7 +40,7 @@ updateField :: Value -> Int -> Slots -> Slots
 updateField value idx slots = transformSlot (replaceField value) idx slots
 
 initialState :: GameState
-initialState = GameState a a
+initialState = GameState FirstPlayer a a
   where
     a = Slots $
         array (0,255::Int) [(n,Slot 10000 (cardToValue IdentityCard)) |
