@@ -25,22 +25,23 @@ playPly playerNumber state =
      putStrLn "(1) apply card to slot, or (2) apply slot to card?"
      applicationDir <- readInt
      case applicationDir of
-       1 -> do cardName <- askCard
+       1 -> do card <- askCard
                slotNumber <- askSlot
-               putStrLn $ "player " ++ show playerNumber ++ " applied card " ++ cardName ++ " to slot " ++ show slotNumber
+               putStrLn $ "player " ++ show playerNumber ++ " applied card " ++ show card ++ " to slot " ++ show slotNumber
                return state
        2 -> do slotNumber <- askSlot
-               cardName <- askCard
-               putStrLn $ "player " ++ show playerNumber ++ " applied slot " ++ show slotNumber ++ " to card " ++ cardName
+               card <- askCard
+               putStrLn $ "player " ++ show playerNumber ++ " applied slot " ++ show slotNumber ++ " to card " ++ show card
                return state
 
 readInt :: IO Int
 readInt = do str <- getLine
              return $ read str
 
-askCard :: IO String
+askCard :: IO Card
 askCard = do putStrLn "card name?"
-             getLine
+             str <- getLine
+             return $ readCard str
 
 askSlot :: IO Int
 askSlot = do putStrLn "slot no?"
