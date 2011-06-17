@@ -1,4 +1,4 @@
-module GameState (GameState(..),Slots(..),Slot(..),initialState) where
+module GameState (GameState(..),Slots(..),Slot(..),initialState,Who(..)) where
 
 import Data.Array
 import Card
@@ -15,11 +15,14 @@ instance Show Slots where
         where isInteresting (_, Slot 10000 (ValueCard IdentityCard)) = False
               isInteresting _ = True
 
-data GameState = GameState Slots Slots
+data Who = FirstPlayer | SecondPlayer
+         deriving (Eq, Show)
+
+data GameState = GameState Who Slots Slots
                deriving (Eq, Show)
 
 initialState :: GameState
-initialState = GameState a a
+initialState = GameState FirstPlayer a a
   where
     a = Slots $
         array (0,255::Int) [(n,Slot 10000 (cardToValue IdentityCard)) |

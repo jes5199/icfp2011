@@ -30,7 +30,7 @@ putGameState s = do (_,c) <- get
                     put (s,c)
 
 getProponentSlots :: MoveStep Slots
-getProponentSlots = do (GameState p1 p2,_) <- get
+getProponentSlots = do (GameState _ p1 p2,_) <- get
                        return p1
 
 getProponentSlot :: Int -> MoveStep Slot
