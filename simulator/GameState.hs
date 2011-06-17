@@ -9,15 +9,19 @@ import Move
 type Vitality = Int
 
 data Slot = Slot { vitality :: Vitality, field :: Value }
-          deriving (Eq, Show)
+          deriving (Eq)
+
+instance Show Slot where
+    show (Slot v f) = "{" ++ (show v) ++ "," ++ (show f) ++ "}"
 
 newtype Slots = Slots (Array Int Slot)
     deriving Eq
 
 instance Show Slots where
-    show (Slots arr) = show $ filter isInteresting $ assocs arr
+    show (Slots arr) = concatMap showSlotOnALine $ filter isInteresting $ assocs arr
         where isInteresting (_, Slot 10000 (ValueCard IdentityCard)) = False
               isInteresting _ = True
+              showSlotOnALine (n, slot) = (show n) ++ "=" ++ (show slot) ++ "\n"
 
 replaceVitality :: Vitality -> Slot -> Slot
 replaceVitality hp slot = Slot hp (field slot)
