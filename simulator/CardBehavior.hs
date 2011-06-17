@@ -26,6 +26,7 @@ apply k@(ValueCard KCard) x =
   incAppCount >> return (ValueApplication k x)
 apply (ValueApplication (ValueCard KCard) x) y =
   incAppCount >> doK x y
+apply x y = error (show x ++ " APPLIED TO " ++ show y)
 -- need more
 
 
@@ -159,6 +160,15 @@ test_CardBehavior = [
   -- Paul made this example
   runMove (doS (ValueApplication (ValueCard KCard) (ValueCard SuccCard))
            (ValueCard SuccCard) (ValueCard ZeroCard)) initialState ~?=
+    (initialState,Right $ ValueNum 2),
+  runMove (apply (ValueApplication
+                  (ValueApplication
+                   (ValueCard SCard)
+                   (ValueApplication
+                    (ValueCard KCard)
+                    (ValueCard SuccCard)))
+                  (ValueCard SuccCard))
+           (ValueCard ZeroCard)) initialState ~?=
     (initialState,Right $ ValueNum 2)
   {-
   -- Infinite loop example
