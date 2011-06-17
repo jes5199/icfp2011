@@ -5,6 +5,7 @@ import Control.Monad.State
 import Control.Monad.Error
 import GameState
 import Value
+import Move
 
 type MoveStep = ErrorT String (State (GameState,Int))
 
@@ -42,13 +43,56 @@ transformProponentSlots transform
            FirstPlayer  -> putGameState (GameState who (transform p1) p2)
            SecondPlayer -> putGameState (GameState who p1 (transform p2))
 
-getProponentSlot :: Int -> MoveStep Slot
+getProponentSlot :: SlotNumber -> MoveStep Slot
 getProponentSlot n = do Slots slots <- getProponentSlots
                         return $ slots ! n
 
-getProponentSlotField :: Int -> MoveStep Value
-getProponentSlotField n = do s <- getProponentSlot n
-                             return $ field s
+getProponentField :: SlotNumber -> MoveStep Value
+getProponentField n = do s <- getProponentSlot n
+                         return $ field s
+
+getProponentVitality :: SlotNumber -> MoveStep Vitality
+getProponentVitality n = do s <- getProponentSlot n
+                            return $ vitality s
+
+putProponentField :: Value -> SlotNumber -> MoveStep ()
+putProponentField v n = transformProponentSlots (updateField v n)
+
+putProponentVitality :: Vitality -> SlotNumber -> MoveStep ()
+putProponentVitality v n = transformProponentSlots (updateVitality v n)
+
+
+
+getOpponentSlots :: MoveStep Slots
+getOpponentSlots = do GameState who p1 p2 <- getGameState
+                      case who of
+                        FirstPlayer  -> return p2
+                        SecondPlayer -> return p1
+
+transformOpponentSlots :: (Slots -> Slots) -> MoveStep ()
+transformOpponentSlots transform
+    = do GameState who p1 p2 <- getGameState
+         case who of
+           SecondPlayer  -> putGameState (GameState who (transform p1) p2)
+           FirstPlayer   -> putGameState (GameState who p1 (transform p2))
+
+getOpponentSlot :: SlotNumber -> MoveStep Slot
+getOpponentSlot n = do Slots slots <- getOpponentSlots
+                       return $ slots ! n
+
+getOpponentField :: SlotNumber -> MoveStep Value
+getOpponentField n = do s <- getOpponentSlot n
+                        return $ field s
+
+getOpponentVitality :: SlotNumber -> MoveStep Vitality
+getOpponentVitality n = do s <- getOpponentSlot n
+                           return $ vitality s
+
+putOpponentField :: Value -> SlotNumber -> MoveStep ()
+putOpponentField v n = transformOpponentSlots (updateField v n)
+
+putOpponentVitality :: Vitality -> SlotNumber -> MoveStep ()
+putOpponentVitality v n = transformOpponentSlots (updateVitality v n)
 
 -- Executes the lambda function corresponding to a move, incorporates
 -- side effects into the GameState, and stops execution if an error

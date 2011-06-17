@@ -9,25 +9,60 @@ import MoveStep
 
 
 apply :: Value -> Value -> MoveStep Value
+
 apply (ValueNum _) _ = throwError applyNumMsg
+
 apply (ValueCard IdentityCard) arg = incAppCount >> doI arg
+
 apply (ValueCard ZeroCard) arg = throwError arityMsg
+
 apply (ValueCard SuccCard) arg = incAppCount >> doSucc arg
+
 apply (ValueCard DoubleCard) arg = incAppCount >> doDbl arg
+
 apply (ValueCard GetCard) arg = incAppCount >> doGet arg
+
 apply (ValueCard PutCard) arg = incAppCount >> doPut arg
+
 apply (ValueApplication (ValueApplication (ValueCard SCard) f) g) x =
   incAppCount >> doS f g x
 apply ff@(ValueApplication (ValueCard SCard) f) g =
   incAppCount >> return (ValueApplication ff g)
 apply ss@(ValueCard SCard) f =
   incAppCount >> return (ValueApplication ss f)
+
 apply k@(ValueCard KCard) x =
   incAppCount >> return (ValueApplication k x)
-apply (ValueApplication (ValueCard KCard) x) y =
-  incAppCount >> doK x y
+apply (ValueApplication (ValueCard KCard) x) y = incAppCount >> doK x y
+
+apply (ValueCard IncCard) i = incAppCount >> doInc i
+
+apply (ValueCard DecCard) i = incAppCount >> doDec i
+
+apply (ValueApplication (ValueApplication (ValueCard AttackCard) i) j) n =
+  incAppCount >> doAttack i j n
+apply ii@(ValueApplication (ValueCard AttackCard) i) j =
+  incAppCount >> return (ValueApplication ii j)
+apply card@(ValueCard AttackCard) i =
+  incAppCount >> return (ValueApplication card i)
+
+apply (ValueApplication (ValueApplication (ValueCard HelpCard) i) j) n =
+  incAppCount >> doHelp i j n
+apply ii@(ValueApplication (ValueCard HelpCard) i) j =
+  incAppCount >> return (ValueApplication ii j)
+apply card@(ValueCard HelpCard) i =
+  incAppCount >> return (ValueApplication card i)
+
+apply (ValueCard CopyCard) i = incAppCount >> doCopy i
+
+apply (ValueCard ReviveCard) i = incAppCount >> doRevive i
+
+apply (ValueApplication (ValueCard ZombieCard) i) x =
+  incAppCount >> doZombie i x
+apply card@(ValueCard ZombieCard) i =
+  incAppCount >> return (ValueApplication card i)
+
 apply x y = error (show x ++ " APPLIED TO " ++ show y)
--- need more
 
 
 applyNumMsg = "Number on left of application"
@@ -57,7 +92,7 @@ dblNANmsg = "dbl applied to non-number"
 
 doGet :: Value -> MoveStep Value
 doGet (ValueNum i) = if i >= 0 && i <= 255
-                     then getProponentSlotField i
+                     then getProponentField i
                      else throwError getRangeMsg
 doGet _ = throwError getNANmsg
 getRangeMsg = "get out of range"
@@ -76,10 +111,33 @@ doK :: Value -> Value -> MoveStep Value
 doK x y = return x
 
 doInc :: Value -> MoveStep Value
-doInc = undefined
+doInc (ValueNum i) = if i >= 0 && i <= 255
+                     then do v <- getProponentVitality i
+                             let v' = case v of
+                                   65535 -> 65535
+                                   0     -> 0
+                                   -1    -> -1
+                                   _     -> v+1
+                             putProponentVitality v' i
+                             return $ ValueCard IdentityCard
+                     else throwError incRangeMsg
+doInc _ = throwError incNANmsg
+incRangeMsg = "inc out of range"
+incNANmsg = "inc applied to non-number"
 
 doDec :: Value -> MoveStep Value
-doDec = undefined
+doDec (ValueNum i) = if i >= 0 && i <= 255
+                     then do v <- getOpponentVitality (255-i)
+                             let v' = case v of
+                                   0  -> 0
+                                   -1 -> -1
+                                   _  -> v-1
+                             putOpponentVitality v' (255-i)
+                             return $ ValueCard IdentityCard
+                     else throwError decRangeMsg
+doDec _ = throwError decNANmsg
+decRangeMsg = "dec out of range"
+decNANmsg = "dec applied to non-number"
 
 doAttack :: Value -> Value -> Value -> MoveStep Value
 doAttack = undefined
@@ -88,10 +146,25 @@ doHelp :: Value -> Value -> Value -> MoveStep Value
 doHelp = undefined
 
 doCopy :: Value -> MoveStep Value
-doCopy = undefined
+doCopy (ValueNum i) = if i >= 0 && i <= 255
+                     then getOpponentField i -- note that this is NOT (255-i)!
+                     else throwError copyRangeMsg
+doCopy _ = throwError copyNANmsg
+copyRangeMsg = "copy out of range"
+copyNANmsg = "copy applied to non-number"
 
 doRevive :: Value -> MoveStep Value
-doRevive = undefined
+doRevive (ValueNum i) = if i >= 0 && i <= 255
+                     then do v <- getProponentVitality i
+                             let v' = case v of
+                                   0  -> 1
+                                   _  -> v
+                             putProponentVitality v' i
+                             return $ ValueCard IdentityCard
+                     else throwError reviveRangeMsg
+doRevive _ = throwError reviveNANmsg
+reviveRangeMsg = "revive out of range"
+reviveNANmsg = "revive applied to non-number"
 
 doZombie :: Value -> Value -> MoveStep Value
 doZombie = undefined
@@ -146,13 +219,13 @@ test_CardBehavior = [
 
   runMove (doS (ValueNum 0) (ValueCard IdentityCard) (ValueCard IdentityCard))
   initialState ~?=
-    (initialState,Left $ applyNumMsg),
+    (initialState,Left applyNumMsg),
   runMove (doS (ValueCard IdentityCard) (ValueNum 0) (ValueCard IdentityCard))
   initialState ~?=
-    (initialState,Left $ applyNumMsg),
+    (initialState,Left applyNumMsg),
   runMove (doS (ValueCard IdentityCard) (ValueCard IdentityCard) (ValueNum 0))
   initialState ~?=
-    (initialState,Left $ applyNumMsg),
+    (initialState,Left applyNumMsg),
   runMove (doS (ValueCard IdentityCard) (ValueCard IdentityCard)
            (ValueCard IdentityCard))
   initialState ~?=
@@ -169,7 +242,26 @@ test_CardBehavior = [
                     (ValueCard SuccCard)))
                   (ValueCard SuccCard))
            (ValueCard ZeroCard)) initialState ~?=
-    (initialState,Right $ ValueNum 2)
+    (initialState,Right $ ValueNum 2),
+
+  runMove (doK (ValueNum 3) (ValueNum 6)) initialState ~?=
+    (initialState,Right $ ValueNum 3),
+  runMove (doK (ValueCard SCard) (ValueCard SuccCard)) initialState ~?=
+    (initialState,Right $ ValueCard SCard),
+
+  runMove (doInc (ValueCard IdentityCard)) initialState ~?=
+    (initialState,Left incNANmsg),
+  runMove (doInc (ValueNum 256)) initialState ~?=
+    (initialState,Left incRangeMsg),
+  runMove (doInc (ValueNum 0)) initialState ~?=
+    (GameState FirstPlayer (updateVitality 10001 0 initialSide) initialSide,
+     Right $ ValueCard IdentityCard),
+  runMove (doInc (ValueNum 0)) (GameState FirstPlayer (updateVitality 0 0 initialSide) initialSide) ~?=
+    (GameState FirstPlayer (updateVitality 0 0 initialSide) initialSide,
+     Right $ ValueCard IdentityCard),
+  runMove (doInc (ValueNum 0)) (GameState FirstPlayer (updateVitality 65535 0 initialSide) initialSide) ~?=
+    (GameState FirstPlayer (updateVitality 65535 0 initialSide) initialSide,
+     Right $ ValueCard IdentityCard)
   {-
   -- Infinite loop example
   runMove (doS (ValueCard IdentityCard) (ValueCard IdentityCard)

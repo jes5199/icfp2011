@@ -19,7 +19,7 @@ simulate gameState move = fst $ runMove moveStep gameState
 
 takeMove :: Move -> MoveStep (Value, Value)
 takeMove (Move applicationDirection card slotNumber)
-    = do oldValue <- getProponentSlotField slotNumber -- TODO: error handling needed if slot number bad???
+    = do oldValue <- getProponentField slotNumber -- TODO: error handling needed if slot number bad???
          case applicationDirection of
            LeftApplication -> return ((ValueCard card), oldValue)
            RightApplication -> return (oldValue, (ValueCard card))
@@ -41,6 +41,6 @@ test_Simulator = [
   where
     overwriteField slotNum value = GameState FirstPlayer
                              (updateField value slotNum (firstPlayerBoard initialState))
-                             (secondPlayerBoard initialState) 
+                             (secondPlayerBoard initialState)
     trivialMove = Move LeftApplication IdentityCard 2
     moveWithResult = Move RightApplication ZeroCard 3

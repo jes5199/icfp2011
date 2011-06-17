@@ -1,11 +1,15 @@
 module Main where
 
+import Control.Monad.State
 import Strategy
 import Value
 import Card
 import Move
+import Parser
+import System(getArgs)
 
 main :: IO ()
-main = do let value = (ValueApplication (ValueApplication (ValueApplication (ValueCard SCard) (ValueApplication (ValueCard KCard) (ValueCard IncCard))) (ValueApplication (ValueCard KCard) (ValueCard ZeroCard))) (ValueCard IdentityCard))
-              result = buildValue [1..255] 0 value
+main = do [arg] <- getArgs
+          let value = parse arg
+              result = fst $ runState (buildValue 0 (translateNums $ translateLambda value)) [1..255]
           putStr (printMoves result)
