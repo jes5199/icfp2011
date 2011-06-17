@@ -5,3 +5,6 @@ simdriver: *.hs
 
 simtester: *.hs
 	ghc --make -O3 simtester
+
+clean:
+	rm -f *.hi *.o *~
