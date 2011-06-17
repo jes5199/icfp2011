@@ -140,7 +140,29 @@ decRangeMsg = "dec out of range"
 decNANmsg = "dec applied to non-number"
 
 doAttack :: Value -> Value -> Value -> MoveStep Value
-doAttack = undefined
+doAttack (ValueNum i) (ValueNum j) (ValueNum n) =
+    if i < 0 || i > 255
+    then throwError attackRangeI
+    else do
+        v <- getProponentVitality i
+        if v < n
+          then throwError attackRangeN
+          else do
+            putProponentVitality (v-n) i
+            if j < 0 || j > 255
+              then throwError attackRangeJ
+              else do
+                w <- getOpponentVitality (255-j)
+                let n' = (n*9) `div` 10
+                    w' = if      w <= 0  then w
+                         else if w <= n' then 0
+                              else            w-n'
+                putOpponentVitality w' (255-j)
+                return $ ValueCard IdentityCard
+            
+attackRangeI = "attack i-value out of range"
+attackRangeN = "attack n-value greater than vitality of [i]"
+attackRangeJ = "attack j-value out of range"
 
 doHelp :: Value -> Value -> Value -> MoveStep Value
 doHelp = undefined
