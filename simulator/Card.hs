@@ -1,12 +1,12 @@
-module Card (Card(..),Function(..),cardToFunction,identityCard) where
+module Card (Card(..),Function(..),cardToFunction) where
 
-data Card = Card String
+data Card = IdentityCard
           deriving (Eq, Show)
 
-data Function = IdentityFunction
+data Function = FunctionCard Card |
+                FunctionValue Int |
+                FunctionApplication Function Function
               deriving (Eq, Show)
 
 cardToFunction :: Card -> Function
-cardToFunction _ = IdentityFunction
-
-identityCard = Card "I"
+cardToFunction = FunctionCard

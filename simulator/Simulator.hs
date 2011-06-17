@@ -1,9 +1,14 @@
 module Simulator (simulate,test_Simulator) where
 
 import Test.HUnit
+import GameState
+import Move
+import Card
 
-simulate x y = (x,y)
+simulate x y = x
 
 test_Simulator = [
-  simulate "initial state" "some move" ~?= ("initial state","some move")
+  simulate initialState trivialMove ~?= initialState
   ]
+  where
+    trivialMove = Move FirstPlayer LeftApplication IdentityCard 2
