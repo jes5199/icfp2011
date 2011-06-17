@@ -7,6 +7,31 @@ import Value
 import Card
 import MoveStep
 
+
+apply :: Value -> Value -> MoveStep Value
+apply (ValueNum _) _ = throwError applyNumMsg
+apply (ValueCard IdentityCard) arg = incAppCount >> doI arg
+apply (ValueCard ZeroCard) arg = throwError arityMsg
+apply (ValueCard SuccCard) arg = incAppCount >> doSucc arg
+apply (ValueCard DoubleCard) arg = incAppCount >> doDbl arg
+apply (ValueCard GetCard) arg = incAppCount >> doGet arg
+apply (ValueCard PutCard) arg = incAppCount >> doPut arg
+apply (ValueApplication (ValueApplication (ValueCard SCard) f) g) x =
+  incAppCount >> doS f g x
+apply ff@(ValueApplication (ValueCard SCard) f) g =
+  incAppCount >> return (ValueApplication ff g)
+apply ss@(ValueCard SCard) f =
+  incAppCount >> return (ValueApplication ss f)
+apply k@(ValueCard KCard) x =
+  incAppCount >> return (ValueApplication k x)
+apply (ValueApplication (ValueCard KCard) x) y =
+  incAppCount >> doK x y
+-- need more
+
+
+applyNumMsg = "Number on left of application"
+arityMsg = "Something applied to too many args"
+
 doI :: Value -> MoveStep Value
 doI x = return x
 
@@ -17,6 +42,7 @@ doSucc :: Value -> MoveStep Value
 doSucc (ValueNum n) = return $ ValueNum $ if n == 65535
                                           then 65535
                                           else n+1
+doSucc (ValueCard ZeroCard) = return $ ValueNum 1
 doSucc _ = throwError succNANmsg
 -- definition is separate for benefit of unit test
 succNANmsg = "succ applied to non-number"
@@ -40,10 +66,13 @@ doPut :: Value -> MoveStep Value
 doPut _ = return $ ValueCard IdentityCard
 
 doS :: Value -> Value -> Value -> MoveStep Value
-doS = undefined
+doS f g x = do h <- apply f x
+               y <- apply g x
+               z <- apply h y
+               return z
 
 doK :: Value -> Value -> MoveStep Value
-doK = undefined
+doK x y = return x
 
 doInc :: Value -> MoveStep Value
 doInc = undefined
@@ -84,6 +113,8 @@ test_CardBehavior = [
     (initialState,Right $ ValueNum 65535),
   runMove (doSucc (ValueCard IdentityCard)) initialState ~?=
     (initialState,Left succNANmsg),
+  runMove (doSucc (ValueCard ZeroCard)) initialState ~?=
+    (initialState,Right $ ValueNum 1),
 
   runMove (doDbl (ValueNum 0)) initialState ~?=
     (initialState,Right $ ValueNum 0),
@@ -110,5 +141,29 @@ test_CardBehavior = [
   runMove (doPut (ValueNum 345)) initialState ~?=
     (initialState,Right $ ValueCard IdentityCard),
   runMove (doPut (ValueCard SCard)) initialState ~?=
-    (initialState,Right $ ValueCard IdentityCard)
+    (initialState,Right $ ValueCard IdentityCard),
+
+  runMove (doS (ValueNum 0) (ValueCard IdentityCard) (ValueCard IdentityCard))
+  initialState ~?=
+    (initialState,Left $ applyNumMsg),
+  runMove (doS (ValueCard IdentityCard) (ValueNum 0) (ValueCard IdentityCard))
+  initialState ~?=
+    (initialState,Left $ applyNumMsg),
+  runMove (doS (ValueCard IdentityCard) (ValueCard IdentityCard) (ValueNum 0))
+  initialState ~?=
+    (initialState,Left $ applyNumMsg),
+  runMove (doS (ValueCard IdentityCard) (ValueCard IdentityCard)
+           (ValueCard IdentityCard))
+  initialState ~?=
+    (initialState,Right $ ValueCard IdentityCard),
+  -- Paul made this example
+  runMove (doS (ValueApplication (ValueCard KCard) (ValueCard SuccCard))
+           (ValueCard SuccCard) (ValueCard ZeroCard)) initialState ~?=
+    (initialState,Right $ ValueNum 2)
+  {-
+  -- Infinite loop example
+  runMove (doS (ValueCard IdentityCard) (ValueCard IdentityCard)
+           (ValueCard SuccCard))
+  initialState ~?=
+    (initialState,Right $ ValueCard IdentityCard) -}
   ]
