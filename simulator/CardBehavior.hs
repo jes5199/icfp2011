@@ -28,7 +28,8 @@ apply (ValueApplication (ValueCard KCard) x) y = incAppCount >> doK x y
 apply (ValueCard IncCard) i = incAppCount >> doInc i
 apply (ValueCard DecCard) i = incAppCount >> doDec i
 
-apply (ValueCard DecCard) i = incAppCount >> doCopy i
+apply (ValueCard CopyCard) i = incAppCount >> doCopy i
+apply (ValueCard ReviveCard) i = incAppCount >> doRevive i
 
 apply x y = error (show x ++ " APPLIED TO " ++ show y)
 -- need more
@@ -103,7 +104,7 @@ doDec (ValueNum i) = if i >= 0 && i <= 255
                                    _  -> v-1
                              putOpponentVitality v' (255-i)
                              return $ ValueCard IdentityCard
-                     else throwError incRangeMsg
+                     else throwError decRangeMsg
 doDec _ = throwError decNANmsg
 decRangeMsg = "dec out of range"
 decNANmsg = "dec applied to non-number"
@@ -123,7 +124,17 @@ copyRangeMsg = "copy out of range"
 copyNANmsg = "copy applied to non-number"
 
 doRevive :: Value -> MoveStep Value
-doRevive = undefined
+doRevive (ValueNum i) = if i >= 0 && i <= 255
+                     then do v <- getProponentVitality i
+                             let v' = case v of
+                                   0  -> 1
+                                   _  -> v
+                             putProponentVitality v' i
+                             return $ ValueCard IdentityCard
+                     else throwError reviveRangeMsg
+doRevive _ = throwError reviveNANmsg
+reviveRangeMsg = "revive out of range"
+reviveNANmsg = "revive applied to non-number"
 
 doZombie :: Value -> Value -> MoveStep Value
 doZombie = undefined
