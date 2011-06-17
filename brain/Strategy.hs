@@ -17,11 +17,20 @@ translateNums (ValueNum i) | i < 0 = error "negative value in translateNums"
                            | otherwise = ValueApplication (ValueCard DoubleCard) (translateNums (ValueNum (i `div` 2)))
 translateNums (ValueCard c) = ValueCard c
 
--- Build a value in which every application has a leaf node on either
--- its LHS or RHS.
+-- Determine whether the given value is in "vine" form.  "Vine" form
+-- requires that:
+-- - There are no ValueNums anywhere in the tree
+-- - Every application has a ValueCard for either its LHS or RHS.
+isVine :: Value -> Bool
+isVine (ValueCard _) = True
+isVine (ValueNum _) = False
+isVine (ValueApplication (ValueCard _) v) = isVine v
+isVine (ValueApplication v (ValueCard _)) = isVine v
+isVine (ValueApplication _ _) = False
+
+-- Build a value which satisfies the isVine predicate.
 -- Assumes:
 -- - the slot previously held the identity function.
--- - the vine contains no ValueNum's (see translateNums).
 buildVine :: Slot -> Value -> [Move]
 buildVine slot vine = buildVine' vine []
     where buildVine' (ValueCard c) = (Move RightApplication c slot :)
@@ -39,6 +48,12 @@ test_Strategy = [
   translateNums (ValueNum 5) ~?= app succ (app dbl (app dbl (app succ zero))),
   translateNums succ ~?= succ,
   translateNums (app (ValueNum 1) (ValueNum 2)) ~?= app (app succ zero) (app dbl (app succ zero)),
+  isVine dbl ~?= True,
+  isVine (ValueNum 1) ~?= False,
+  isVine (ValueApplication succ zero) ~?= True,
+  isVine (ValueApplication succ (ValueApplication succ zero)) ~?= True,
+  isVine (ValueApplication (ValueApplication k succ) zero) ~?= True,
+  isVine (ValueApplication (ValueApplication k succ) (ValueApplication k succ)) ~?= False,
   buildVine 10 dbl ~?= [Move RightApplication DoubleCard 10],
   buildVine 10 (ValueApplication succ zero) ~?= [Move RightApplication ZeroCard 10, Move LeftApplication SuccCard 10],
   (buildVine 10 (ValueApplication succ (ValueApplication succ zero))
