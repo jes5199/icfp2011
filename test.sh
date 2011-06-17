@@ -8,7 +8,3 @@ cd simulator
 make
 ./simtester
 cd ..
-
-cd driver
-make
-cd ..
