@@ -57,5 +57,4 @@ test_CardBehavior = [
                                                             FunctionValue 3),
   identity (FunctionCard IdentityCard) initialState ~?=
   (initialState,Just $ FunctionCard IdentityCard)
-  
   ] :: [Test]
