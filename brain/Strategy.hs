@@ -59,6 +59,15 @@ applyRightVine slot (ValueApplication (ValueCard c) v)
       ++ applyRightVine slot v
 applyRightVine _ _ = error "applyRightVine: not a right vine"
 
+-- Build a value of the form (ValueApplication v rv), where v
+-- satisfies the isVine predicate, and rv satisfies the isRightVine
+-- predicate.
+-- Assumes:
+-- - the slot previously held the identity function.
+buildVrv :: Slot -> Value -> [Move]
+buildVrv slot (ValueApplication v rv) = buildVine slot v ++ applyRightVine slot rv
+buildVrv slot _ = error "buildVrv: not a ValueApplication"
+
 test_Strategy = [
   translateNums (ValueNum 0) ~?= zero,
   translateNums (ValueNum 1) ~?= app succ zero,
@@ -93,10 +102,18 @@ test_Strategy = [
   (applyRightVine 10 (ValueApplication dbl (ValueApplication succ zero))
    ~?= [Move LeftApplication KCard 10, Move LeftApplication SCard 10, Move RightApplication DoubleCard 10,
         Move LeftApplication KCard 10, Move LeftApplication SCard 10, Move RightApplication SuccCard 10,
-        Move RightApplication ZeroCard 10]) -- TODO: I'm not certain this is correct --Paul
+        Move RightApplication ZeroCard 10]), -- TODO: I'm not certain this is correct --Paul
+  buildVrv 10 (ValueApplication succ zero) ~?= [Move RightApplication SuccCard 10, Move RightApplication ZeroCard 10],
+  (buildVrv 10 (ValueApplication (ValueApplication (ValueApplication s (ValueApplication k get)) get)
+                (ValueApplication succ zero)) -- get(get(1))
+   ~?= [Move RightApplication GetCard 10, Move LeftApplication KCard 10, Move LeftApplication SCard 10,
+        Move RightApplication GetCard 10, Move LeftApplication KCard 10, Move LeftApplication SCard 10,
+        Move RightApplication SuccCard 10, Move RightApplication ZeroCard 10])
   ] :: [Test]
     where zero = ValueCard ZeroCard
           succ = ValueCard SuccCard
           dbl = ValueCard DoubleCard
           k = ValueCard KCard
           app = ValueApplication
+          s = ValueCard SCard
+          get = ValueCard GetCard
