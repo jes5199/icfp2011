@@ -5,6 +5,7 @@ import Control.Monad.State
 import Control.Monad.Error
 import GameState
 import Value
+import Move
 
 type MoveStep = ErrorT String (State (GameState,Int))
 
@@ -42,13 +43,23 @@ transformProponentSlots transform
            FirstPlayer  -> putGameState (GameState who (transform p1) p2)
            SecondPlayer -> putGameState (GameState who p1 (transform p2))
 
-getProponentSlot :: Int -> MoveStep Slot
+getProponentSlot :: SlotNumber -> MoveStep Slot
 getProponentSlot n = do Slots slots <- getProponentSlots
                         return $ slots ! n
 
-getProponentSlotField :: Int -> MoveStep Value
-getProponentSlotField n = do s <- getProponentSlot n
-                             return $ field s
+getProponentField :: SlotNumber -> MoveStep Value
+getProponentField n = do s <- getProponentSlot n
+                         return $ field s
+
+getProponentVitality :: SlotNumber -> MoveStep Vitality
+getProponentVitality n = do s <- getProponentSlot n
+                            return $ vitality s
+
+putProponentField :: Value -> SlotNumber -> MoveStep ()
+putProponentField v n = transformProponentSlots (updateField v n)
+
+putProponentVitality :: Vitality -> SlotNumber -> MoveStep ()
+putProponentVitality v n = transformProponentSlots (updateVitality v n)
 
 -- Executes the lambda function corresponding to a move, incorporates
 -- side effects into the GameState, and stops execution if an error

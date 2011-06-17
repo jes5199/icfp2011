@@ -24,8 +24,9 @@ apply ss@(ValueCard SCard) f =
   incAppCount >> return (ValueApplication ss f)
 apply k@(ValueCard KCard) x =
   incAppCount >> return (ValueApplication k x)
-apply (ValueApplication (ValueCard KCard) x) y =
-  incAppCount >> doK x y
+apply (ValueApplication (ValueCard KCard) x) y = incAppCount >> doK x y
+apply (ValueCard IncCard) i = incAppCount >> doInc i
+
 apply x y = error (show x ++ " APPLIED TO " ++ show y)
 -- need more
 
@@ -57,7 +58,7 @@ dblNANmsg = "dbl applied to non-number"
 
 doGet :: Value -> MoveStep Value
 doGet (ValueNum i) = if i >= 0 && i <= 255
-                     then getProponentSlotField i
+                     then getProponentField i
                      else throwError getRangeMsg
 doGet _ = throwError getNANmsg
 getRangeMsg = "get out of range"
@@ -76,7 +77,19 @@ doK :: Value -> Value -> MoveStep Value
 doK x y = return x
 
 doInc :: Value -> MoveStep Value
-doInc = undefined
+doInc (ValueNum i) = if i >= 0 && i <= 255
+                     then do v <- getProponentVitality i
+                             let v' = case v of
+                                   65535 -> 65535
+                                   0 -> 0
+                                   -1 -> -1
+                                   _ -> v+1
+                             putProponentVitality v' i
+                             return $ ValueCard IdentityCard
+                     else throwError incRangeMsg
+doInc _ = throwError incNANmsg
+incRangeMsg = "inc out of range"
+incNANmsg = "inc applied to non-number"
 
 doDec :: Value -> MoveStep Value
 doDec = undefined
@@ -146,13 +159,13 @@ test_CardBehavior = [
 
   runMove (doS (ValueNum 0) (ValueCard IdentityCard) (ValueCard IdentityCard))
   initialState ~?=
-    (initialState,Left $ applyNumMsg),
+    (initialState,Left applyNumMsg),
   runMove (doS (ValueCard IdentityCard) (ValueNum 0) (ValueCard IdentityCard))
   initialState ~?=
-    (initialState,Left $ applyNumMsg),
+    (initialState,Left applyNumMsg),
   runMove (doS (ValueCard IdentityCard) (ValueCard IdentityCard) (ValueNum 0))
   initialState ~?=
-    (initialState,Left $ applyNumMsg),
+    (initialState,Left applyNumMsg),
   runMove (doS (ValueCard IdentityCard) (ValueCard IdentityCard)
            (ValueCard IdentityCard))
   initialState ~?=
@@ -169,7 +182,26 @@ test_CardBehavior = [
                     (ValueCard SuccCard)))
                   (ValueCard SuccCard))
            (ValueCard ZeroCard)) initialState ~?=
-    (initialState,Right $ ValueNum 2)
+    (initialState,Right $ ValueNum 2),
+
+  runMove (doK (ValueNum 3) (ValueNum 6)) initialState ~?=
+    (initialState,Right $ ValueNum 3),
+  runMove (doK (ValueCard SCard) (ValueCard SuccCard)) initialState ~?=
+    (initialState,Right $ ValueCard SCard),
+
+  runMove (doInc (ValueCard IdentityCard)) initialState ~?=
+    (initialState,Left incNANmsg),
+  runMove (doInc (ValueNum 256)) initialState ~?=
+    (initialState,Left incRangeMsg),
+  runMove (doInc (ValueNum 0)) initialState ~?=
+    (GameState FirstPlayer (updateVitality 10001 0 initialSide) initialSide,
+     Right $ ValueCard IdentityCard),
+  runMove (doInc (ValueNum 0)) (GameState FirstPlayer (updateVitality 0 0 initialSide) initialSide) ~?=
+    (GameState FirstPlayer (updateVitality 0 0 initialSide) initialSide,
+     Right $ ValueCard IdentityCard),
+  runMove (doInc (ValueNum 0)) (GameState FirstPlayer (updateVitality 65535 0 initialSide) initialSide) ~?=
+    (GameState FirstPlayer (updateVitality 65535 0 initialSide) initialSide,
+     Right $ ValueCard IdentityCard)
   {-
   -- Infinite loop example
   runMove (doS (ValueCard IdentityCard) (ValueCard IdentityCard)
