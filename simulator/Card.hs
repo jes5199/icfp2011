@@ -1,12 +1,10 @@
-module Card (Card(..),Function(..),cardToFunction) where
+module Card (Card(..),test_Card) where
 
-data Card = IdentityCard
+import Test.HUnit
+
+data Card = IdentityCard |
+            ZeroCard
           deriving (Eq, Show)
 
-data Function = FunctionCard Card |
-                FunctionValue Int |
-                FunctionApplication Function Function
-              deriving (Eq, Show)
-
-cardToFunction :: Card -> Function
-cardToFunction = FunctionCard
+test_Card = [
+  ] :: [Test]

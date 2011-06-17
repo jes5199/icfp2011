@@ -2,6 +2,7 @@ module GameState (GameState(..),initialState) where
 
 import Data.Array
 import Card
+import Function
 
 data Slot = Slot { vitality :: Int, field :: Function }
           deriving (Eq, Show)
