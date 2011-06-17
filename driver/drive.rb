@@ -1,5 +1,6 @@
 STDIN.each do |line|
-  a, b = line.split(/\s+/)
+  line = line.gsub(/[\[\]]/,' ')
+  a, b = line.strip.split(/\s+/)
   if a =~ /\d/
     direction = 2
     slot = a

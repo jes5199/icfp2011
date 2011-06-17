@@ -12,5 +12,7 @@ describe "running drive.rb" do
   it "should translate concise to expanded" do
     put_and_get("0 S").should == ['2','0','S']
     put_and_get("S 0").should == ['1','0','S']
+    put_and_get("[0]S").should == ['2','0','S']
+    put_and_get("S[0]").should == ['1','0','S']
   end
 end
