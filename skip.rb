@@ -61,6 +61,10 @@ print "-: "
 p things
 1024.times do |n|
   STDERR.puts(n)
+  STDERR.puts( things.length )
+
+  STDERR.puts( "CREATING" )
+
   new_things = []
   things.each do |thing|
     if thing.is_a?(String)
@@ -72,9 +76,14 @@ p things
     end
   end
 
+  STDERR.puts( "DELETING" )
+
   new_things.delete_if{|th| evils.include?(th) }
   new_things.delete_if{|th| tried.include?(th) }
   tried += new_things
+
+  STDERR.puts(new_things.length)
+  STDERR.puts( "CALCULATING" )
 
   new_things.map! do |thing|
     #puts "skiing #{thing.inspect}"
@@ -83,15 +92,21 @@ p things
       puts(thing.inspect + " -> " + nthing.inspect)
       nthing
     rescue SystemStackError
-      #STDERR.puts( "Non-terminating: " + thing.inspect )
-      STDERR.print( "." )
+      STDOUT.puts( "Non-terminating: " + thing.inspect )
+      #STDERR.print( "." )
       evils << thing
     end
   end.uniq!
   things += new_things
   puts "#{n}: "
   #pp things
+
+  STDERR.puts( "DELETING" )
+
   new_things.delete_if{|th| evils.include?(th) }
+
+  STDERR.puts(new_things.length)
+  STDERR.puts( "APPLYING" )
 
   new_things.each do |thing|
     begin
@@ -104,8 +119,8 @@ p things
         STDOUT.puts("Candidate: " + real.inspect)
       end
     rescue SystemStackError
-      #STDERR.puts( "Non-terminating: " + thing.inspect )
-      STDERR.print( "," )
+      STDOUT.puts( "Non-terminating: " + thing.inspect )
+      #STDERR.print( "," )
       evils << real
     end
   end
