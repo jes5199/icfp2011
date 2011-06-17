@@ -38,9 +38,14 @@ test_Strategy = [
   translateNums (ValueNum 4) ~?= app dbl (app dbl (app succ zero)),
   translateNums (ValueNum 5) ~?= app succ (app dbl (app dbl (app succ zero))),
   translateNums succ ~?= succ,
-  translateNums (app (ValueNum 1) (ValueNum 2)) ~?= app (app succ zero) (app dbl (app succ zero))
+  translateNums (app (ValueNum 1) (ValueNum 2)) ~?= app (app succ zero) (app dbl (app succ zero)),
+  buildVine 10 dbl ~?= [Move RightApplication DoubleCard 10],
+  buildVine 10 (ValueApplication succ zero) ~?= [Move RightApplication ZeroCard 10, Move LeftApplication SuccCard 10],
+  (buildVine 10 (ValueApplication (ValueApplication k succ) zero)
+   ~?= [Move RightApplication SuccCard 10, Move LeftApplication KCard 10, Move RightApplication ZeroCard 10])
   ] :: [Test]
     where zero = ValueCard ZeroCard
           succ = ValueCard SuccCard
           dbl = ValueCard DoubleCard
+          k = ValueCard KCard
           app = ValueApplication
