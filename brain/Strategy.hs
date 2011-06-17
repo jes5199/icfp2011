@@ -28,6 +28,17 @@ isVine (ValueApplication (ValueCard _) v) = isVine v
 isVine (ValueApplication v (ValueCard _)) = isVine v
 isVine (ValueApplication _ _) = False
 
+-- Determine whether the given value is in "right vine" form.  "Right
+-- vine" form requires that:
+-- - There are no ValueNums anywhere in the tree
+-- - Every application has a ValueCard for its LHS.
+-- That is, the "vine" grows exclusively downward and to the right.
+isRightVine :: Value -> Bool
+isRightVine (ValueCard _) = True
+isRightVine (ValueNum _) = False
+isRightVine (ValueApplication (ValueCard _) v) = isRightVine v
+isRightVine (ValueApplication _ _) = False
+
 -- Build a value which satisfies the isVine predicate.
 -- Assumes:
 -- - the slot previously held the identity function.
@@ -38,6 +49,15 @@ buildVine slot vine = buildVine' vine []
           buildVine' (ValueApplication (ValueCard c) v) = buildVine' v . (Move LeftApplication c slot :)
           buildVine' (ValueApplication v (ValueCard c)) = buildVine' v . (Move RightApplication c slot :)
           buildVine' (ValueApplication v w) = error "buildVine': not a vine"
+
+-- Apply the value (which must satisfy the isRightVine predicate) to
+-- the contents of the given slot.
+applyRightVine :: Slot -> Value -> [Move]
+applyRightVine slot (ValueCard c) = [Move RightApplication c slot]
+applyRightVine slot (ValueApplication (ValueCard c) v)
+    = [Move LeftApplication KCard slot, Move LeftApplication SCard slot, Move RightApplication c slot]
+      ++ applyRightVine slot v
+applyRightVine _ _ = error "applyRightVine: not a right vine"
 
 test_Strategy = [
   translateNums (ValueNum 0) ~?= zero,
@@ -54,12 +74,26 @@ test_Strategy = [
   isVine (ValueApplication succ (ValueApplication succ zero)) ~?= True,
   isVine (ValueApplication (ValueApplication k succ) zero) ~?= True,
   isVine (ValueApplication (ValueApplication k succ) (ValueApplication k succ)) ~?= False,
+  isRightVine dbl ~?= True,
+  isRightVine (ValueNum 1) ~?= False,
+  isRightVine (ValueApplication succ zero) ~?= True,
+  isRightVine (ValueApplication succ (ValueApplication succ zero)) ~?= True,
+  isRightVine (ValueApplication (ValueApplication k succ) zero) ~?= False,
+  isRightVine (ValueApplication (ValueApplication k succ) (ValueApplication k succ)) ~?= False,
   buildVine 10 dbl ~?= [Move RightApplication DoubleCard 10],
   buildVine 10 (ValueApplication succ zero) ~?= [Move RightApplication ZeroCard 10, Move LeftApplication SuccCard 10],
   (buildVine 10 (ValueApplication succ (ValueApplication succ zero))
    ~?= [Move RightApplication ZeroCard 10, Move LeftApplication SuccCard 10, Move LeftApplication SuccCard 10]),
   (buildVine 10 (ValueApplication (ValueApplication k succ) zero)
-   ~?= [Move RightApplication SuccCard 10, Move LeftApplication KCard 10, Move RightApplication ZeroCard 10])
+   ~?= [Move RightApplication SuccCard 10, Move LeftApplication KCard 10, Move RightApplication ZeroCard 10]),
+  applyRightVine 10 zero ~?= [Move RightApplication ZeroCard 10],
+  (applyRightVine 10 (ValueApplication succ zero)
+   ~?= [Move LeftApplication KCard 10, Move LeftApplication SCard 10, Move RightApplication SuccCard 10,
+        Move RightApplication ZeroCard 10]),
+  (applyRightVine 10 (ValueApplication dbl (ValueApplication succ zero))
+   ~?= [Move LeftApplication KCard 10, Move LeftApplication SCard 10, Move RightApplication DoubleCard 10,
+        Move LeftApplication KCard 10, Move LeftApplication SCard 10, Move RightApplication SuccCard 10,
+        Move RightApplication ZeroCard 10]) -- TODO: I'm not certain this is correct --Paul
   ] :: [Test]
     where zero = ValueCard ZeroCard
           succ = ValueCard SuccCard
