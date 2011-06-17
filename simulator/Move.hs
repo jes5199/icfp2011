@@ -8,5 +8,5 @@ data Who = FirstPlayer | SecondPlayer
 data Application = LeftApplication | RightApplication
                  deriving (Eq, Show)
 
-data Move = Move Who Application Card Int
+data Move = Move Application Card Int
           deriving (Eq, Show)

@@ -5,10 +5,10 @@ import GameState
 import Move
 import Card
 
-simulate x y = x
+simulate x who y = x
 
 test_Simulator = [
-  simulate initialState trivialMove ~?= initialState
+  simulate initialState FirstPlayer trivialMove ~?= initialState
   ]
   where
-    trivialMove = Move FirstPlayer LeftApplication IdentityCard 2
+    trivialMove = Move LeftApplication IdentityCard 2
