@@ -1,10 +1,10 @@
 Version of workspace file format:
                1
 Time of storage:
-               "Fri Jun 17 00:51:45 Pacific Daylight Time 2011"
+               "Fri Jun 17 12:47:41 Pacific Daylight Time 2011"
 Name of the workspace:
                "ltg"
 File paths of contained packages:
-               ["simulator\\simulator.cabal"]
+               ["simulator\\simtester.cabal"]
 Maybe file path of an active package:
-               Just "simulator\\simulator.cabal"
+               Just "simulator\\simtester.cabal"
