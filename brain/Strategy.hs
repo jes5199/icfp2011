@@ -1,4 +1,4 @@
-module Strategy(test_Strategy, buildValue) where
+module Strategy(test_Strategy, buildValue, translateNums) where
 
 import Control.Monad.State
 import Test.HUnit ( (~?=) )
