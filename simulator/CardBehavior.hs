@@ -24,8 +24,9 @@ apply ss@(ValueCard SCard) f =
   incAppCount >> return (ValueApplication ss f)
 apply k@(ValueCard KCard) x =
   incAppCount >> return (ValueApplication k x)
-apply (ValueApplication (ValueCard KCard) x) y =
-  incAppCount >> doK x y
+apply (ValueApplication (ValueCard KCard) x) y = incAppCount >> doK x y
+apply (ValueCard IncCard) i = incAppCount >> doInc i
+
 apply x y = error (show x ++ " APPLIED TO " ++ show y)
 -- need more
 
@@ -81,7 +82,7 @@ doInc (ValueNum i) = if i >= 0 && i <= 255
                              let v' = if v == 65535
                                       then 65535
                                       else v+1
-                             putProponentVitality i v'
+                             putProponentVitality v' i
                              return $ ValueCard IdentityCard
                      else throwError incRangeMsg
 doInc _ = throwError incNANmsg
@@ -156,13 +157,13 @@ test_CardBehavior = [
 
   runMove (doS (ValueNum 0) (ValueCard IdentityCard) (ValueCard IdentityCard))
   initialState ~?=
-    (initialState,Left $ applyNumMsg),
+    (initialState,Left applyNumMsg),
   runMove (doS (ValueCard IdentityCard) (ValueNum 0) (ValueCard IdentityCard))
   initialState ~?=
-    (initialState,Left $ applyNumMsg),
+    (initialState,Left applyNumMsg),
   runMove (doS (ValueCard IdentityCard) (ValueCard IdentityCard) (ValueNum 0))
   initialState ~?=
-    (initialState,Left $ applyNumMsg),
+    (initialState,Left applyNumMsg),
   runMove (doS (ValueCard IdentityCard) (ValueCard IdentityCard)
            (ValueCard IdentityCard))
   initialState ~?=
@@ -184,7 +185,15 @@ test_CardBehavior = [
   runMove (doK (ValueNum 3) (ValueNum 6)) initialState ~?=
     (initialState,Right $ ValueNum 3),
   runMove (doK (ValueCard SCard) (ValueCard SuccCard)) initialState ~?=
-    (initialState,Right $ ValueCard SCard)
+    (initialState,Right $ ValueCard SCard),
+
+  runMove (doInc (ValueCard IdentityCard)) initialState ~?=
+    (initialState,Left incNANmsg),
+  runMove (doInc (ValueNum 256)) initialState ~?=
+    (initialState,Left incRangeMsg),
+  runMove (doInc (ValueNum 0)) initialState ~?=
+    ((GameState FirstPlayer (updateVitality 10001 0 initialSide) initialSide),
+     Right $ ValueCard IdentityCard)
   {-
   -- Infinite loop example
   runMove (doS (ValueCard IdentityCard) (ValueCard IdentityCard)

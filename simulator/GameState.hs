@@ -1,4 +1,4 @@
-module GameState (GameState(..),Slots(..),Slot(..),initialState,Who(..),updateVitality,updateField,test_GameState,Vitality) where
+module GameState (GameState(..),Slots(..),Slot(..),initialState,Who(..),updateVitality,updateField,test_GameState,Vitality,initialSide) where
 
 import Test.HUnit
 import Data.Array
@@ -41,11 +41,12 @@ data GameState = GameState { playerToMove :: Who, firstPlayerBoard :: Slots, sec
                deriving (Eq, Show)
 
 initialState :: GameState
-initialState = GameState FirstPlayer a a
-  where
-    a = Slots $
-        array (0,255::Int) [(n,Slot 10000 (cardToValue IdentityCard)) |
-                            n <- [0..255]]
+initialState = GameState FirstPlayer initialSide initialSide
+
+initialSide :: Slots
+initialSide = Slots $
+              array (0,255::Int) [(n,Slot 10000 (cardToValue IdentityCard)) |
+                                  n <- [0..255]]
 
 test_GameState = [
     updateVitality 19 1 (Slots testSlots) ~?= Slots (testSlots // [(1, Slot 19 idValue)]),
