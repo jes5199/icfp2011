@@ -7,11 +7,11 @@ import Value
 import Card
 import MoveStep
 
-doIdentity :: Value -> MoveStep Value
-doIdentity x = return x
+doI :: Value -> MoveStep Value
+doI x = return x
 
 doZero :: MoveStep Value
-doZero = return (ValueNum 0)
+doZero = return $ ValueNum 0
 
 doSucc :: Value -> MoveStep Value
 doSucc (ValueNum n) = return $ ValueNum $ if n == 65535
@@ -36,74 +36,79 @@ doGet _ = throwError getNANmsg
 getRangeMsg = "get out of range"
 getNANmsg = "get applied to non-number"
 
-put :: Value -> Value -> MoveStep Value
-put = undefined
+doPut :: Value -> MoveStep Value
+doPut _ = return $ ValueCard IdentityCard
 
-s :: Value -> Value -> Value -> MoveStep Value
-s = undefined
+doS :: Value -> Value -> Value -> MoveStep Value
+doS = undefined
 
-k :: Value -> Value -> MoveStep Value
-k = undefined
+doK :: Value -> Value -> MoveStep Value
+doK = undefined
 
-inc :: Value -> MoveStep Value
-inc = undefined
+doInc :: Value -> MoveStep Value
+doInc = undefined
 
-dec :: Value -> MoveStep Value
-dec = undefined
+doDec :: Value -> MoveStep Value
+doDec = undefined
 
-attack :: Value -> Value -> Value -> MoveStep Value
-attack = undefined
+doAttack :: Value -> Value -> Value -> MoveStep Value
+doAttack = undefined
 
-help :: Value -> Value -> Value -> MoveStep Value
-help = undefined
+doHelp :: Value -> Value -> Value -> MoveStep Value
+doHelp = undefined
 
-copy :: Value -> MoveStep Value
-copy = undefined
+doCopy :: Value -> MoveStep Value
+doCopy = undefined
 
-revive :: Value -> MoveStep Value
-revive = undefined
+doRevive :: Value -> MoveStep Value
+doRevive = undefined
 
-zombie :: Value -> Value -> MoveStep Value
-zombie = undefined
+doZombie :: Value -> Value -> MoveStep Value
+doZombie = undefined
 
 test_CardBehavior = [
-  runMove (doIdentity (ValueNum 3)) initialState ~?=
-  (initialState,Right $ ValueNum 3),
-  runMove (doIdentity (ValueCard IdentityCard)) initialState ~?=
-  (initialState,Right $ ValueCard IdentityCard),
+  runMove (doI (ValueNum 3)) initialState ~?=
+    (initialState,Right $ ValueNum 3),
+  runMove (doI (ValueCard IdentityCard)) initialState ~?=
+    (initialState,Right $ ValueCard IdentityCard),
 
   runMove doZero initialState ~?= (initialState,Right $ ValueNum 0),
 
   runMove (doSucc (ValueNum 3)) initialState ~?=
-  (initialState,Right $ ValueNum 4),
+    (initialState,Right $ ValueNum 4),
   runMove (doSucc (ValueNum 0)) initialState ~?=
-  (initialState,Right $ ValueNum 1),
+    (initialState,Right $ ValueNum 1),
   runMove (doSucc (ValueNum 65534)) initialState ~?=
-  (initialState,Right $ ValueNum 65535),
+    (initialState,Right $ ValueNum 65535),
   runMove (doSucc (ValueNum 65535)) initialState ~?=
-  (initialState,Right $ ValueNum 65535),
+    (initialState,Right $ ValueNum 65535),
   runMove (doSucc (ValueCard IdentityCard)) initialState ~?=
-  (initialState,Left succNANmsg),
+    (initialState,Left succNANmsg),
 
   runMove (doDbl (ValueNum 0)) initialState ~?=
-  (initialState,Right $ ValueNum 0),
+    (initialState,Right $ ValueNum 0),
   runMove (doDbl (ValueNum 7)) initialState ~?=
-  (initialState,Right $ ValueNum 14),
+    (initialState,Right $ ValueNum 14),
   runMove (doDbl (ValueNum 32767)) initialState ~?=
-  (initialState,Right $ ValueNum 65534),
+    (initialState,Right $ ValueNum 65534),
   runMove (doDbl (ValueNum 32768)) initialState ~?=
-  (initialState,Right $ ValueNum 65535),
+    (initialState,Right $ ValueNum 65535),
   runMove (doDbl (ValueNum 65535)) initialState ~?=
-  (initialState,Right $ ValueNum 65535),
+    (initialState,Right $ ValueNum 65535),
   runMove (doDbl (ValueCard IdentityCard)) initialState ~?=
-  (initialState,Left dblNANmsg),
+    (initialState,Left dblNANmsg),
 
   runMove (doGet (ValueNum 0)) initialState ~?=
-  (initialState,Right $ ValueCard IdentityCard),
+    (initialState,Right $ ValueCard IdentityCard),
   runMove (doGet (ValueNum 255)) initialState ~?=
-  (initialState,Right $ ValueCard IdentityCard),
+    (initialState,Right $ ValueCard IdentityCard),
   runMove (doGet (ValueNum 256)) initialState ~?=
-  (initialState,Left getRangeMsg),
+    (initialState,Left getRangeMsg),
   runMove (doGet (ValueCard IdentityCard)) initialState ~?=
-  (initialState,Left getNANmsg)
+    (initialState,Left getNANmsg),
+
+  runMove (doPut (ValueNum 345)) initialState ~?=
+    (initialState,Right $ ValueCard IdentityCard),
+  runMove (doPut (ValueCard SCard)) initialState ~?=
+    (initialState,Right $ ValueCard IdentityCard)
   ]
