@@ -1,4 +1,4 @@
-module Strategy(test_Strategy) where
+module Strategy(test_Strategy, buildValue) where
 
 import Test.HUnit
 import Value
@@ -67,6 +67,27 @@ applyRightVine _ _ = error "applyRightVine: not a right vine"
 buildVrv :: Slot -> Value -> [Move]
 buildVrv slot (ValueApplication v rv) = buildVine slot v ++ applyRightVine slot rv
 buildVrv slot _ = error "buildVrv: not a ValueApplication"
+
+-- Build a general value.  Requires temporary slots.
+-- Assumes:
+-- - the destination slot and all temporary slots currently hold the identity function.
+buildValue :: [Slot] -> Slot -> Value -> [Move]
+buildValue tempSlots destSlot v | isVine v = buildVine destSlot v
+buildValue tempSlots destSlot (ValueApplication f x)
+    | isRightVine x = buildValue tempSlots destSlot f ++ applyRightVine destSlot x
+    | otherwise = (buildValue (evenElems tempSlots) destSlot f
+                   ++ buildValue (tail (oddElems tempSlots)) (head (oddElems tempSlots)) x
+                   ++ applyRightVine destSlot (translateNums (ValueApplication (ValueCard GetCard)
+                                                              (ValueNum (head (oddElems tempSlots))))))
+
+evenElems :: [a] -> [a]
+evenElems (x:_:xs) = x : evenElems xs
+evenElems [x] = [x]
+evenElems [] = []
+
+oddElems :: [a] -> [a]
+oddElems (_:xs) = evenElems xs
+oddElems _ = []
 
 test_Strategy = [
   translateNums (ValueNum 0) ~?= zero,
