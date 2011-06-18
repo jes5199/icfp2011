@@ -224,12 +224,16 @@ testCases = [
                    return ()),
  ("help_11.10001", do buildNewValue (parse "help 1 1 10001")
                       return ()),
+ ("copyK", do buildNewValue (parse "copy K")
+              return ()),
  ("copy0", do buildNewValue (parse "copy 0")
               return ()),
  ("copy255", do buildNewValue (parse "copy 255")
                 return ()),
  ("copy256", do buildNewValue (parse "copy 256")
                 return ()),
+ ("reviveinc", do buildNewValue (parse "revive inc")
+                  return ()),
  ("revive0", do buildNewValue (parse "revive 0")
                 return ()),
  ("revive255", do buildNewValue (parse "revive 255")
