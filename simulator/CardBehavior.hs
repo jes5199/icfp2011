@@ -140,7 +140,7 @@ decRangeMsg = "dec out of range"
 decNANmsg = "dec applied to non-number"
 
 doAttack :: Value -> Value -> Value -> MoveStep Value
-doAttack (ValueNum i) (ValueNum j) (ValueNum n) =
+doAttack (ValueNum i) arg2 (ValueNum n) =
     if i < 0 || i > 255
     then throwError attackRangeI
     else do
@@ -149,6 +149,9 @@ doAttack (ValueNum i) (ValueNum j) (ValueNum n) =
           then throwError attackRangeN
           else do
             putProponentVitality (v-n) i
+            j <- case arg2 of
+              ValueNum jj -> return jj
+              _ -> throwError attackNANj
             if j < 0 || j > 255
               then throwError attackRangeJ
               else do
@@ -159,10 +162,13 @@ doAttack (ValueNum i) (ValueNum j) (ValueNum n) =
                               else            w-n'
                 putOpponentVitality w' (255-j)
                 return $ ValueCard IdentityCard
-            
+doAttack _ _ _ = throwError attackNAN
+
 attackRangeI = "attack i-value out of range"
 attackRangeN = "attack n-value greater than vitality of [i]"
 attackRangeJ = "attack j-value out of range"
+attackNANj = "attack j-value is a non-number (health still decremented)"
+attackNAN = "attack i or n value is a non-number"
 
 doHelp :: Value -> Value -> Value -> MoveStep Value
 doHelp = undefined
