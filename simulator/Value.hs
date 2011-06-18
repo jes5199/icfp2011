@@ -8,7 +8,14 @@ data Value = ValueCard Card
            | ValueApplication Value Value
            | ValueLambda String Value
            | ValueVariable String
-           deriving (Eq, Show)
+           deriving (Eq)
+
+instance Show Value where
+  show (ValueCard c) = show c
+  show (ValueNum n) = show n
+  show (ValueApplication x y) = show x ++ "(" ++ show y ++ ")"
+  show (ValueLambda s v) = "λ" ++ s ++ "." ++ show v
+  show (ValueVariable s) = s
 
 cardToValue :: Card -> Value
 cardToValue = ValueCard
