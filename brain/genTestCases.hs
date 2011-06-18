@@ -239,7 +239,10 @@ testCases = [
  ("revive255", do buildNewValue (parse "revive 255")
                   return ()),
  ("revive256", do buildNewValue (parse "revive 256")
-                  return ())
+                  return ()),
+ ("use_dead", do buildNewValue (parse "help 200 0 10000")
+                 buildNewValueAt (parse "S") 200
+                 return ())
  ]
 
 outputTestCase :: String -> TestCaseGenerator () -> IO ()
