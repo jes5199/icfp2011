@@ -11,11 +11,15 @@ import Control.Monad.State
 import Data.List
 import Statements
 import GameState
+import Simulator
 
 type TestCaseGenerator = StateT ([SlotNumber], [SlotNumber], Who) (Writer [TestCaseAtom])
 
 data TestCaseAtom = TestCaseMove Who Move
                   | TestCaseAssertion (GameState -> Bool)
+
+assert :: (GameState -> Bool) -> TestCaseGenerator ()
+assert f = tell [TestCaseAssertion f]
 
 getProponent :: TestCaseGenerator Who
 getProponent = do
@@ -283,6 +287,8 @@ testCases = [
  ("copy_non_identity", do buildNewValueAt (parse "K") 0
                           switchPlayers
                           buildNewValue (parse "copy 0")
+                          who <- getProponent
+                          assert (\gs -> gsGetField (perspectiveFor who) gs 0 == parse "K")
                           return ()),
  ("lazy", do loc <- buildNewValue (parse "lazy (inc 0)")
              rightApply loc ZombieCard),
@@ -297,13 +303,16 @@ testCases = [
  ]
 
 testCaseAtomsToMoves :: [TestCaseAtom] -> [Move]
-testCaseAtomsToMoves = testCaseAtomsToMoves' FirstPlayer
-    where testCaseAtomsToMoves' who [] = [nullMove]
-          testCaseAtomsToMoves' who all@(TestCaseMove who' move : rest)
-              | who == who' = (move : testCaseAtomsToMoves' (opponent who) rest)
-              | otherwise = (nullMove : testCaseAtomsToMoves' (opponent who) all)
-          testCaseAtomsToMoves' who (TestCaseAssertion _ : rest) = testCaseAtomsToMoves' who rest
+testCaseAtomsToMoves = testCaseAtomsToMoves' initialState
+    where testCaseAtomsToMoves' gs [] = [nullMove]
+          testCaseAtomsToMoves' gs all@(TestCaseMove who' move : rest)
+              | playerToMove gs == who' = (move : testCaseAtomsToMoves' (updateGs move gs) rest)
+              | otherwise = (nullMove : testCaseAtomsToMoves' (updateGs nullMove gs) all)
+          testCaseAtomsToMoves' gs (TestCaseAssertion f : rest)
+              | f gs = testCaseAtomsToMoves' gs rest
+              | otherwise = error "Assertion failure, too bad"
           nullMove = Move LeftApplication IdentityCard 0
+          updateGs move gs = switchPlayer $ fst $ simulate gs move -- TODO: zombies
 
 outputTestCase :: String -> TestCaseGenerator () -> IO ()
 outputTestCase testName testCase = do
