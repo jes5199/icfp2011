@@ -288,7 +288,7 @@ testCases = [
                           switchPlayers
                           buildNewValue (parse "copy 0")
                           who <- getProponent
-                          assert (\gs -> gsGetField (perspectiveFor who) gs 0 == parse "K")
+                          assert (\gs -> gsGetField (perspectiveFor who False) gs 0 == parse "K")
                           return ()),
  ("lazy", do loc <- buildNewValue (parse "lazy (inc 0)")
              rightApply loc ZombieCard),
