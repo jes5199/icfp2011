@@ -1,4 +1,4 @@
-module GameState (GameState(..),Slots(..),Slot(..),initialState,Who(..),updateVitality,updateField,test_GameState,Vitality,initialSide,switchPlayer,alterFirstBoard,opponent,myFriend,myEnemy) where
+module GameState (GameState(..),Slots(..),Slot(..),initialState,Who(..),updateVitality,updateField,test_GameState,Vitality,initialSide,switchPlayer,alterFirstBoard,opponent,gsMyFriend,gsMyEnemy,gsDamage,gsHeal,GSPerspective(..)) where
 
 import Test.HUnit
 import Data.Array
@@ -68,50 +68,57 @@ data GameState = GameState { playerToMove :: Who, firstPlayerBoard :: Slots, sec
                deriving (Eq, Show)
 
 -- This is a perspective on the board, as viewed by some player or zombie.
-data Perspective = Perspective { getVitality :: (GameState -> SlotNumber -> Vitality), getField :: (GameState -> SlotNumber -> Value),
-    modifyVitality :: (GameState -> SlotNumber -> Vitality -> GameState), setField :: (GameState -> SlotNumber -> Value -> GameState),
-    setVitalityOnDeadSlot :: (GameState -> SlotNumber -> Vitality -> GameState), viewer :: Who }
+data GSPerspective = GSPerspective
+                     { gsGetVitality :: (GameState -> SlotNumber -> Vitality),
+                       gsGetField :: (GameState -> SlotNumber -> Value),
+                       gsModifyVitality :: (GameState -> SlotNumber ->
+                                          Vitality -> GameState),
+                       gsSetField :: (GameState -> SlotNumber ->
+                                    Value -> GameState),
+                       gsSetVitalityOnDeadSlot :: (GameState -> SlotNumber ->
+                                                 Vitality -> GameState),
+                       viewer :: Who }
 
-instance Eq Perspective where
+instance Eq GSPerspective where
     (==) lhs rhs = (viewer lhs) == (viewer rhs)
 
-instance Show Perspective where
-    show (Perspective _ _ _ _ _ who) = (show who) ++ " point of view"
+instance Show GSPerspective where
+    show (GSPerspective _ _ _ _ _ who) = (show who) ++ " point of view"
 
-makePerspective board replaceBoard who = Perspective (extractVitality . board) (extractField . board)
+makeGSPerspective board replaceBoard who = GSPerspective (extractVitality . board) (extractField . board)
     (\game -> \idx -> \adjustment -> replaceBoard game (changeVitalityInSlot (board game) idx adjustment))
     (\game -> \idx -> \value -> replaceBoard game (updateField value idx (board game)))
     (\game -> \idx -> \vitality -> replaceBoard game (replaceVitalityOnDeadSlot (board game) idx vitality))
     who
 
-firstPersonView = makePerspective firstPlayerBoard
+firstPersonView = makeGSPerspective firstPlayerBoard
     (\game -> \newSlots -> GameState (playerToMove game) newSlots (secondPlayerBoard game) (zombiesAreOut game)) FirstPlayer
-secondPersonView = makePerspective secondPlayerBoard
+secondPersonView = makeGSPerspective secondPlayerBoard
     (\game -> \newSlots -> GameState (playerToMove game) (firstPlayerBoard game) newSlots (zombiesAreOut game)) SecondPlayer
 
 -- The perspective of a particular player.
-perspectiveFor :: Who -> Perspective
+perspectiveFor :: Who -> GSPerspective
 perspectiveFor who =
     case who of
         FirstPlayer  -> firstPersonView
         SecondPlayer -> secondPersonView
 
 -- The current actor's friend. An actor is a player or a zombie master.
-myFriend :: GameState -> Perspective
-myFriend (GameState who p1 p2 zombies) =
+gsMyFriend :: GameState -> GSPerspective
+gsMyFriend (GameState who p1 p2 zombies) =
     if zombies then perspectiveFor (opponent who) else perspectiveFor who
 
 -- The current actor's enemy. An actor is a player or a zombie master.
-myEnemy :: GameState -> Perspective
-myEnemy (GameState who p1 p2 zombies) =
+gsMyEnemy :: GameState -> GSPerspective
+gsMyEnemy (GameState who p1 p2 zombies) =
     if zombies then perspectiveFor who else perspectiveFor (opponent who)
 
-damage :: Int -> GameState -> Int
-damage val (GameState _ _ _ zombies) =
+gsDamage :: Int -> GameState -> Int
+gsDamage val (GameState _ _ _ zombies) =
     if zombies then val else (- val)
 
-heal :: Int -> GameState -> Int
-heal val (GameState _ _ _ zombies) =
+gsHeal :: Int -> GameState -> Int
+gsHeal val (GameState _ _ _ zombies) =
     if zombies then (- val) else val
 
 alterFirstBoard :: (Slots -> Slots) -> GameState -> GameState
@@ -134,38 +141,38 @@ initialSide = Slots $
 test_GameState = [
     updateVitality 19 1 (Slots testSlots) ~?= Slots (testSlots // [(1, Slot 19 idValue)]),
     updateField (ValueNum 5) 1 (Slots testSlots) ~?= Slots (testSlots // [(1, Slot 10000 (ValueNum 5))]),
-    
-    myFriend startingGame ~?= firstPersonView,
-    myFriend (switchPlayer startingGame) ~?= secondPersonView,
-    myFriend zombieTime ~?= secondPersonView,
-    myFriend (switchPlayer zombieTime) ~?= firstPersonView,
-    myEnemy startingGame ~?= secondPersonView,
-    myEnemy (switchPlayer startingGame) ~?= firstPersonView,
-    myEnemy zombieTime ~?= firstPersonView,
-    myEnemy (switchPlayer zombieTime) ~?= secondPersonView,
 
-    getVitality firstPersonView startingGame 3 ~?= 8000,
-    getVitality secondPersonView startingGame 3 ~?= 12000,
-    getField firstPersonView startingGame 0 ~?= valueHelp,
-    getField secondPersonView startingGame 0 ~?= valueAttack,
-    getVitality firstPersonView (modifyVitality firstPersonView startingGame 3 (-100)) 3 ~?= 7900,
-    getVitality secondPersonView (modifyVitality secondPersonView startingGame 3 100) 3 ~?= 12100,
-    getField firstPersonView (setField firstPersonView startingGame 0 valueZombie) 0 ~?= valueZombie,
-    getField secondPersonView (setField secondPersonView startingGame 0 valueRevive) 0 ~?= valueRevive,
+    gsMyFriend startingGame ~?= firstPersonView,
+    gsMyFriend (switchPlayer startingGame) ~?= secondPersonView,
+    gsMyFriend zombieTime ~?= secondPersonView,
+    gsMyFriend (switchPlayer zombieTime) ~?= firstPersonView,
+    gsMyEnemy startingGame ~?= secondPersonView,
+    gsMyEnemy (switchPlayer startingGame) ~?= firstPersonView,
+    gsMyEnemy zombieTime ~?= firstPersonView,
+    gsMyEnemy (switchPlayer zombieTime) ~?= secondPersonView,
 
-    getVitality firstPersonView (modifyVitality firstPersonView startingGame 3 (-10000)) 3 ~?= 0,
-    getVitality secondPersonView (modifyVitality secondPersonView startingGame 3 70000) 3 ~?= 65535,
+    gsGetVitality firstPersonView startingGame 3 ~?= 8000,
+    gsGetVitality secondPersonView startingGame 3 ~?= 12000,
+    gsGetField firstPersonView startingGame 0 ~?= valueHelp,
+    gsGetField secondPersonView startingGame 0 ~?= valueAttack,
+    gsGetVitality firstPersonView (gsModifyVitality firstPersonView startingGame 3 (-100)) 3 ~?= 7900,
+    gsGetVitality secondPersonView (gsModifyVitality secondPersonView startingGame 3 100) 3 ~?= 12100,
+    gsGetField firstPersonView (gsSetField firstPersonView startingGame 0 valueZombie) 0 ~?= valueZombie,
+    gsGetField secondPersonView (gsSetField secondPersonView startingGame 0 valueRevive) 0 ~?= valueRevive,
 
-    getVitality firstPersonView (setVitalityOnDeadSlot firstPersonView someDeath 3 1) 3 ~?= 1,
-    getVitality secondPersonView (setVitalityOnDeadSlot secondPersonView someDeath 3 (-1)) 3 ~?= (-1),
+    gsGetVitality firstPersonView (gsModifyVitality firstPersonView startingGame 3 (-10000)) 3 ~?= 0,
+    gsGetVitality secondPersonView (gsModifyVitality secondPersonView startingGame 3 70000) 3 ~?= 65535,
 
-    getVitality firstPersonView (modifyVitality firstPersonView someDeath 3 5000) 3 ~?= 0,
+    gsGetVitality firstPersonView (gsSetVitalityOnDeadSlot firstPersonView someDeath 3 1) 3 ~?= 1,
+    gsGetVitality secondPersonView (gsSetVitalityOnDeadSlot secondPersonView someDeath 3 (-1)) 3 ~?= (-1),
 
-    damage 33 startingGame ~?= -33,
-    damage 66 zombieTime ~?= 66,
+    gsGetVitality firstPersonView (gsModifyVitality firstPersonView someDeath 3 5000) 3 ~?= 0,
 
-    heal 33 startingGame ~?= 33,
-    heal 66 zombieTime ~?= -66
+    gsDamage 33 startingGame ~?= -33,
+    gsDamage 66 zombieTime ~?= 66,
+
+    gsHeal 33 startingGame ~?= 33,
+    gsHeal 66 zombieTime ~?= -66
     ]
   where
     firstSide = updateField valueHelp 0 (updateVitality 8000 3 initialSide)

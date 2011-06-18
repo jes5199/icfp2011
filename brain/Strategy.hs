@@ -1,12 +1,10 @@
-module Strategy(test_Strategy, buildValue, translateValue) where
+module Strategy(test_Strategy, buildValue, translateValue, makeK) where
 
 import Control.Monad.State
 import Test.HUnit ( (~?=) )
 import Value
 import Move
 import Card
-
-type SlotNum = Int
 
 -- Translate the given value until everythin is expressed in terms of
 -- ValueApplication, ValueCard, and ValueVariable for unbound
@@ -40,8 +38,10 @@ translateValue card = case card of
           _ `includes` varName = False
           lazify (ValueApplication f x) = ValueApplication (ValueApplication (ValueCard SCard) (ValueApplication (ValueApplication (ValueCard SCard) (makeK f)) (makeK x))) (ValueCard IdentityCard)
           lazify value = value
-          makeK (ValueCard IdentityCard) = ValueCard PutCard
-          makeK value = ValueApplication (ValueCard KCard) value
+
+-- (makeK v) is like (K v) but it transforms (K I) into put.
+makeK (ValueCard IdentityCard) = ValueCard PutCard
+makeK value = ValueApplication (ValueCard KCard) value
 
 -- Determine whether the given value is in "vine" form.  "Vine" form
 -- requires that:
@@ -68,7 +68,7 @@ isRightVine (ValueApplication _ _) = False
 -- Build a value which satisfies the isVine predicate.
 -- Assumes:
 -- - the slot previously held the identity function.
-buildVine :: SlotNum -> Value -> [Move]
+buildVine :: SlotNumber -> Value -> [Move]
 buildVine slot vine = buildVine' vine []
     where buildVine' (ValueCard c) = (Move RightApplication c slot :)
           buildVine' (ValueNum _) = error "call translateValue before buildVine"
@@ -78,7 +78,7 @@ buildVine slot vine = buildVine' vine []
 
 -- Apply the value (which must satisfy the isRightVine predicate) to
 -- the contents of the given slot.
-applyRightVine :: SlotNum -> Value -> [Move]
+applyRightVine :: SlotNumber -> Value -> [Move]
 applyRightVine slot (ValueCard c) = [Move RightApplication c slot]
 applyRightVine slot (ValueApplication (ValueCard c) v)
     = [Move LeftApplication KCard slot, Move LeftApplication SCard slot, Move RightApplication c slot]
@@ -90,14 +90,14 @@ applyRightVine _ _ = error "applyRightVine: not a right vine"
 -- predicate.
 -- Assumes:
 -- - the slot previously held the identity function.
-buildVrv :: SlotNum -> Value -> [Move]
+buildVrv :: SlotNumber -> Value -> [Move]
 buildVrv slot (ValueApplication v rv) = buildVine slot v ++ applyRightVine slot rv
 buildVrv slot _ = error "buildVrv: not a ValueApplication"
 
 -- Build a general value.  Requires temporary slots.
 -- Assumes:
 -- - the destination slot and all temporary slots currently hold the identity function.
-buildValue :: SlotNum -> Value -> State [SlotNum] [Move]
+buildValue :: SlotNumber -> Value -> State [SlotNumber] [Move]
 buildValue destSlot v | isVine v = return $ buildVine destSlot v
 buildValue destSlot (ValueApplication f x)
     | isRightVine x = do moves1 <- buildValue destSlot f

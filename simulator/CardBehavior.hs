@@ -92,10 +92,11 @@ doDbl _  = throwError nanMsg
 
 doGet :: Value -> MoveStep Value
 doGet (ValueNum i) = do validSlot i
-                        v <- getProponentVitality i
+                        p <- myFriend
+                        v <- getVitality p i
                         if v <= 0
                           then throwError getFromDead
-                          else getProponentField i
+                          else getField p i
 doGet (ValueCard ZeroCard) = doGet (ValueNum 0)
 doGet _ = throwError nanMsg
 getFromDead = "tried to get from a dead cell"
@@ -114,47 +115,39 @@ doK x y = return x
 
 doInc :: Value -> MoveStep Value
 doInc (ValueNum i) = do validSlot i
-                        v <- getProponentVitality i
-                        let v' = case v of
-                              65535 -> 65535
-                              0     -> 0
-                              (-1)  -> (-1)
-                              _     -> v+1
-                        putProponentVitality v' i
+                        p <- myFriend
+                        h <- heal 1
+                        modifyVitality p i h
                         return valueI
 doInc (ValueCard ZeroCard) = doInc (ValueNum 0)
 doInc _ = throwError nanMsg
 
 doDec :: Value -> MoveStep Value
 doDec (ValueNum i) = do validSlot i
-                        v <- getOpponentVitality (255-i)
-                        let v' = case v of
-                              0  -> 0
-                              -1 -> -1
-                              _  -> v-1
-                        putOpponentVitality v' (255-i)
-                        return $ ValueCard IdentityCard
+                        p <- myEnemy
+                        d <- damage 1
+                        modifyVitality p (255-i) d
+                        return valueI
 doDec (ValueCard ZeroCard) = doDec (ValueNum 0)
 doDec _ = throwError nanMsg
 
 doAttack :: Value -> Value -> Value -> MoveStep Value
 doAttack (ValueNum i) arg2 (ValueNum n) =
   do validSlot i
-     v <- getProponentVitality i
+     f <- myFriend
+     e <- myEnemy
+     v <- getVitality f i
      if v < n
        then throwError attackRangeN
-       else do putProponentVitality (v-n) i
+       else do fd <- damage n
+               modifyVitality f i fd
                j <- case arg2 of
                  ValueNum jj -> return jj
                  ValueCard ZeroCard -> return 0
                  _ -> throwError attackNANj
                validSlot j
-               w <- getOpponentVitality (255-j)
-               let n' = (n*9) `div` 10
-                   w' = if      w <= 0  then w
-                        else if w <= n' then 0
-                             else            w-n'
-               putOpponentVitality w' (255-j)
+               ed <- damage $ (n*9) `div` 10
+               modifyVitality e (255-j) ed
                return $ valueI
 doAttack (ValueCard ZeroCard) b c = doAttack (ValueNum 0) b c
 doAttack a b (ValueCard ZeroCard) = doAttack a b (ValueNum 0)
@@ -166,22 +159,19 @@ attackNANj = "attack j-value is a non-number (health still decremented)"
 doHelp :: Value -> Value -> Value -> MoveStep Value
 doHelp (ValueNum i) arg2 (ValueNum n) =
   do validSlot i
-     v <- getProponentVitality i
+     p <- myFriend
+     v <- getVitality p i
      if v < n
        then throwError helpRangeN
-       else do putProponentVitality (v-n) i
+       else do d <- damage n
+               modifyVitality p i d
                j <- case arg2 of
                  ValueNum jj -> return jj
                  ValueCard ZeroCard -> return 0
                  _ -> throwError helpNANj
                validSlot j
-               w <- getProponentVitality j
-               let n' = (n*11) `div` 10
-                   w' = w+n'
-                   w'' = if      w  <= 0     then w
-                         else if w' >= 65535 then 65535
-                              else                w'
-               putProponentVitality w'' j
+               h <- heal $ (n*11) `div` 10
+               modifyVitality p j h
                return $ valueI
 doHelp (ValueCard ZeroCard) b c = doHelp (ValueNum 0) b c
 doHelp a b (ValueCard ZeroCard) = doHelp a b (ValueNum 0)
@@ -192,30 +182,29 @@ helpNANj = "help j-value is a non-number (health still decremented)"
 
 doCopy :: Value -> MoveStep Value
 doCopy (ValueNum i) = do validSlot i
-                         getOpponentField i -- note that this is NOT (255-i)!
+                         p <- myEnemy
+                         getField p i -- note that this is NOT (255-i)!
 doCopy (ValueCard ZeroCard) = doCopy (ValueNum 0)
 doCopy _ = throwError nanMsg
 
 doRevive :: Value -> MoveStep Value
 doRevive (ValueNum i) = do validSlot i
-                           v <- getProponentVitality i
-                           let v' = case v of
-                                 0  -> 1
-                                 (-1) -> 1
-                                 _  -> v
-                           putProponentVitality v' i
+                           p <- myFriend
+                           setVitalityOnDeadSlot p i 1
                            return valueI
 doRevive (ValueCard ZeroCard) = doRevive (ValueNum 0)
 doRevive _ = throwError nanMsg
 
 doZombie :: Value -> Value -> MoveStep Value
-doZombie (ValueNum i) x =
-    do validSlot i
-       v <- getOpponentVitality (255-i)
+doZombie (ValueNum i') x =
+    do let i = 255-i'
+       validSlot i
+       p <- myEnemy
+       v <- getVitality p i
        if v > 0
          then throwError zombieNotDead
-         else do putOpponentVitality (-1) (255-i)
-                 putOpponentField x (255-i)
+         else do setVitalityOnDeadSlot p i (-1)
+                 setField p i x
                  return $ valueI
 doZombie (ValueCard ZeroCard) x = doZombie (ValueNum 0) x
 zombieNotDead = "zombie called on cell that isn't dead"
