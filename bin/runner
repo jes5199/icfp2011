@@ -6,7 +6,7 @@ import time
 import os
 import fcntl
 
-timeout = 0.5
+timeout = 0.2
 
 input_str = sys.stdin.read()
 output_str = ['Failed to get output']

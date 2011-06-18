@@ -17,4 +17,3 @@ cd ..
 mkdir -p test_cases
 brain/genTestCases test_cases
 
-./sim_test.sh
