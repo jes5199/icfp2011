@@ -1,10 +1,11 @@
-module Strategy(test_Strategy, buildValue, translateValue, makeK) where
+module Strategy(test_Strategy, buildValue, translateValue, makeK, template) where
 
 import Control.Monad.State
 import Test.HUnit ( (~?=) )
 import Value
 import Move
 import Card
+import Parser
 
 -- Translate the given value until everythin is expressed in terms of
 -- ValueApplication, ValueCard, and ValueVariable for unbound
@@ -42,6 +43,22 @@ translateValue card = case card of
 -- (makeK v) is like (K v) but it transforms (K I) into put.
 makeK (ValueCard IdentityCard) = ValueCard PutCard
 makeK value = ValueApplication (ValueCard KCard) value
+
+-- Build a value from a template.  First argument is a string which is
+-- parsed and then passed through translateValue.  Second argument is
+-- a set of variable assignments, which are applied to the result of
+-- translateValue.
+--
+-- Variable assignments are also passed through translateValue.
+template :: String -> [(String, Value)] -> Value
+template s vars = assignVars $ translateValue $ parse s
+    where assignVars (ValueCard c) = ValueCard c
+          assignVars (ValueApplication f x) = ValueApplication (assignVars f) (assignVars x)
+          assignVars (ValueVariable x) = case lookup x vars' of
+                                           Nothing -> error ("Unbound variable " ++ x)
+                                           Just v -> v
+          assignVars _ = error "Internal error: translateValue produced an unexpected value"
+          vars' = [(name, translateValue value) | (name, value) <- vars]
 
 -- Determine whether the given value is in "vine" form.  "Vine" form
 -- requires that:
@@ -162,7 +179,10 @@ test_Strategy = [
   translateValue (ValueLambda "bullet" (ValueApplication (ValueApplication (ValueCard PutCard) (ValueApplication (ValueVariable "gun") (ValueVariable "bullet"))) (ValueVariable "value"))) ~?= (ValueApplication (ValueApplication (ValueCard SCard) (ValueApplication (ValueApplication (ValueCard SCard) (ValueApplication (ValueCard KCard) (ValueCard PutCard))) (ValueVariable "gun"))) (ValueApplication (ValueCard KCard) (ValueVariable "value"))),
   translateValue (ValueApplication (ValueVariable "lazy") (ValueVariable "x")) ~?= ValueVariable "x",
   (translateValue (ValueLambda "x" (ValueApplication (ValueApplication (ValueCard GetCard) (ValueVariable "x")) (ValueApplication (ValueApplication (ValueVariable "lazy") (ValueApplication (ValueApplication (ValueApplication (ValueCard HelpCard) (ValueNum 0)) (ValueNum 0)) (ValueNum 8196))) (ValueVariable "x"))))
-   ~?= (ValueApplication (ValueApplication (ValueCard SCard) (ValueCard GetCard)) (ValueApplication (ValueApplication (ValueCard SCard) (ValueApplication (ValueApplication (ValueCard SCard) (ValueApplication (ValueCard KCard) (ValueApplication (ValueApplication (ValueCard HelpCard) (ValueCard ZeroCard)) (ValueCard ZeroCard)))) (ValueApplication (ValueCard KCard) (translateValue (ValueNum 8196))))) (ValueCard IdentityCard))))
+   ~?= (ValueApplication (ValueApplication (ValueCard SCard) (ValueCard GetCard)) (ValueApplication (ValueApplication (ValueCard SCard) (ValueApplication (ValueApplication (ValueCard SCard) (ValueApplication (ValueCard KCard) (ValueApplication (ValueApplication (ValueCard HelpCard) (ValueCard ZeroCard)) (ValueCard ZeroCard)))) (ValueApplication (ValueCard KCard) (translateValue (ValueNum 8196))))) (ValueCard IdentityCard)))),
+  template "\\x -> x" [] ~?= ValueCard IdentityCard,
+  template "K x" [("x", ValueNum 0)] ~?= ValueApplication (ValueCard KCard) (ValueCard ZeroCard),
+  template "x K" [("x", ValueCard SCard)] ~?= ValueApplication (ValueCard SCard) (ValueCard KCard)
   ]
     where zero = ValueCard ZeroCard
           succ = ValueCard SuccCard

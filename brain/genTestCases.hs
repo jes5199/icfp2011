@@ -240,6 +240,10 @@ testCases = [
                      return ()),
  ("attack_11.11", do buildNewValue (parse "attack 1 1 11")
                      return ()),
+ ("attack_11.9999", do buildNewValue (parse "attack 1 1 9999")
+                       return ()),
+ ("attack_11.10000", do buildNewValue (parse "attack 1 1 10000")
+                        return ()),
  ("attack_11.10001", do buildNewValue (parse "attack 1 1 10001")
                         return ()),
  ("help_KKK", do buildNewValue (parse "help K K K")
@@ -274,8 +278,16 @@ testCases = [
                    return ()),
  ("help_11.11", do buildNewValue (parse "help 1 1 11")
                    return ()),
+ ("help_11.9999", do buildNewValue (parse "help 1 1 9999")
+                     return ()),
+ ("help_11.10000", do buildNewValue (parse "help 1 1 10000")
+                      return ()),
  ("help_11.10001", do buildNewValue (parse "help 1 1 10001")
                       return ()),
+ ("help_dead", do buildNewValueAt (parse "S") 234
+                  buildNewValue (parse "help 234 0 10000")
+                  buildNewValue (parse "help 1 234 1")
+                  return ()),
  ("copyK", do buildNewValue (parse "copy K")
               return ()),
  ("copy0", do buildNewValue (parse "copy 0")
@@ -299,6 +311,15 @@ testCases = [
                   buildNewValue (parse "help 200 0 10000")
                   rightApply 200 SCard
                   return ()),
+ ("copy_dead", do buildNewValueAt (parse "S") 100
+                  switchPlayers
+                  buildNewValue (parse "attack 0 155 9000")
+                  buildNewValue (parse "attack 1 155 9000")
+                  who <- getProponent
+                  assert (\gs -> gsGetVitality (perspectiveFor (opponent who) False) gs 100 == 0)
+                  buildNewValueAt (parse "copy 100") 245
+                  assert (\gs -> gsGetField (perspectiveFor who False) gs 245 == parse "S")
+                  return ()),
  ("copy_non_identity", do buildNewValueAt (parse "K") 0
                           switchPlayers
                           buildNewValue (parse "copy 0")
@@ -315,18 +336,22 @@ testCases = [
  ("grapeshot", do buildNewValueAt (grapeShot 8192 0) 0
                   rightApply 0 ZeroCard
                   assertProponent (\pers gs -> all (\i -> gsGetVitality pers gs i == 1808) [0..65])
-                  assertOpponent (\pers gs -> all (\i -> gsGetVitality pers gs i == 2628) [190..255]))
+                  assertOpponent (\pers gs -> all (\i -> gsGetVitality pers gs i == 2628) [190..255])),
+ ("firingSquad", do buildNewValueAt (firingSquad 256 100 0) 0
+                    rightApply 0 ZeroCard
+                    assertProponent (\pers gs -> all (\i -> gsGetVitality pers gs i == 9744) [0..65])
+                    assertOpponent (\pers gs -> gsGetVitality pers gs 155 == 0 ))
  ]
 
-testCaseAtomsToMoves :: [TestCaseAtom] -> [Move]
-testCaseAtomsToMoves = testCaseAtomsToMoves' initialState
+testCaseAtomsToMoves :: String -> [TestCaseAtom] -> [Move]
+testCaseAtomsToMoves testName = testCaseAtomsToMoves' initialState
     where testCaseAtomsToMoves' gs [] = [nullMove]
           testCaseAtomsToMoves' gs all@(TestCaseMove who' move : rest)
               | playerToMove gs == who' = (move : testCaseAtomsToMoves' (updateGs move gs) rest)
               | otherwise = (nullMove : testCaseAtomsToMoves' (updateGs nullMove gs) all)
           testCaseAtomsToMoves' gs (TestCaseAssertion f : rest)
               | f gs = testCaseAtomsToMoves' gs rest
-              | otherwise = error "Assertion failure, too bad"
+              | otherwise = error ("Assertion failure in test " ++ testName)
           nullMove = Move LeftApplication IdentityCard 0
           updateGs move gs = switchPlayer $ fst $ simulate gs move -- TODO: zombies
 
@@ -334,7 +359,7 @@ outputTestCase :: String -> TestCaseGenerator () -> IO ()
 outputTestCase testName testCase = do
   [directory] <- getArgs
   let testCaseAtoms = execWriter (evalStateT testCase ([0..255], [0..255], FirstPlayer))
-      fileContents = printMoves $ testCaseAtomsToMoves testCaseAtoms
+      fileContents = printMoves $ testCaseAtomsToMoves testName testCaseAtoms
   writeFile (directory ++ "/" ++ testName) fileContents
 
 main :: IO ()

@@ -84,14 +84,14 @@ quine f n = -- S f (bind get n) (assuming f returns I)
           get = statement (ValueCard GetCard)
 
 grapeShot :: Int -> SlotNumber -> Value
-grapeShot damage = infLoop $
-            semi (statement (lambda "i" theAttack))
-                 (routine (ValueCard SuccCard))
-    where theAttack = (ValueApplication
-                       (ValueApplication (ValueApplication (ValueCard AttackCard) (ValueVariable "i"))
-                                         (ValueVariable "i"))
-                       (ValueNum damage))
+grapeShot damage = forLoop (template "\\i -> attack i i damage" [("damage", (ValueNum damage))])
 
-lambda varName value = translateValue (ValueLambda varName value)
+firingSquad :: Int -> SlotNumber -> SlotNumber -> Value
+firingSquad damage target = forLoop (template "\\i -> attack i target damage" [("damage", (ValueNum damage)), ("target", (ValueNum target)) ])
+
+forLoop :: Value -> SlotNumber -> Value
+forLoop stuff = infLoop $
+            semi (statement stuff)
+                 (routine (template "succ" []))
 
 -- We'll need the ability to call a cell with an arbitrary parameter.
