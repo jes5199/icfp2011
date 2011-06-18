@@ -171,7 +171,7 @@ attackNANj = "attack j-value is a non-number (health still decremented)"
 attackNAN = "attack i or n value is a non-number"
 
 doHelp :: Value -> Value -> Value -> MoveStep Value
-doHelp (ValueNum i) (ValueNum j) (ValueNum n) =
+doHelp (ValueNum i) arg2 (ValueNum n) =
     if i < 0 || i > 255
     then throwError helpRangeI
     else do
@@ -180,20 +180,28 @@ doHelp (ValueNum i) (ValueNum j) (ValueNum n) =
           then throwError helpRangeN
           else do
             putProponentVitality (v-n) i
+            j <- case arg2 of
+              ValueNum jj -> return jj
+              _ -> throwError helpNANj
             if j < 0 || j > 255
               then throwError helpRangeJ
               else do
                 w <- getProponentVitality j
                 let n' = (n*11) `div` 10
                     w' = w+n'
-                    w'' = if     w  <= 0     then w
-                         else if w' >= 65535 then 65535
-                              else                w'
+                    w'' = if      w  <= 0     then w
+                          else if w' >= 65535 then 65535
+                               else                w'
                 putProponentVitality w'' j
                 return $ valueI
+
+doHelp _ _ _ = throwError helpNAN
+
 helpRangeI = "help i-value out of range"
 helpRangeN = "help n-value greater than vitality of [i]"
 helpRangeJ = "help j-value out of range"
+helpNANj = "help j-value is a non-number (health still decremented)"
+helpNAN = "help i or n value is a non-number"
 
 doCopy :: Value -> MoveStep Value
 doCopy (ValueNum i) = if i >= 0 && i <= 255
