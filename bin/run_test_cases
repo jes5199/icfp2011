@@ -16,6 +16,10 @@ while [[ $# != 0 ]]; do
       2d;
       s/AppLimitExceeded/Native.AppLimitExceeded/
       s/Something applied to a non-number/Native.Error/
+      s/help j-value is a non-number (health still decremented)/Native.Error/
+      s/attack j-value is a non-number (health still decremented)/Native.Error/
+      s/help n-value greater than vitality of \[i\]/Native.Error/
+      s/attack n-value greater than vitality of \[i\]/Native.Error/
     ' "test_results/$1.out" > "test_results/$1.out.clean"
 
     sed '
