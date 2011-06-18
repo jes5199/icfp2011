@@ -38,6 +38,12 @@ updateVitality hp idx slots = transformSlot (replaceVitality hp) idx slots
 updateField :: Value -> SlotNumber -> Slots -> Slots
 updateField value idx slots = transformSlot (replaceField value) idx slots
 
+extractVitality :: Slots -> SlotNumber -> Vitality
+extractVitality (Slots slots) idx = vitality (slots ! idx)
+
+extractField :: Slots -> SlotNumber -> Value
+extractField (Slots slots) idx = field (slots ! idx)
+
 data Who = FirstPlayer | SecondPlayer
          deriving (Eq, Show)
 
@@ -48,8 +54,8 @@ data GameState = GameState { playerToMove :: Who, firstPlayerBoard :: Slots, sec
                deriving (Eq, Show)
 
 -- This is a perspective on the board, as viewed by some player or zombie.
-data Perspective = Perspective { getVitality :: (SlotNumber -> GameState -> Vitality), getField :: (SlotNumber -> GameState -> Value),
-    modifyVitality :: (Vitality -> SlotNumber -> GameState), setField :: (Value -> SlotNumber -> GameState), viewer :: Who }
+data Perspective = Perspective { getVitality :: (GameState -> SlotNumber -> Vitality), getField :: (GameState -> SlotNumber -> Value),
+    modifyVitality :: (GameState -> SlotNumber -> Vitality -> GameState), setField :: (GameState -> SlotNumber -> Value -> GameState), viewer :: Who }
 
 instance Eq Perspective where
     (==) lhs rhs = (viewer lhs) == (viewer rhs)
@@ -57,11 +63,10 @@ instance Eq Perspective where
 instance Show Perspective where
     show (Perspective _ _ _ _ who) = (show who) ++ " point of view"
 
-firstPersonView = Perspective undefined undefined undefined undefined FirstPlayer
-secondPersonView = Perspective undefined undefined undefined undefined SecondPlayer
+makePerspective board who = Perspective (extractVitality . board) (extractField . board) undefined undefined who
 
---attack i j n state =
---  adjustVitality (myEnemy state) 19 (damage state 33)
+firstPersonView = makePerspective firstPlayerBoard FirstPlayer
+secondPersonView = makePerspective secondPlayerBoard SecondPlayer
 
 -- The perspective of a particular player.
 perspectiveFor :: Who -> Perspective
@@ -118,6 +123,13 @@ test_GameState = [
     myEnemy zombieTime ~?= firstPersonView,
     myEnemy (switchPlayer zombieTime) ~?= secondPersonView,
 
+    getVitality firstPersonView startingGame 3 ~?= 8000,
+    getVitality secondPersonView startingGame 3 ~?= 12000,
+    getField firstPersonView startingGame 0 ~?= valueHelp,
+    getField secondPersonView startingGame 0 ~?= valueAttack,
+--    getVitality firstPersonView (modifyVitality firstPersonView startingGame 3 (-100)) 3 ~?= 7900,
+--    getVitality secondPersonView (modifyVitality secondPersonView startingGame 3 100) 3 ~?= 12100,
+
     damage 33 startingGame ~?= -33,
     damage 66 zombieTime ~?= 66,
 
@@ -125,8 +137,8 @@ test_GameState = [
     heal 66 zombieTime ~?= -66
     ]
   where
-    firstSide = updateField valueHelp 0 initialSide
-    secondSide = updateField valueAttack 0 initialSide
+    firstSide = updateField valueHelp 0 (updateVitality 8000 3 initialSide)
+    secondSide = updateField valueAttack 0 (updateVitality 12000 3 initialSide)
     startingGame = GameState FirstPlayer firstSide secondSide False
     zombieTime = GameState FirstPlayer firstSide secondSide True
     testSlots = array (0,3::Int) [(n,Slot 10000 (cardToValue IdentityCard)) |
