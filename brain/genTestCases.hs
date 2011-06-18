@@ -17,7 +17,7 @@ type TestCaseGenerator = StateT [SlotNum] (Writer [Move])
 buildNewValue :: Value -> TestCaseGenerator SlotNum
 buildNewValue value = do
   (destSlot : availSlots) <- get
-  let (moves, availSlots') = runState (buildValue destSlot (translateNums $ translateLambda value)) availSlots
+  let (moves, availSlots') = runState (buildValue destSlot (translateValue value)) availSlots
   tell moves
   put availSlots'
   return destSlot
@@ -28,7 +28,7 @@ buildNewValueAt value destSlot = do
   case elem destSlot slots of
     False -> error "Slot not available"
     True -> do let availSlots = filter (/= destSlot) slots
-                   (moves, availSlots') = runState (buildValue destSlot (translateNums $ translateLambda value)) availSlots
+                   (moves, availSlots') = runState (buildValue destSlot (translateValue value)) availSlots
                tell moves
                put availSlots'
                return destSlot
@@ -39,7 +39,7 @@ rightApply slot card = tell [Move RightApplication card slot]
 testCycleCount :: Int -> TestCaseGenerator ()
 testCycleCount wasteCycles = do
   gun <- buildNewValue (parse "\\x -> put (inc (succ x)) (get x x)")
-  let triggerValue = waste wasteCycles (translateLambda $ parse "\\x -> get x x")
+  let triggerValue = waste wasteCycles (translateValue $ parse "\\x -> get x x")
   trigger <- buildNewValue triggerValue
   rightApply trigger ZeroCard
     where waste 0 value = value
@@ -242,7 +242,11 @@ testCases = [
                   return ()),
  ("use_dead", do buildNewValue (parse "help 200 0 10000")
                  buildNewValueAt (parse "S") 200
-                 return ())
+                 return ()),
+ ("lazy", do loc <- buildNewValue (parse "lazy (inc 0)")
+             rightApply loc ZombieCard),
+ ("health_bomb", do loc <- buildNewValue (parse "\\x -> get x (lazy (help 0 0 8196) x)")
+                    rightApply loc ZeroCard)
  ]
 
 outputTestCase :: String -> TestCaseGenerator () -> IO ()
