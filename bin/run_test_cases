@@ -11,18 +11,21 @@ TOTAL_COUNT=0
 while [[ $# != 0 ]]; do
     FAIL=0
     cat "test_cases/$1" | bin/runner bin/ltg alt > "test_results/$1.ref"
-    if [[ $? ]]; then
+    cat "test_cases/$1" | simulator/simdriver > "test_results/$1.out" 2> /dev/null
+    sed '
+      2d;
+      s/AppLimitExceeded/Native.AppLimitExceeded/
+    ' "test_results/$1.out" > "test_results/$1.out.clean"
+
+    sed '
+      s/Invalid_argument(_)/slot number out of range/
+      s/Invalid_argument("index out of bounds")/slot number out of range/
+    ' "test_results/$1.ref" > "test_results/$1.ref.clean"
+
+    if ! diff "test_results/$1.ref.clean" "test_results/$1.out.clean" ; then
         FAIL=1
     fi
-    cat "test_cases/$1" | simulator/simdriver > "test_results/$1.out"
-    if [[ $? ]]; then
-        FAIL=1
-    fi
-    cmp --quiet "test_results/$1.ref" "test_results/$1.out"
-    if [[ $? ]]; then
-        FAIL=1
-    fi
-    if [[ $FAIL ]]; then
+    if [ $FAIL -ne '0' ]; then
         echo "Test failed: $1"
         FAIL_COUNT=$(( $FAIL_COUNT + 1 ))
     fi

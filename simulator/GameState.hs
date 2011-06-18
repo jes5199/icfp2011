@@ -17,8 +17,10 @@ instance Show Slot where
 replaceVitality :: Vitality -> Slot -> Slot
 replaceVitality hp slot = Slot hp (field slot)
 
+clamp hp = if hp < 0 then 0 else (if hp > 65535 then 65535 else hp)
+
 changeVitality :: Vitality -> Slot -> Slot
-changeVitality hp slot = Slot (hp + vitality slot) (field slot)
+changeVitality hp slot = Slot (clamp (hp + vitality slot)) (field slot)
 
 replaceField :: Value -> Slot -> Slot
 replaceField value slot = Slot (vitality slot) value
@@ -70,7 +72,9 @@ instance Show Perspective where
     show (Perspective _ _ _ _ who) = (show who) ++ " point of view"
 
 makePerspective board replaceBoard who = Perspective (extractVitality . board) (extractField . board)
-    (\game -> \idx -> \adjustment -> replaceBoard game (changeVitalityInSlot (board game) idx adjustment)) undefined who
+    (\game -> \idx -> \adjustment -> replaceBoard game (changeVitalityInSlot (board game) idx adjustment))
+    (\game -> \idx -> \value -> replaceBoard game (updateField value idx (board game)))
+    who
 
 firstPersonView = makePerspective firstPlayerBoard
     (\game -> \newSlots -> GameState (playerToMove game) newSlots (secondPlayerBoard game) (zombiesAreOut game)) FirstPlayer
@@ -138,6 +142,11 @@ test_GameState = [
     getField secondPersonView startingGame 0 ~?= valueAttack,
     getVitality firstPersonView (modifyVitality firstPersonView startingGame 3 (-100)) 3 ~?= 7900,
     getVitality secondPersonView (modifyVitality secondPersonView startingGame 3 100) 3 ~?= 12100,
+    getField firstPersonView (setField firstPersonView startingGame 0 valueZombie) 0 ~?= valueZombie,
+    getField secondPersonView (setField secondPersonView startingGame 0 valueRevive) 0 ~?= valueRevive,
+
+    getVitality firstPersonView (modifyVitality firstPersonView startingGame 3 (-10000)) 3 ~?= 0,
+    getVitality secondPersonView (modifyVitality secondPersonView startingGame 3 70000) 3 ~?= 65535,
 
     damage 33 startingGame ~?= -33,
     damage 66 zombieTime ~?= 66,
