@@ -155,7 +155,15 @@ testCases = [
               buildNewValue (parse "attack 100 200 10000")
               buildNewValue (parse "attack 101 200 1110")
               buildNewValue (parse "dec 200")
-              return ())
+              return ()),
+ ("attack_KKK", do buildNewValue (parse "attack K K K")
+                   return ()),
+ ("attack_0KK", do buildNewValue (parse "attack 0 K K")
+                   return ()),
+ ("attack_KK0", do buildNewValue (parse "attack K K 0")
+                   return ()),
+ ("attack_0K0", do buildNewValue (parse "attack 0 K 0")
+                   return ())
  ]
 
 outputTestCase :: String -> TestCaseGenerator () -> IO ()
