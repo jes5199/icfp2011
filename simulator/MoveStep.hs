@@ -1,5 +1,6 @@
 module MoveStep where -- export everything :)
 
+import Test.HUnit (Test,(~?=))
 import Data.Array
 import Control.Monad.State
 import Control.Monad.Error
@@ -101,3 +102,6 @@ runMove :: MoveStep a -> GameState -> (GameState,Either String a)
 runMove step state = (newState,result)
   where
     (result,(newState,appsUsed)) = runState (runErrorT step) (state,0)
+
+test_MoveStep = [
+  ] :: [Test]

@@ -107,15 +107,6 @@ buildValue destSlot (ValueApplication f x)
                      let moves3 = applyRightVine destSlot $ translateNums $ ValueApplication (ValueCard GetCard) (ValueNum slotToUse)
                      return $ moves1 ++ moves2 ++ moves3
 
-evenElems :: [a] -> [a]
-evenElems (x:_:xs) = x : evenElems xs
-evenElems [x] = [x]
-evenElems [] = []
-
-oddElems :: [a] -> [a]
-oddElems (_:xs) = evenElems xs
-oddElems _ = []
-
 test_Strategy = [
   translateNums (ValueNum 0) ~?= zero,
   translateNums (ValueNum 1) ~?= app succ zero,
