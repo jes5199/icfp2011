@@ -70,7 +70,9 @@ instance Show Perspective where
     show (Perspective _ _ _ _ who) = (show who) ++ " point of view"
 
 makePerspective board replaceBoard who = Perspective (extractVitality . board) (extractField . board)
-    (\game -> \idx -> \adjustment -> replaceBoard game (changeVitalityInSlot (board game) idx adjustment)) undefined who
+    (\game -> \idx -> \adjustment -> replaceBoard game (changeVitalityInSlot (board game) idx adjustment))
+    (\game -> \idx -> \value -> replaceBoard game (updateField value idx (board game)))
+    who
 
 firstPersonView = makePerspective firstPlayerBoard
     (\game -> \newSlots -> GameState (playerToMove game) newSlots (secondPlayerBoard game) (zombiesAreOut game)) FirstPlayer
@@ -138,6 +140,8 @@ test_GameState = [
     getField secondPersonView startingGame 0 ~?= valueAttack,
     getVitality firstPersonView (modifyVitality firstPersonView startingGame 3 (-100)) 3 ~?= 7900,
     getVitality secondPersonView (modifyVitality secondPersonView startingGame 3 100) 3 ~?= 12100,
+    getField firstPersonView (setField firstPersonView startingGame 0 valueZombie) 0 ~?= valueZombie,
+    getField secondPersonView (setField secondPersonView startingGame 0 valueRevive) 0 ~?= valueRevive,
 
     damage 33 startingGame ~?= -33,
     damage 66 zombieTime ~?= 66,
