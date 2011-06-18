@@ -7,7 +7,9 @@ import Simulator
 
 main :: IO ()
 main = do putStrLn "Lambda: The Gathering version $Date:: 2011-06-17 18:39:42 +0900#$"
+          putStrLn "     __//////\\   Emulated by AMB,PUB,BWJ,MJQR,JAW   /\\\\\\\\\\\\__"
           playTurn initialState 1
+
 
 playTurn :: GameState -> Int -> IO ()
 playTurn state turnNumber = do putStrLn ("###### turn " ++ show turnNumber)
@@ -26,19 +28,19 @@ playPly playerNumber state =
      putStrLn "(slots {10000,I} are omitted)"
      putStrLn "(1) apply card to slot, or (2) apply slot to card?"
      applicationDir <- readInt
-     case applicationDir of
+     move <- case applicationDir of
        1 -> do card <- askCard
                slotNumber <- askSlot
                putStrLn $ "player " ++ show playerNumber ++ " applied card " ++ show card ++ " to slot " ++ show slotNumber
-               let (game, err) = simulate state (Move LeftApplication card slotNumber)
-               putStrLn $ show err
-               return $ game
+               return $ Move LeftApplication card slotNumber
        2 -> do slotNumber <- askSlot
                card <- askCard
                putStrLn $ "player " ++ show playerNumber ++ " applied slot " ++ show slotNumber ++ " to card " ++ show card
-               let (game, err) = simulate state (Move RightApplication card slotNumber)
-               putStrLn $ show err
-               return $ game
+               return $ Move RightApplication card slotNumber
+     let (game, err) = simulate state move
+     either (putStrLn . (\e -> "Exception: " ++ e ++ "\nslot " ++ (show $ slotNumOfMove move) ++ " reset to I" ))
+            (const $ return ()) $ err
+     return $ game
 
 readInt :: IO Int
 readInt = do str <- getLine
