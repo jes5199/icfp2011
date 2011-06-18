@@ -217,7 +217,9 @@ class GameState
 gs = GameState.new(:only)
 #gs.proponent.field[0] = ['S','get',['S',['S',['K',['help',0,0]],['K',8196]],['I']]]
 #gs.proponent.field[0] = ['S','get',['S',['S',['K',['help',0,0]],['K',8196]],['I']]]
-gs.proponent.field[0] = ['S','get',['S',['S',['K',['help',0,0]],['K',4096]],['I']]]
+
+gs.proponent.field[16] = ['S','get',['S',['S',['K',['help',0,0]],['K',4096]],['I']]]
+
 1000.times { gs.move }
 
 
