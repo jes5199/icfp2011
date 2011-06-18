@@ -1,4 +1,4 @@
-module GameState (GameState(..),Slots(..),Slot(..),initialState,Who(..),updateVitality,updateField,test_GameState,Vitality,initialSide,switchPlayer,alterFirstBoard) where
+module GameState (GameState(..),Slots(..),Slot(..),initialState,Who(..),updateVitality,updateField,test_GameState,Vitality,initialSide,switchPlayer,alterFirstBoard,opponent) where
 
 import Test.HUnit
 import Data.Array
@@ -40,6 +40,9 @@ updateField value idx slots = transformSlot (replaceField value) idx slots
 
 data Who = FirstPlayer | SecondPlayer
          deriving (Eq, Show)
+
+opponent FirstPlayer = SecondPlayer
+opponent SecondPlayer = FirstPlayer
 
 data GameState = GameState { playerToMove :: Who, firstPlayerBoard :: Slots, secondPlayerBoard :: Slots, zombiesAreOut :: Bool }
                deriving (Eq, Show)

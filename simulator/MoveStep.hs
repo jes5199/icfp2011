@@ -1,5 +1,6 @@
 module MoveStep where -- export everything :)
 
+import Test.HUnit (Test,(~?=))
 import Data.Array
 import Control.Monad.State
 import Control.Monad.Error
@@ -29,6 +30,20 @@ getGameState = get >>= (return . fst)
 putGameState :: GameState -> MoveStep ()
 putGameState s = do (_,c) <- get
                     put (s,c)
+
+side :: Who -> Slots -> Slots -> (Who, Slots)
+side who p1 p2 =
+    case who of
+        FirstPlayer  -> (FirstPlayer, p1)
+        SecondPlayer -> (SecondPlayer, p2)
+
+getFriend :: GameState -> (Who, Slots)
+getFriend (GameState who p1 p2 zombies) =
+    (if zombies then side (opponent who) else side who) p1 p2
+
+getEnemy :: GameState -> (Who, Slots)
+getEnemy (GameState who p1 p2 zombies) =
+    (if zombies then side who else side (opponent who)) p1 p2
 
 getProponentSlots :: MoveStep Slots
 getProponentSlots = do GameState who p1 p2 _ <- getGameState
@@ -101,3 +116,21 @@ runMove :: MoveStep a -> GameState -> (GameState,Either String a)
 runMove step state = (newState,result)
   where
     (result,(newState,appsUsed)) = runState (runErrorT step) (state,0)
+
+test_MoveStep = [
+    getFriend startingGame ~?= firstPlayerSide,
+    getFriend (switchPlayer startingGame) ~?= secondPlayerSide,
+    getFriend zombieTime ~?= secondPlayerSide,
+    getFriend (switchPlayer zombieTime) ~?= firstPlayerSide,
+    getEnemy startingGame ~?= secondPlayerSide,
+    getEnemy (switchPlayer startingGame) ~?= firstPlayerSide,
+    getEnemy zombieTime ~?= firstPlayerSide,
+    getEnemy (switchPlayer zombieTime) ~?= secondPlayerSide
+  ]
+  where
+    firstSide = updateField valueHelp 0 initialSide
+    secondSide = updateField valueAttack 0 initialSide
+    startingGame = GameState FirstPlayer firstSide secondSide False
+    zombieTime = GameState FirstPlayer firstSide secondSide True
+    firstPlayerSide = (FirstPlayer, firstSide)
+    secondPlayerSide = (SecondPlayer, secondSide)
