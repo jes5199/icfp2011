@@ -10,30 +10,64 @@ import Control.Monad.Writer.Strict
 import Control.Monad.State
 import Data.List
 import Statements
+import GameState
 
-type TestCaseGenerator = StateT [SlotNumber] (Writer [Move])
+type TestCaseGenerator = StateT ([SlotNumber], [SlotNumber], Who) (Writer [TestCaseAtom])
+
+data TestCaseAtom = TestCaseMove Who Move
+                  | TestCaseAssertion (GameState -> Bool)
+
+getProponent :: TestCaseGenerator Who
+getProponent = do
+  (_, _, who) <- get
+  return who
+
+getProponentAvailSlots :: TestCaseGenerator [SlotNumber]
+getProponentAvailSlots = do
+  (p1Slots, p2Slots, who) <- get
+  case who of
+    FirstPlayer -> return p1Slots
+    SecondPlayer -> return p2Slots
+
+putProponentAvailSlots :: [SlotNumber] -> TestCaseGenerator ()
+putProponentAvailSlots newSlots = do
+  (p1Slots, p2Slots, who) <- get
+  case who of
+    FirstPlayer -> put (newSlots, p2Slots, who)
+    SecondPlayer -> put (p1Slots, newSlots, who)
+
+tellMoves :: [Move] -> TestCaseGenerator ()
+tellMoves moves = do
+  who <- getProponent
+  tell [TestCaseMove who move | move <- moves]
+
+switchPlayers :: TestCaseGenerator ()
+switchPlayers = do
+  (p1Slots, p2Slots, who) <- get
+  put (p1Slots, p2Slots, opponent who)
 
 buildNewValue :: Value -> TestCaseGenerator SlotNumber
 buildNewValue value = do
-  (destSlot : availSlots) <- get
+  who <- getProponent
+  (destSlot : availSlots) <- getProponentAvailSlots
   let (moves, availSlots') = runState (buildValue destSlot (translateValue value)) availSlots
-  tell moves
-  put availSlots'
+  tellMoves moves
+  putProponentAvailSlots availSlots'
   return destSlot
 
 buildNewValueAt :: Value -> SlotNumber -> TestCaseGenerator SlotNumber
 buildNewValueAt value destSlot = do
-  slots <- get
+  slots <- getProponentAvailSlots
   case elem destSlot slots of
     False -> error "Slot not available"
     True -> do let availSlots = filter (/= destSlot) slots
                    (moves, availSlots') = runState (buildValue destSlot (translateValue value)) availSlots
-               tell moves
-               put availSlots'
+               tellMoves moves
+               putProponentAvailSlots availSlots'
                return destSlot
 
 rightApply :: SlotNumber -> Card -> TestCaseGenerator ()
-rightApply slot card = tell [Move RightApplication card slot]
+rightApply slot card = tellMoves [Move RightApplication card slot]
 
 testCycleCount :: Int -> TestCaseGenerator ()
 testCycleCount wasteCycles = do
@@ -246,6 +280,10 @@ testCases = [
                   buildNewValue (parse "help 200 0 10000")
                   rightApply 200 SCard
                   return ()),
+ ("copy_non_identity", do buildNewValueAt (parse "K") 0
+                          switchPlayers
+                          buildNewValue (parse "copy 0")
+                          return ()),
  ("lazy", do loc <- buildNewValue (parse "lazy (inc 0)")
              rightApply loc ZombieCard),
  ("health_bomb", do loc <- buildNewValue (parse "\\x -> get x (lazy (help 0 0 8196) x)")
@@ -258,11 +296,20 @@ testCases = [
                   rightApply 0 ZeroCard)
  ]
 
+testCaseAtomsToMoves :: [TestCaseAtom] -> [Move]
+testCaseAtomsToMoves = testCaseAtomsToMoves' FirstPlayer
+    where testCaseAtomsToMoves' who [] = [nullMove]
+          testCaseAtomsToMoves' who all@(TestCaseMove who' move : rest)
+              | who == who' = (move : testCaseAtomsToMoves' (opponent who) rest)
+              | otherwise = (nullMove : testCaseAtomsToMoves' (opponent who) all)
+          testCaseAtomsToMoves' who (TestCaseAssertion _ : rest) = testCaseAtomsToMoves' who rest
+          nullMove = Move LeftApplication IdentityCard 0
+
 outputTestCase :: String -> TestCaseGenerator () -> IO ()
 outputTestCase testName testCase = do
   [directory] <- getArgs
-  let moves = execWriter (evalStateT testCase [0..255])
-      fileContents = printMoves (concat [[move, Move LeftApplication IdentityCard 0] | move <- moves])
+  let testCaseAtoms = execWriter (evalStateT testCase ([0..255], [0..255], FirstPlayer))
+      fileContents = printMoves $ testCaseAtomsToMoves testCaseAtoms
   writeFile (directory ++ "/" ++ testName) fileContents
 
 main :: IO ()

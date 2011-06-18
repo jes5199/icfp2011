@@ -12,15 +12,17 @@ import CardBehavior
 
 simulate :: GameState -> Move -> (GameState, Either String ())
 simulate gameState move = runMove moveStep gameState
-    where moveStep = do (leftArg, rightArg) <- takeMove move
-                        newValue' <- catchError (apply leftArg rightArg)
-                            (\e -> do storeResult (ValueCard IdentityCard) (slotNumOfMove move)
-                                      throwError e )
-                        storeResult newValue' (slotNumOfMove move)
+  where moveStep = do (leftArg, rightArg) <- takeMove move
+                      newValue' <- catchError (apply leftArg rightArg)
+                                   (\e -> do storeResult
+                                               (ValueCard IdentityCard)
+                                               (slotNumOfMove move)
+                                             throwError e )
+                      storeResult newValue' (slotNumOfMove move)
 
 takeMove :: Move -> MoveStep (Value, Value)
 takeMove (Move applicationDirection card slotNumber)
-    = do oldValue <- getProponentField slotNumber -- TODO: error handling needed if slot number bad???
+    = do oldValue <- getProponentField slotNumber
          case applicationDirection of
            LeftApplication -> return ((ValueCard card), oldValue)
            RightApplication -> return (oldValue, (ValueCard card))
