@@ -84,13 +84,14 @@ doSucc :: Value -> MoveStep Value
 doSucc (ValueNum n) = return $ ValueNum $ if n == 65535
                                           then 65535
                                           else n+1
-doSucc (ValueCard ZeroCard) = return $ ValueNum 1
+doSucc (ValueCard ZeroCard) = doSucc (ValueNum 0)
 doSucc _ = throwError nanMsg
 
 doDbl :: Value -> MoveStep Value
 doDbl (ValueNum n) = return $ ValueNum $ if n > 32767
                                          then 65535
                                          else n * 2
+doDbl (ValueCard ZeroCard) = doDbl (ValueNum 0)
 doDbl _  = throwError nanMsg
 
 doGet :: Value -> MoveStep Value
@@ -134,6 +135,7 @@ doDec (ValueNum i) = do validSlot i
                               _  -> v-1
                         putOpponentVitality v' (255-i)
                         return $ ValueCard IdentityCard
+doDec (ValueCard ZeroCard) = doDec (ValueNum 0)
 doDec _ = throwError nanMsg
 
 doAttack :: Value -> Value -> Value -> MoveStep Value
@@ -145,6 +147,7 @@ doAttack (ValueNum i) arg2 (ValueNum n) =
        else do putProponentVitality (v-n) i
                j <- case arg2 of
                  ValueNum jj -> return jj
+                 ValueCard ZeroCard -> return 0
                  _ -> throwError attackNANj
                validSlot j
                w <- getOpponentVitality (255-j)
@@ -154,11 +157,11 @@ doAttack (ValueNum i) arg2 (ValueNum n) =
                              else            w-n'
                putOpponentVitality w' (255-j)
                return $ valueI
+doAttack (ValueCard ZeroCard) b c = doAttack (ValueNum 0) b c
+doAttack a b (ValueCard ZeroCard) = doAttack a b (ValueNum 0)
 doAttack _ _ _ = throwError nanMsg
 
-attackRangeI = "attack i-value out of range"
 attackRangeN = "attack n-value greater than vitality of [i]"
-attackRangeJ = "attack j-value out of range"
 attackNANj = "attack j-value is a non-number (health still decremented)"
 
 doHelp :: Value -> Value -> Value -> MoveStep Value
@@ -170,6 +173,7 @@ doHelp (ValueNum i) arg2 (ValueNum n) =
        else do putProponentVitality (v-n) i
                j <- case arg2 of
                  ValueNum jj -> return jj
+                 ValueCard ZeroCard -> return 0
                  _ -> throwError helpNANj
                validSlot j
                w <- getProponentVitality j
@@ -180,17 +184,17 @@ doHelp (ValueNum i) arg2 (ValueNum n) =
                               else                w'
                putProponentVitality w'' j
                return $ valueI
-
+doHelp (ValueCard ZeroCard) b c = doHelp (ValueNum 0) b c
+doHelp a b (ValueCard ZeroCard) = doHelp a b (ValueNum 0)
 doHelp _ _ _ = throwError nanMsg
 
-helpRangeI = "help i-value out of range"
 helpRangeN = "help n-value greater than vitality of [i]"
-helpRangeJ = "help j-value out of range"
 helpNANj = "help j-value is a non-number (health still decremented)"
 
 doCopy :: Value -> MoveStep Value
 doCopy (ValueNum i) = do validSlot i
                          getOpponentField i -- note that this is NOT (255-i)!
+doCopy (ValueCard ZeroCard) = doCopy (ValueNum 0)
 doCopy _ = throwError nanMsg
 
 doRevive :: Value -> MoveStep Value
@@ -202,6 +206,7 @@ doRevive (ValueNum i) = do validSlot i
                                  _  -> v
                            putProponentVitality v' i
                            return valueI
+doRevive (ValueCard ZeroCard) = doRevive (ValueNum 0)
 doRevive _ = throwError nanMsg
 
 doZombie :: Value -> Value -> MoveStep Value
@@ -213,6 +218,7 @@ doZombie (ValueNum i) x =
          else do putOpponentVitality (-1) (255-i)
                  putOpponentField x (255-i)
                  return $ valueI
+doZombie (ValueCard ZeroCard) x = doZombie (ValueNum 0) x
 zombieNotDead = "zombie called on cell that isn't dead"
 
 test_CardBehavior = [
