@@ -1,21 +1,21 @@
 module Simulator (simulate,test_Simulator) where
 
+import Data.Array
+import Control.Monad.Error
 import Test.HUnit
 import GameState
 import Move
 import Card
 import Value
-import Data.Array
 import MoveStep
-import Control.Monad.Error
-
 import CardBehavior
 
 simulate :: GameState -> Move -> GameState
-simulate gameState move = fst $ runMove moveStep gameState
+simulate gameState move = resultState
     where moveStep = do (leftArg, rightArg) <- takeMove move
                         newValue' <- catchError (apply leftArg rightArg) (\e -> return (ValueCard IdentityCard))
                         storeResult newValue' move
+          (resultState,resultOutput) = runMove moveStep gameState
 
 takeMove :: Move -> MoveStep (Value, Value)
 takeMove (Move applicationDirection card slotNumber)
