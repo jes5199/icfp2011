@@ -239,7 +239,11 @@ testCases = [
  ("revive255", do buildNewValue (parse "revive 255")
                   return ()),
  ("revive256", do buildNewValue (parse "revive 256")
-                  return ())
+                  return ()),
+ ("lazy", do loc <- buildNewValue (parse "lazy (inc 0)")
+             rightApply loc ZombieCard),
+ ("health_bomb", do loc <- buildNewValue (parse "\\x -> get x (lazy (help 0 0 8196) x)")
+                    rightApply loc ZeroCard)
  ]
 
 outputTestCase :: String -> TestCaseGenerator () -> IO ()

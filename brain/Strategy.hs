@@ -24,21 +24,24 @@ translateValue card = case card of
               | i < 0 = error "negative ValueNum"
               | i `mod` 2 == 1 = ValueApplication (ValueCard SuccCard) (expandMacro (ValueNum (i-1)))
               | otherwise = ValueApplication (ValueCard DoubleCard) (expandMacro (ValueNum (i `div` 2)))
-          expandMacro (ValueLambda varName (ValueCard IdentityCard)) = ValueCard PutCard
           expandMacro (ValueLambda varName (ValueVariable x)) | varName == x = ValueCard IdentityCard
-          expandMacro (ValueLambda varName value)
-              | not (value `includes` varName) = ValueApplication (ValueCard KCard) value
+          expandMacro (ValueLambda varName value) | not (value `includes` varName) = makeK value
           expandMacro (ValueLambda varName (ValueApplication f (ValueVariable x)))
               | varName == x && not (f `includes` varName) = f
           expandMacro (ValueLambda varName (ValueApplication f x))
               = ValueApplication (ValueApplication (ValueCard SCard) (expandMacro (ValueLambda varName f)))
                                  (expandMacro (ValueLambda varName x))
+          expandMacro (ValueApplication (ValueVariable "lazy") value) = lazify value
           expandMacro value = value
           ValueVariable x `includes` varName = x == varName
           ValueApplication f x `includes` varName = (f `includes` varName) || (x `includes` varName)
           ValueLambda varNameInner value `includes` varName | varNameInner == varName = False
                                                             | otherwise = value `includes` varName
           _ `includes` varName = False
+          lazify (ValueApplication f x) = ValueApplication (ValueApplication (ValueCard SCard) (ValueApplication (ValueApplication (ValueCard SCard) (makeK f)) (makeK x))) (ValueCard IdentityCard)
+          lazify value = value
+          makeK (ValueCard IdentityCard) = ValueCard PutCard
+          makeK value = ValueApplication (ValueCard KCard) value
 
 -- Determine whether the given value is in "vine" form.  "Vine" form
 -- requires that:
@@ -156,7 +159,10 @@ test_Strategy = [
   translateValue (ValueLambda "x" (ValueApplication (ValueCard IncCard) (ValueApplication (ValueCard SuccCard) (ValueVariable "x")))) ~?= ValueApplication (ValueApplication (ValueCard SCard) (ValueApplication (ValueCard KCard) (ValueCard IncCard))) (ValueCard SuccCard),
   translateValue (ValueLambda "x" (ValueLambda "y" (ValueApplication (ValueApplication (ValueCard PutCard) (ValueVariable "x")) (ValueVariable "y")))) ~?= (ValueCard PutCard),
   translateValue (ValueLambda "x" (ValueLambda "y" (ValueApplication (ValueApplication (ValueCard ZombieCard) (ValueVariable "x")) (ValueVariable "y")))) ~?= (ValueCard ZombieCard),
-  translateValue (ValueLambda "bullet" (ValueApplication (ValueApplication (ValueCard PutCard) (ValueApplication (ValueVariable "gun") (ValueVariable "bullet"))) (ValueVariable "value"))) ~?= (ValueApplication (ValueApplication (ValueCard SCard) (ValueApplication (ValueApplication (ValueCard SCard) (ValueApplication (ValueCard KCard) (ValueCard PutCard))) (ValueVariable "gun"))) (ValueApplication (ValueCard KCard) (ValueVariable "value")))
+  translateValue (ValueLambda "bullet" (ValueApplication (ValueApplication (ValueCard PutCard) (ValueApplication (ValueVariable "gun") (ValueVariable "bullet"))) (ValueVariable "value"))) ~?= (ValueApplication (ValueApplication (ValueCard SCard) (ValueApplication (ValueApplication (ValueCard SCard) (ValueApplication (ValueCard KCard) (ValueCard PutCard))) (ValueVariable "gun"))) (ValueApplication (ValueCard KCard) (ValueVariable "value"))),
+  translateValue (ValueApplication (ValueVariable "lazy") (ValueVariable "x")) ~?= ValueVariable "x",
+  (translateValue (ValueLambda "x" (ValueApplication (ValueApplication (ValueCard GetCard) (ValueVariable "x")) (ValueApplication (ValueApplication (ValueVariable "lazy") (ValueApplication (ValueApplication (ValueApplication (ValueCard HelpCard) (ValueNum 0)) (ValueNum 0)) (ValueNum 8196))) (ValueVariable "x"))))
+   ~?= (ValueApplication (ValueApplication (ValueCard SCard) (ValueCard GetCard)) (ValueApplication (ValueApplication (ValueCard SCard) (ValueApplication (ValueApplication (ValueCard SCard) (ValueApplication (ValueCard KCard) (ValueApplication (ValueApplication (ValueCard HelpCard) (ValueCard ZeroCard)) (ValueCard ZeroCard)))) (ValueApplication (ValueCard KCard) (translateValue (ValueNum 8196))))) (ValueCard IdentityCard))))
   ]
     where zero = ValueCard ZeroCard
           succ = ValueCard SuccCard
