@@ -240,6 +240,10 @@ testCases = [
                      return ()),
  ("attack_11.11", do buildNewValue (parse "attack 1 1 11")
                      return ()),
+ ("attack_11.9999", do buildNewValue (parse "attack 1 1 9999")
+                       return ()),
+ ("attack_11.10000", do buildNewValue (parse "attack 1 1 10000")
+                        return ()),
  ("attack_11.10001", do buildNewValue (parse "attack 1 1 10001")
                         return ()),
  ("help_KKK", do buildNewValue (parse "help K K K")
@@ -274,8 +278,16 @@ testCases = [
                    return ()),
  ("help_11.11", do buildNewValue (parse "help 1 1 11")
                    return ()),
+ ("help_11.9999", do buildNewValue (parse "help 1 1 9999")
+                     return ()),
+ ("help_11.10000", do buildNewValue (parse "help 1 1 10000")
+                      return ()),
  ("help_11.10001", do buildNewValue (parse "help 1 1 10001")
                       return ()),
+ ("help_dead", do buildNewValueAt (parse "S") 234
+                  buildNewValue (parse "help 234 0 10000")
+                  buildNewValue (parse "help 1 234 1")
+                  return ()),
  ("copyK", do buildNewValue (parse "copy K")
               return ()),
  ("copy0", do buildNewValue (parse "copy 0")
@@ -298,6 +310,15 @@ testCases = [
  ("use_dead2", do buildNewValueAt (parse "K") 200
                   buildNewValue (parse "help 200 0 10000")
                   rightApply 200 SCard
+                  return ()),
+ ("copy_dead", do buildNewValueAt (parse "S") 100
+                  switchPlayers
+                  buildNewValue (parse "attack 0 155 9000")
+                  buildNewValue (parse "attack 1 155 9000")
+                  who <- getProponent
+                  assert (\gs -> gsGetVitality (perspectiveFor (opponent who) False) gs 100 == 0)
+                  buildNewValueAt (parse "copy 100") 245
+                  assert (\gs -> gsGetField (perspectiveFor who False) gs 245 == parse "S")
                   return ()),
  ("copy_non_identity", do buildNewValueAt (parse "K") 0
                           switchPlayers
