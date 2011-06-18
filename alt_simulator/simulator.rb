@@ -147,6 +147,9 @@ class GameState
           else
             proponent.vitality[j] += (n*11)/10 
             proponent.vitality[j] = Max_vitality if proponent.vitality[j] > Max_vitality
+            if proponent.vitality[j] > Max_vitality
+                fail
+              end
           end
         "I"
       end
@@ -180,7 +183,7 @@ class GameState
         @applications += 1
         fail if @applications > Max_applications
         result = (x.is_a? Array) ? (x + [y]) : [x,y]
-        #p result
+        p result
         f = result.first
         if result.length <= arity(f)
             # not enough to apply
@@ -206,12 +209,15 @@ class GameState
           end
         proponent.field[cell] = (side == 1) ? apply(card,proponent.field[cell]) : apply(proponent.field[cell],card) rescue "I"
         puts message
+        print "...in #{@applications} applications\n"
         swap
       end
   end
 
 gs = GameState.new(:only)
-gs.proponent.field[0] = ['S','get',['S',['S',['K',['help',0,0]],['K',8196]],['I']]]
+#gs.proponent.field[0] = ['S','get',['S',['S',['K',['help',0,0]],['K',8196]],['I']]]
+#gs.proponent.field[0] = ['S','get',['S',['S',['K',['help',0,0]],['K',8196]],['I']]]
+gs.proponent.field[0] = ['S','get',['S',['S',['K',['help',0,0]],['K',4096]],['I']]]
 1000.times { gs.move }
 
 
