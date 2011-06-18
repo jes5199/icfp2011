@@ -15,6 +15,7 @@ while [[ $# != 0 ]]; do
     sed '
       2d;
       s/AppLimitExceeded/Native.AppLimitExceeded/
+      s/Something applied to a non-number/Native.Error/
     ' "test_results/$1.out" > "test_results/$1.out.clean"
 
     sed '
