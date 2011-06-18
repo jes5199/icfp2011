@@ -41,6 +41,11 @@ tellMoves moves = do
   who <- getProponent
   tell [TestCaseMove who move | move <- moves]
 
+switchPlayers :: TestCaseGenerator ()
+switchPlayers = do
+  (p1Slots, p2Slots, who) <- get
+  put (p1Slots, p2Slots, opponent who)
+
 buildNewValue :: Value -> TestCaseGenerator SlotNumber
 buildNewValue value = do
   who <- getProponent
@@ -275,6 +280,10 @@ testCases = [
                   buildNewValue (parse "help 200 0 10000")
                   rightApply 200 SCard
                   return ()),
+ ("copy_non_identity", do buildNewValueAt (parse "K") 0
+                          switchPlayers
+                          buildNewValue (parse "copy 0")
+                          return ()),
  ("lazy", do loc <- buildNewValue (parse "lazy (inc 0)")
              rightApply loc ZombieCard),
  ("health_bomb", do loc <- buildNewValue (parse "\\x -> get x (lazy (help 0 0 8196) x)")
