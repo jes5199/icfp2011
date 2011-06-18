@@ -113,7 +113,49 @@ testCases = [
  ("inc_dead", do buildNewValueAt (parse "S") 100
                  buildNewValue (parse "help 100 200 10000")
                  buildNewValue (parse "inc 100")
-                 return ())
+                 return ()),
+ ("inc_65534", do buildNewValueAt (parse "S") 100
+                  buildNewValueAt (parse "S") 101
+                  buildNewValueAt (parse "S") 102
+                  buildNewValueAt (parse "S") 103
+                  buildNewValueAt (parse "S") 104
+                  buildNewValueAt (parse "S") 105
+                  buildNewValueAt (parse "K") 200
+                  buildNewValue (parse "help 100 200 10000")
+                  buildNewValue (parse "help 101 200 10000")
+                  buildNewValue (parse "help 102 200 10000")
+                  buildNewValue (parse "help 103 200 10000")
+                  buildNewValue (parse "help 104 200 10000")
+                  buildNewValue (parse "help 105 200 486")
+                  buildNewValue (parse "inc 200")
+                  return ()),
+ ("inc_1", do buildNewValueAt (parse "S") 100
+              buildNewValue (parse "help 100 200 10000")
+              buildNewValue (parse "revive 100")
+              buildNewValue (parse "inc 100")
+              return ()),
+ ("dec0", do buildNewValue (parse "dec 0")
+             return ()),
+ ("dec1", do buildNewValue (parse "dec 1")
+             return ()),
+ ("dec255", do buildNewValue (parse "dec 255")
+               return ()),
+ ("decK", do buildNewValue (parse "dec K")
+             return ()),
+ ("dec256", do buildNewValue (parse "dec 256")
+               return ()),
+ ("dec_dead", do buildNewValueAt (parse "S") 100
+                 buildNewValueAt (parse "S") 101
+                 buildNewValue (parse "attack 100 200 10000")
+                 buildNewValue (parse "attack 101 200 10000")
+                 buildNewValue (parse "dec 200")
+                 return ()),
+ ("dec_1", do buildNewValueAt (parse "S") 100
+              buildNewValueAt (parse "S") 101
+              buildNewValue (parse "attack 100 200 10000")
+              buildNewValue (parse "attack 101 200 1110")
+              buildNewValue (parse "dec 200")
+              return ())
  ]
 
 outputTestCase :: String -> TestCaseGenerator () -> IO ()
