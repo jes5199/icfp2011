@@ -129,17 +129,15 @@ doInc _ = throwError incNANmsg
 incNANmsg = "inc applied to non-number"
 
 doDec :: Value -> MoveStep Value
-doDec (ValueNum i) = if i >= 0 && i <= 255
-                     then do v <- getOpponentVitality (255-i)
-                             let v' = case v of
-                                   0  -> 0
-                                   -1 -> -1
-                                   _  -> v-1
-                             putOpponentVitality v' (255-i)
-                             return $ ValueCard IdentityCard
-                     else throwError decRangeMsg
+doDec (ValueNum i) = do validSlot i
+                        v <- getOpponentVitality (255-i)
+                        let v' = case v of
+                              0  -> 0
+                              -1 -> -1
+                              _  -> v-1
+                        putOpponentVitality v' (255-i)
+                        return $ ValueCard IdentityCard
 doDec _ = throwError decNANmsg
-decRangeMsg = "dec out of range"
 decNANmsg = "dec applied to non-number"
 
 doAttack :: Value -> Value -> Value -> MoveStep Value
