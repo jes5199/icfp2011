@@ -1,4 +1,4 @@
-module Strategy(test_Strategy, buildValue, translateNums, translateLambda) where
+module Strategy(test_Strategy, buildValue, translateValue) where
 
 import Control.Monad.State
 import Test.HUnit ( (~?=) )
@@ -8,32 +8,33 @@ import Card
 
 type SlotNum = Int
 
--- Replace any instance of ValueNum with an equivalent tree of
--- ValueCards and ValueApplications.
-translateNums :: Value -> Value
-translateNums (ValueApplication f x) = ValueApplication (translateNums f) (translateNums x)
-translateNums (ValueNum 0) = ValueCard ZeroCard
-translateNums (ValueNum i) | i < 0 = error "negative value in translateNums"
-                           | i `mod` 2 == 1 = ValueApplication (ValueCard SuccCard) (translateNums (ValueNum (i-1)))
-                           | otherwise = ValueApplication (ValueCard DoubleCard) (translateNums (ValueNum (i `div` 2)))
-translateNums (ValueCard c) = ValueCard c
-
--- Replace any instance of ValueLambda with an equivalent tree making
--- use of S, K, I, etc.
-translateLambda (ValueApplication f x) = ValueApplication (translateLambda f) (translateLambda x)
-translateLambda (ValueNum i) = ValueNum i
-translateLambda (ValueCard c) = ValueCard c
-translateLambda (ValueVariable varName) = ValueVariable varName
-translateLambda (ValueLambda varName value)
-    = case translateLambda value of
-        ValueCard IdentityCard -> ValueCard PutCard
-        ValueVariable x | varName == x -> ValueCard IdentityCard
-        value | not (value `includes` varName) -> ValueApplication (ValueCard KCard) value
-        ValueApplication f (ValueVariable x) | varName == x && not (f `includes` varName) -> f
-        ValueApplication f x
-            -> ValueApplication (ValueApplication (ValueCard SCard) (translateLambda (ValueLambda varName f)))
-                                (translateLambda (ValueLambda varName x))
-    where ValueVariable x `includes` varName = x == varName
+-- Translate the given value until everythin is expressed in terms of
+-- ValueApplication, ValueCard, and ValueVariable for unbound
+-- variables.
+--
+-- Modelled after Lisp macro expansion.
+translateValue card = case card of
+                        (ValueCard c) -> ValueCard c
+                        (ValueNum n) -> expandMacro (ValueNum n)
+                        (ValueApplication f x) -> expandMacro (ValueApplication (translateValue f) (translateValue x))
+                        (ValueLambda x v) -> expandMacro (ValueLambda x (translateValue v))
+                        (ValueVariable x) -> ValueVariable x
+    where expandMacro (ValueNum 0) = ValueCard ZeroCard
+          expandMacro (ValueNum i)
+              | i < 0 = error "negative ValueNum"
+              | i `mod` 2 == 1 = ValueApplication (ValueCard SuccCard) (expandMacro (ValueNum (i-1)))
+              | otherwise = ValueApplication (ValueCard DoubleCard) (expandMacro (ValueNum (i `div` 2)))
+          expandMacro (ValueLambda varName (ValueCard IdentityCard)) = ValueCard PutCard
+          expandMacro (ValueLambda varName (ValueVariable x)) | varName == x = ValueCard IdentityCard
+          expandMacro (ValueLambda varName value)
+              | not (value `includes` varName) = ValueApplication (ValueCard KCard) value
+          expandMacro (ValueLambda varName (ValueApplication f (ValueVariable x)))
+              | varName == x && not (f `includes` varName) = f
+          expandMacro (ValueLambda varName (ValueApplication f x))
+              = ValueApplication (ValueApplication (ValueCard SCard) (expandMacro (ValueLambda varName f)))
+                                 (expandMacro (ValueLambda varName x))
+          expandMacro value = value
+          ValueVariable x `includes` varName = x == varName
           ValueApplication f x `includes` varName = (f `includes` varName) || (x `includes` varName)
           ValueLambda varNameInner value `includes` varName | varNameInner == varName = False
                                                             | otherwise = value `includes` varName
@@ -67,7 +68,7 @@ isRightVine (ValueApplication _ _) = False
 buildVine :: SlotNum -> Value -> [Move]
 buildVine slot vine = buildVine' vine []
     where buildVine' (ValueCard c) = (Move RightApplication c slot :)
-          buildVine' (ValueNum _) = error "call translateNums before buildVine"
+          buildVine' (ValueNum _) = error "call translateValue before buildVine"
           buildVine' (ValueApplication (ValueCard c) v) = buildVine' v . (Move LeftApplication c slot :)
           buildVine' (ValueApplication v (ValueCard c)) = buildVine' v . (Move RightApplication c slot :)
           buildVine' (ValueApplication v w) = error "buildVine': not a vine"
@@ -104,18 +105,18 @@ buildValue destSlot (ValueApplication f x)
                      let slotToUse = head availableSlots
                      put $ tail availableSlots
                      moves2 <- buildValue slotToUse x
-                     let moves3 = applyRightVine destSlot $ translateNums $ ValueApplication (ValueCard GetCard) (ValueNum slotToUse)
+                     let moves3 = applyRightVine destSlot $ translateValue $ ValueApplication (ValueCard GetCard) (ValueNum slotToUse)
                      return $ moves1 ++ moves2 ++ moves3
 
 test_Strategy = [
-  translateNums (ValueNum 0) ~?= zero,
-  translateNums (ValueNum 1) ~?= app succ zero,
-  translateNums (ValueNum 2) ~?= app dbl (app succ zero),
-  translateNums (ValueNum 3) ~?= app succ (app dbl (app succ zero)),
-  translateNums (ValueNum 4) ~?= app dbl (app dbl (app succ zero)),
-  translateNums (ValueNum 5) ~?= app succ (app dbl (app dbl (app succ zero))),
-  translateNums succ ~?= succ,
-  translateNums (app (ValueNum 1) (ValueNum 2)) ~?= app (app succ zero) (app dbl (app succ zero)),
+  translateValue (ValueNum 0) ~?= zero,
+  translateValue (ValueNum 1) ~?= app succ zero,
+  translateValue (ValueNum 2) ~?= app dbl (app succ zero),
+  translateValue (ValueNum 3) ~?= app succ (app dbl (app succ zero)),
+  translateValue (ValueNum 4) ~?= app dbl (app dbl (app succ zero)),
+  translateValue (ValueNum 5) ~?= app succ (app dbl (app dbl (app succ zero))),
+  translateValue succ ~?= succ,
+  translateValue (app (ValueNum 1) (ValueNum 2)) ~?= app (app succ zero) (app dbl (app succ zero)),
   isVine dbl ~?= True,
   isVine (ValueNum 1) ~?= False,
   isVine (ValueApplication succ zero) ~?= True,
@@ -148,14 +149,14 @@ test_Strategy = [
    ~?= [Move RightApplication GetCard 10, Move LeftApplication KCard 10, Move LeftApplication SCard 10,
         Move RightApplication GetCard 10, Move LeftApplication KCard 10, Move LeftApplication SCard 10,
         Move RightApplication SuccCard 10, Move RightApplication ZeroCard 10]),
-  translateLambda (ValueLambda "x" (ValueLambda "y" (ValueVariable "y"))) ~?= ValueCard PutCard,
-  translateLambda (ValueLambda "x" (ValueVariable "x")) ~?= ValueCard IdentityCard,
-  translateLambda (ValueLambda "x" (ValueApplication (ValueCard IncCard) (ValueVariable "x"))) ~?= ValueCard IncCard,
-  translateLambda (ValueLambda "x" (ValueLambda "y" (ValueVariable "x"))) ~?= ValueCard KCard,
-  translateLambda (ValueLambda "x" (ValueApplication (ValueCard IncCard) (ValueApplication (ValueCard SuccCard) (ValueVariable "x")))) ~?= ValueApplication (ValueApplication (ValueCard SCard) (ValueApplication (ValueCard KCard) (ValueCard IncCard))) (ValueCard SuccCard),
-  translateLambda (ValueLambda "x" (ValueLambda "y" (ValueApplication (ValueApplication (ValueCard PutCard) (ValueVariable "x")) (ValueVariable "y")))) ~?= (ValueCard PutCard),
-  translateLambda (ValueLambda "x" (ValueLambda "y" (ValueApplication (ValueApplication (ValueCard ZombieCard) (ValueVariable "x")) (ValueVariable "y")))) ~?= (ValueCard ZombieCard),
-  translateLambda (ValueLambda "bullet" (ValueApplication (ValueApplication (ValueCard PutCard) (ValueApplication (ValueVariable "gun") (ValueVariable "bullet"))) (ValueVariable "value"))) ~?= (ValueApplication (ValueApplication (ValueCard SCard) (ValueApplication (ValueApplication (ValueCard SCard) (ValueApplication (ValueCard KCard) (ValueCard PutCard))) (ValueVariable "gun"))) (ValueApplication (ValueCard KCard) (ValueVariable "value")))
+  translateValue (ValueLambda "x" (ValueLambda "y" (ValueVariable "y"))) ~?= ValueCard PutCard,
+  translateValue (ValueLambda "x" (ValueVariable "x")) ~?= ValueCard IdentityCard,
+  translateValue (ValueLambda "x" (ValueApplication (ValueCard IncCard) (ValueVariable "x"))) ~?= ValueCard IncCard,
+  translateValue (ValueLambda "x" (ValueLambda "y" (ValueVariable "x"))) ~?= ValueCard KCard,
+  translateValue (ValueLambda "x" (ValueApplication (ValueCard IncCard) (ValueApplication (ValueCard SuccCard) (ValueVariable "x")))) ~?= ValueApplication (ValueApplication (ValueCard SCard) (ValueApplication (ValueCard KCard) (ValueCard IncCard))) (ValueCard SuccCard),
+  translateValue (ValueLambda "x" (ValueLambda "y" (ValueApplication (ValueApplication (ValueCard PutCard) (ValueVariable "x")) (ValueVariable "y")))) ~?= (ValueCard PutCard),
+  translateValue (ValueLambda "x" (ValueLambda "y" (ValueApplication (ValueApplication (ValueCard ZombieCard) (ValueVariable "x")) (ValueVariable "y")))) ~?= (ValueCard ZombieCard),
+  translateValue (ValueLambda "bullet" (ValueApplication (ValueApplication (ValueCard PutCard) (ValueApplication (ValueVariable "gun") (ValueVariable "bullet"))) (ValueVariable "value"))) ~?= (ValueApplication (ValueApplication (ValueCard SCard) (ValueApplication (ValueApplication (ValueCard SCard) (ValueApplication (ValueCard KCard) (ValueCard PutCard))) (ValueVariable "gun"))) (ValueApplication (ValueCard KCard) (ValueVariable "value")))
   ]
     where zero = ValueCard ZeroCard
           succ = ValueCard SuccCard
