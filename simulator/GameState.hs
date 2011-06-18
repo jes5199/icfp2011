@@ -17,7 +17,6 @@ instance Show Slot where
 replaceVitality :: Vitality -> Slot -> Slot
 replaceVitality hp slot = Slot hp (field slot)
 
-clamp hp = if hp < 0 then 0 else (if hp > 65535 then 65535 else hp)
 addIfAlive current adj = if current <= 0 then current else current + adj
 
 changeVitality :: Vitality -> Slot -> Slot
