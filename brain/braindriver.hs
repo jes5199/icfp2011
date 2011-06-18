@@ -13,13 +13,23 @@ import System(getArgs)
 main :: IO ()
 main = do 
     [arg] <- getArgs
-    let game_state = initialState
+    let game_state   = initialState
     let our_agents   = [gaMakeThisAt arg 0]
     let their_agents = [gaMakeThisAt "I" 0]
     let our_moves   = planSteps (chooseGoal   our_agents game_state ) game_state
     let their_moves = planSteps (chooseGoal their_agents game_state ) game_state ++ their_moves
-    putStr (printMoves (interleave our_moves their_moves))
+    play our_moves their_moves initialState
 
+play :: [Move] -> [Move] -> GameState -> IO ()
+play (move:moves) other_moves state = do 
+    putStr (printMoves [move])
+    new_state <- playOneMove move state
+    play other_moves moves new_state
+
+playOneMove :: Move -> GameState -> IO GameState
+playOneMove move state = do
+     let (state', err) = simulate state move
+     return $ switchPlayer state'
 
 --
 -- Goal Agents
