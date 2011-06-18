@@ -83,15 +83,22 @@ quine f n = -- S f (bind get n) (assuming f returns I)
     where nValue = translateValue (ValueNum n)
           get = statement (ValueCard GetCard)
 
-grapeShot :: Int -> SlotNumber -> Value
-grapeShot damage = forLoop (template "\\i -> attack i i damage" [("damage", (ValueNum damage))])
+grapeshot :: Int -> SlotNumber -> Value
+grapeshot damage = forLoop $ statement (template "\\i -> attack i i damage" $ numericArgs [("damage", damage)] )
 
 firingSquad :: Int -> SlotNumber -> SlotNumber -> Value
-firingSquad damage target = forLoop (template "\\i -> attack i target damage" [("damage", (ValueNum damage)), ("target", (ValueNum target)) ])
+firingSquad damage target = forLoop $ statement (template "\\i -> attack i target damage" $ numericArgs [("damage", damage), ("target", target) ])
 
-forLoop :: Value -> SlotNumber -> Value
+heal :: SlotNumber -> Int -> SlotNumber -> Value
+heal target amount = infLoop $
+  bind ( statement $ template "help target target" $ numericArgs [("target", target)] ) (ValueNum amount)
+
+forLoop :: UnaryFunc -> SlotNumber -> Value
 forLoop stuff = infLoop $
-            semi (statement stuff)
-                 (routine (template "succ" []))
+                  semi stuff
+                  (routine (template "succ" []))
+
+numericArgs = map numericArg
+  where numericArg (name, i) = (name, (ValueNum i))
 
 -- We'll need the ability to call a cell with an arbitrary parameter.

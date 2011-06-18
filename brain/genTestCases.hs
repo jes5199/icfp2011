@@ -333,14 +333,18 @@ testCases = [
                       buildNewValue (parse "help 200 0 10000")
                       buildNewValue (parse "get 200")
                       return ()),
- ("grapeshot", do buildNewValueAt (grapeShot 8192 0) 0
+ ("grapeshot", do buildNewValueAt (grapeshot 8192 0) 0
                   rightApply 0 ZeroCard
                   assertProponent (\pers gs -> all (\i -> gsGetVitality pers gs i == 1808) [0..65])
                   assertOpponent (\pers gs -> all (\i -> gsGetVitality pers gs i == 2628) [190..255])),
  ("firingSquad", do buildNewValueAt (firingSquad 256 100 0) 0
                     rightApply 0 ZeroCard
                     assertProponent (\pers gs -> all (\i -> gsGetVitality pers gs i == 9744) [0..65])
-                    assertOpponent (\pers gs -> gsGetVitality pers gs 155 == 0 ))
+                    assertOpponent (\pers gs -> gsGetVitality pers gs 155 == 0 )),
+ ("heal", do buildNewValueAt (heal 52 8192 0) 0
+             rightApply 0 ZeroCard
+             assertProponent (\pers gs -> gsGetVitality pers gs 52 == 65535 )
+             )
  ]
 
 testCaseAtomsToMoves :: String -> [TestCaseAtom] -> [Move]
