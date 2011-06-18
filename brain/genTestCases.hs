@@ -246,7 +246,11 @@ testCases = [
  ("lazy", do loc <- buildNewValue (parse "lazy (inc 0)")
              rightApply loc ZombieCard),
  ("health_bomb", do loc <- buildNewValue (parse "\\x -> get x (lazy (help 0 0 8196) x)")
-                    rightApply loc ZeroCard)
+                    rightApply loc ZeroCard),
+ ("get_from_dead", do buildNewValueAt (parse "S") 200
+                      buildNewValue (parse "help 200 0 10000")
+                      buildNewValue (parse "get 200")
+                      return ())
  ]
 
 outputTestCase :: String -> TestCaseGenerator () -> IO ()
