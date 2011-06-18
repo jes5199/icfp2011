@@ -165,7 +165,30 @@ attackRangeN = "attack n-value greater than vitality of [i]"
 attackRangeJ = "attack j-value out of range"
 
 doHelp :: Value -> Value -> Value -> MoveStep Value
-doHelp = undefined
+doHelp (ValueNum i) (ValueNum j) (ValueNum n) =
+    if i < 0 || i > 255
+    then throwError helpRangeI
+    else do
+        v <- getProponentVitality i
+        if v < n
+          then throwError helpRangeN
+          else do
+            putProponentVitality (v-n) i
+            if j < 0 || j > 255
+              then throwError helpRangeJ
+              else do
+                w <- getProponentVitality j
+                let n' = (n*11) `div` 10
+                    w' = w+n'
+                    w'' = if     w  <= 0     then w
+                         else if w' >= 65535 then 65535
+                              else                w'
+                putProponentVitality w'' j
+                return $ ValueCard IdentityCard
+            
+helpRangeI = "help i-value out of range"
+helpRangeN = "help n-value greater than vitality of [i]"
+helpRangeJ = "help j-value out of range"
 
 doCopy :: Value -> MoveStep Value
 doCopy (ValueNum i) = if i >= 0 && i <= 255
