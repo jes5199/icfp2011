@@ -39,6 +39,6 @@ while [[ $# != 0 ]]; do
 done
 
 echo "Ran $TOTAL_COUNT tests, got $FAIL_COUNT failures."
-if [[ $FAIL_COUNT ]]; then
+if [[ $FAIL_COUNT != 0 ]]; then
     exit 1
 fi
