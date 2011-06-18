@@ -219,7 +219,13 @@ testCases = [
  ("help_11.10", do buildNewValue (parse "help 1 1 10")
                    return ()),
  ("help_11.11", do buildNewValue (parse "help 1 1 11")
-                   return ())
+                   return ()),
+ ("copy0", do buildNewValue (parse "copy 0")
+              return ()),
+ ("copy255", do buildNewValue (parse "copy 255")
+                return ()),
+ ("copy256", do buildNewValue (parse "copy 256")
+                return ())
  ]
 
 outputTestCase :: String -> TestCaseGenerator () -> IO ()
