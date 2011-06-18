@@ -10,12 +10,13 @@ import Value
 import MoveStep
 import CardBehavior
 
-simulate :: GameState -> Move -> GameState
-simulate gameState move = resultState
+simulate :: GameState -> Move -> (GameState, Either String ())
+simulate gameState move = runMove moveStep gameState
     where moveStep = do (leftArg, rightArg) <- takeMove move
-                        newValue' <- catchError (apply leftArg rightArg) (\e -> return (ValueCard IdentityCard))
+                        newValue' <- catchError (apply leftArg rightArg)
+                            (\e -> do storeResult (ValueCard IdentityCard) move
+                                      throwError e )
                         storeResult newValue' move
-          (resultState,resultOutput) = runMove moveStep gameState
 
 takeMove :: Move -> MoveStep (Value, Value)
 takeMove (Move applicationDirection card slotNumber)
@@ -28,8 +29,8 @@ storeResult :: Value -> Move -> MoveStep ()
 storeResult v (Move _ _ slot) = transformProponentSlots (updateField v slot)
 
 test_Simulator = [
-  simulate initialState trivialMove ~?= initialState,
-  simulate initialState moveWithResult ~?= alterFirstBoard (updateField valueZero 3) initialState,
+  simulate initialState trivialMove ~?= (initialState, Right ()),
+  simulate initialState moveWithResult ~?= (alterFirstBoard (updateField valueZero 3) initialState, Right ()),
 
   runMove (storeResult (ValueNum 0) (Move undefined undefined 3)) initialState ~?= (alterFirstBoard (updateField (ValueNum 0) 3) initialState, Right ()),
 

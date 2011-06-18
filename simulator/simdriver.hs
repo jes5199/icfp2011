@@ -30,11 +30,15 @@ playPly playerNumber state =
        1 -> do card <- askCard
                slotNumber <- askSlot
                putStrLn $ "player " ++ show playerNumber ++ " applied card " ++ show card ++ " to slot " ++ show slotNumber
-               return $ simulate state (Move LeftApplication card slotNumber)
+               let (game, err) = simulate state (Move LeftApplication card slotNumber)
+               putStrLn $ show err
+               return $ game
        2 -> do slotNumber <- askSlot
                card <- askCard
                putStrLn $ "player " ++ show playerNumber ++ " applied slot " ++ show slotNumber ++ " to card " ++ show card
-               return $ simulate state (Move RightApplication card slotNumber)
+               let (game, err) = simulate state (Move RightApplication card slotNumber)
+               putStrLn $ show err
+               return $ game
 
 readInt :: IO Int
 readInt = do str <- getLine
