@@ -88,4 +88,9 @@ grapeShot damage = infLoop $
             semi (statement (template "\\i -> attack i i damage" [("damage", (ValueNum damage))]))
                  (routine (template "succ" []))
 
+firingSquad :: Int -> SlotNumber -> SlotNumber -> Value
+firingSquad damage target = infLoop $
+            semi (statement (template "\\i -> attack i target damage" [("damage", (ValueNum damage)), ("target", (ValueNum target)) ]))
+                 (routine (template "succ" []))
+
 -- We'll need the ability to call a cell with an arbitrary parameter.

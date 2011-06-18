@@ -336,7 +336,11 @@ testCases = [
  ("grapeshot", do buildNewValueAt (grapeShot 8192 0) 0
                   rightApply 0 ZeroCard
                   assertProponent (\pers gs -> all (\i -> gsGetVitality pers gs i == 1808) [0..65])
-                  assertOpponent (\pers gs -> all (\i -> gsGetVitality pers gs i == 2628) [190..255]))
+                  assertOpponent (\pers gs -> all (\i -> gsGetVitality pers gs i == 2628) [190..255])),
+ ("firingSquad", do buildNewValueAt (firingSquad 256 100 0) 0
+                    rightApply 0 ZeroCard
+                    assertProponent (\pers gs -> all (\i -> gsGetVitality pers gs i == 9744) [0..65])
+                    assertOpponent (\pers gs -> gsGetVitality pers gs 155 == 0 ))
  ]
 
 testCaseAtomsToMoves :: String -> [TestCaseAtom] -> [Move]
