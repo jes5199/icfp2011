@@ -15,24 +15,22 @@ simulate gameState move = runMove (thisMove move) gameState
 
 thisMove :: Move -> MoveStep ()
 thisMove move = do
-  whatToApply <- fetchMove move
-  case whatToApply of
-    Nothing -> return ()
-    Just (leftArg, rightArg) -> tryApply move leftArg rightArg
+  (leftArg, rightArg) <- fetchValues move
+  tryApply move leftArg rightArg
 
-fetchMove :: Move -> MoveStep (Maybe (Value, Value))
-fetchMove (Move applicationDirection card slotNumber) = do
-  v <- getProponentVitality slotNumber
-  if v <= 0
-    then return Nothing
-    else do oldValue <- getProponentField slotNumber
-            return $ case applicationDirection of
-              LeftApplication -> Just ((ValueCard card), oldValue)
-              RightApplication -> Just (oldValue, (ValueCard card))
+fetchValues :: Move -> MoveStep (Value, Value)
+fetchValues (Move applicationDirection card slotNumber) = do
+  oldValue <- getProponentField slotNumber
+  return $ case applicationDirection of
+    LeftApplication -> (ValueCard card, oldValue)
+    RightApplication -> (oldValue, ValueCard card)
 
 tryApply :: Move -> Value -> Value -> MoveStep ()
 tryApply move leftArg rightArg = do
-  newValue' <- catchError (apply leftArg rightArg)
+  newValue' <- catchError (do v <- getProponentVitality (slotNumOfMove move)
+                              if v <= 0
+                                then throwError "Dead slot application"
+                                else apply leftArg rightArg)
                (\e -> do storeResult
                            (ValueCard IdentityCard)
                            (slotNumOfMove move)
@@ -48,10 +46,10 @@ test_Simulator = [
 
   runMove (storeResult (ValueNum 0) 3) initialState ~?= (alterFirstBoard (updateField (ValueNum 0) 3) initialState, Right ()),
 
-  runMove (fetchMove $ Move LeftApplication ZeroCard 1) initialState
-    ~?= (initialState, Right (Just (valueZero, valueI))),
-  runMove (fetchMove $ Move RightApplication ZeroCard 1) initialState
-    ~?= (initialState, Right (Just (valueI, valueZero)))
+  runMove (fetchValues $ Move LeftApplication ZeroCard 1) initialState
+    ~?= (initialState, Right (valueZero, valueI)),
+  runMove (fetchValues $ Move RightApplication ZeroCard 1) initialState
+    ~?= (initialState, Right (valueI, valueZero))
   ]
   where
     trivialMove = Move LeftApplication IdentityCard 2

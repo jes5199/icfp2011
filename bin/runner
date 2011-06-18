@@ -6,6 +6,8 @@ import time
 import os
 import fcntl
 
+timeout = 0.5
+
 input_str = sys.stdin.read()
 output_str = ['Failed to get output']
 
@@ -17,7 +19,7 @@ class ReaderThread(threading.Thread):
         #    time.sleep(0.01)
 ReaderThread().start()
 child.stdin.write(input_str)
-time.sleep(0.1)
+time.sleep(timeout)
 child.kill()
-time.sleep(0.1)
+time.sleep(timeout)
 sys.stdout.write(output_str[0])
