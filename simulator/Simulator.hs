@@ -29,14 +29,14 @@ storeResult v (Move _ _ slot) = transformProponentSlots (updateField v slot)
 
 test_Simulator = [
   simulate initialState trivialMove ~?= initialState,
-  simulate initialState moveWithResult ~?= alterFirstBoard (updateField (ValueCard ZeroCard) 3) initialState,
+  simulate initialState moveWithResult ~?= alterFirstBoard (updateField valueZero 3) initialState,
 
   runMove (storeResult (ValueNum 0) (Move undefined undefined 3)) initialState ~?= (alterFirstBoard (updateField (ValueNum 0) 3) initialState, Right ()),
 
   (runMove (takeMove $ Move LeftApplication ZeroCard 1) initialState
-       ~?= (initialState, Right ((ValueCard ZeroCard), (ValueCard IdentityCard)))),
+       ~?= (initialState, Right (valueZero, (valueI)))),
   (runMove (takeMove $ Move RightApplication ZeroCard 1) initialState
-       ~?= (initialState, Right ((ValueCard IdentityCard), (ValueCard ZeroCard))))
+       ~?= (initialState, Right (valueI, valueZero)))
   ]
   where
     trivialMove = Move LeftApplication IdentityCard 2

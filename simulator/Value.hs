@@ -1,4 +1,4 @@
-module Value (Value(..),cardToValue,test_Value) where
+module Value (Value(..),cardToValue,test_Value,valueI,valueZero,valueSucc,valueDbl,valueGet,valuePut,valueS,valueK,valueInc,valueDec,valueAttack,valueHelp,valueCopy,valueRevive,valueZombie) where
 
 import Test.HUnit
 import Card
@@ -14,11 +14,27 @@ instance Show Value where
   show (ValueCard c) = show c
   show (ValueNum n) = show n
   show (ValueApplication x y) = show x ++ "(" ++ show y ++ ")"
-  show (ValueLambda s v) = "λ" ++ s ++ "." ++ show v
+  show (ValueLambda s v) = "\\" ++ s ++ "." ++ show v
   show (ValueVariable s) = s
 
 cardToValue :: Card -> Value
 cardToValue = ValueCard
+
+valueI  = ValueCard IdentityCard
+valueZero = ValueCard ZeroCard
+valueSucc = ValueCard SuccCard
+valueDbl = ValueCard DoubleCard
+valueGet = ValueCard GetCard
+valuePut = ValueCard PutCard
+valueS = ValueCard SCard
+valueK = ValueCard KCard
+valueInc = ValueCard IncCard
+valueDec = ValueCard DecCard
+valueAttack = ValueCard AttackCard
+valueHelp = ValueCard HelpCard
+valueCopy = ValueCard CopyCard
+valueRevive = ValueCard ReviveCard
+valueZombie = ValueCard ZombieCard
 
 test_Value = [
   ] :: [Test]
