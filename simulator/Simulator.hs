@@ -11,21 +11,33 @@ import MoveStep
 import CardBehavior
 
 simulate :: GameState -> Move -> (GameState, Either String ())
-simulate gameState move = runMove moveStep gameState
-  where moveStep = do (leftArg, rightArg) <- takeMove move
-                      newValue' <- catchError (apply leftArg rightArg)
-                                   (\e -> do storeResult
-                                               (ValueCard IdentityCard)
-                                               (slotNumOfMove move)
-                                             throwError e )
-                      storeResult newValue' (slotNumOfMove move)
+simulate gameState move = runMove (thisMove move) gameState
 
-takeMove :: Move -> MoveStep (Value, Value)
-takeMove (Move applicationDirection card slotNumber)
-    = do oldValue <- getProponentField slotNumber
-         case applicationDirection of
-           LeftApplication -> return ((ValueCard card), oldValue)
-           RightApplication -> return (oldValue, (ValueCard card))
+thisMove :: Move -> MoveStep ()
+thisMove move = do
+  whatToApply <- fetchMove move
+  case whatToApply of
+    Nothing -> return ()
+    Just (leftArg, rightArg) -> tryApply move leftArg rightArg
+
+fetchMove :: Move -> MoveStep (Maybe (Value, Value))
+fetchMove (Move applicationDirection card slotNumber) = do
+  v <- getProponentVitality slotNumber
+  if v <= 0
+    then return Nothing
+    else do oldValue <- getProponentField slotNumber
+            return $ case applicationDirection of
+              LeftApplication -> Just ((ValueCard card), oldValue)
+              RightApplication -> Just (oldValue, (ValueCard card))
+
+tryApply :: Move -> Value -> Value -> MoveStep ()
+tryApply move leftArg rightArg = do
+  newValue' <- catchError (apply leftArg rightArg)
+               (\e -> do storeResult
+                           (ValueCard IdentityCard)
+                           (slotNumOfMove move)
+                         throwError e )
+  storeResult newValue' (slotNumOfMove move)
 
 storeResult :: Value -> SlotNumber -> MoveStep ()
 storeResult v slot = transformProponentSlots (updateField v slot)
@@ -36,10 +48,10 @@ test_Simulator = [
 
   runMove (storeResult (ValueNum 0) 3) initialState ~?= (alterFirstBoard (updateField (ValueNum 0) 3) initialState, Right ()),
 
-  (runMove (takeMove $ Move LeftApplication ZeroCard 1) initialState
-       ~?= (initialState, Right (valueZero, (valueI)))),
-  (runMove (takeMove $ Move RightApplication ZeroCard 1) initialState
-       ~?= (initialState, Right (valueI, valueZero)))
+  runMove (fetchMove $ Move LeftApplication ZeroCard 1) initialState
+    ~?= (initialState, Right (Just (valueZero, valueI))),
+  runMove (fetchMove $ Move RightApplication ZeroCard 1) initialState
+    ~?= (initialState, Right (Just (valueI, valueZero)))
   ]
   where
     trivialMove = Move LeftApplication IdentityCard 2
