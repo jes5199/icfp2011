@@ -1,5 +1,6 @@
 Size = 256
 Starting_vitality = 10000
+Max_vitality = 65535
 Max_applications = 1000
 class Cells
     def vitality
@@ -28,13 +29,16 @@ def ask(prompt,type)
         print prompt,"\n"
         input = (gets || abort).chomp
         result = send("#{type}",input) rescue "***"
-        p result
+        result = result.to_i if type == String and result =~ /^\d+$/
+        #p result
         return result if result.to_s == input
       end
     end
 
 class GameState
-    attr_reader :zombie
+    def zombie?
+        @zombie
+      end
     def player
         @player ||= 0
       end
@@ -52,8 +56,10 @@ class GameState
             if proponent.vitality[i] == -1
                 begin
                     @applications = 0
-                    apply(poponent.field[i],'I')
+                    @zombie = true
+                    apply(proponent.field[i],'I')
                   ensure
+                    @zombie = false
                     proponent.vitality[i] = 0
                     proponent.field[i] = "I"
                   end
@@ -104,7 +110,7 @@ class GameState
         x
       end
     def inc i
-        if zombie
+        if zombie?
             proponent.vitality[i] -= 1 if proponent.vitality[i] > 0 
             proponent.vitality[i] = Max_vitality if proponent.vitality[i] > Max_vitality
           else
@@ -114,7 +120,7 @@ class GameState
         "I"
       end
     def dec i
-        if zombie
+        if zombie?
             opponent.vitality[i] += 1 if opponent.vitality[i] > 0
             opponent.vitality[i] = Max_vitality if proponent.vitality[i] > Max_vitality
           else
@@ -124,7 +130,7 @@ class GameState
       end
     def attack i,j,n
         proponent.vitality[i] -= n
-        if zombie
+        if zombie?
             opponent.vitality[255-j] += (n*9)/10 
             opponent.vitality[255-j] = Max_vitality if opponent.vitality[255-j] > Max_vitality
           else
@@ -135,12 +141,12 @@ class GameState
       end
     def help i,j,n
         proponent.vitality[i] -= n
-        if zombie
+        if zombie?
             proponent.vitality[j] -= (n*11)/10 
-            proponent.vitality[j] = 0 if proponent.vitality[255-j] < 0
+            proponent.vitality[j] = 0 if proponent.vitality[j] < 0
           else
             proponent.vitality[j] += (n*11)/10 
-            proponent.vitality[j] = Max_vitality if proponent.vitality[255-j] > Max_vitality
+            proponent.vitality[j] = Max_vitality if proponent.vitality[j] > Max_vitality
           end
         "I"
       end
@@ -174,6 +180,7 @@ class GameState
         @applications += 1
         fail if @applications > Max_applications
         result = (x.is_a? Array) ? (x + [y]) : [x,y]
+        #p result
         f = result.first
         if result.length <= arity(f)
             # not enough to apply
@@ -197,13 +204,14 @@ class GameState
             card ||= ask("card name?",String)
             message = "player 0 applied slot #{cell} to card #{card}"
           end
-        proponent.field[cell] = (side == 1) ? apply(card,proponent.field[cell]) : apply(proponent.field[cell],card) #rescue "I"
+        proponent.field[cell] = (side == 1) ? apply(card,proponent.field[cell]) : apply(proponent.field[cell],card) rescue "I"
         puts message
         swap
       end
   end
 
 gs = GameState.new(:only)
+gs.proponent.field[0] = ['S','get',['S',['S',['K',['help',0,0]],['K',8196]],['I']]]
 1000.times { gs.move }
 
 
