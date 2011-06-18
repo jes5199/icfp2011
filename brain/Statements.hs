@@ -83,14 +83,14 @@ quine f n = -- S f (bind get n) (assuming f returns I)
     where nValue = translateValue (ValueNum n)
           get = statement (ValueCard GetCard)
 
-grapeShot :: SlotNumber -> Value
-grapeShot = infLoop $
+grapeShot :: Int -> SlotNumber -> Value
+grapeShot damage = infLoop $
             semi (statement (lambda "i" theAttack))
                  (routine (ValueCard SuccCard))
     where theAttack = (ValueApplication
                        (ValueApplication (ValueApplication (ValueCard AttackCard) (ValueVariable "i"))
                                          (ValueVariable "i"))
-                       (ValueNum 8192))
+                       (ValueNum damage))
 
 lambda varName value = translateValue (ValueLambda varName value)
 

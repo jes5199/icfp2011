@@ -254,7 +254,7 @@ testCases = [
                       buildNewValue (parse "help 200 0 10000")
                       buildNewValue (parse "get 200")
                       return ()),
- ("grapeshot", do buildNewValueAt (grapeShot 0) 0
+ ("grapeshot", do buildNewValueAt (grapeShot 8192 0) 0
                   rightApply 0 ZeroCard)
  ]
 
