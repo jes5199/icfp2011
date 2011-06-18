@@ -35,9 +35,22 @@ testCycleCount wasteCycles = do
           waste n value = ValueApplication (ValueApplication (ValueCard SCard) (waste (n-1) value))
                                            (ValueCard IdentityCard)
 
-testCase = testCycleCount 1
+testCases :: [(String, TestCaseGenerator ())]
+testCases = [
+ ("cycle_count_91", testCycleCount 0),
+ ("cycle_count_90", testCycleCount 1)
+ ]
+
+outputTestCase :: String -> TestCaseGenerator () -> IO ()
+outputTestCase testName testCase = do
+  [directory] <- getArgs
+  let moves = execWriter (evalStateT testCase [0..255])
+      fileContents = printMoves (concat [[move, Move LeftApplication IdentityCard 0] | move <- moves])
+  writeFile (directory ++ "/" ++ testName) fileContents
 
 main :: IO ()
 main = do
-  let moves = execWriter (evalStateT testCase [0..255])
-  putStr (printMoves (concat [[move, Move LeftApplication IdentityCard 0] | move <- moves]))
+  putStrLn "Generating test cases..."
+  sequence_ $ do (testName, testCase) <- testCases
+                 return (outputTestCase testName testCase)
+  putStrLn "Done."
