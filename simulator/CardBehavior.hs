@@ -7,6 +7,11 @@ import Value
 import Card
 import MoveStep
 
+validSlot :: Int -> MoveStep ()
+validSlot c = if c >= 0 && c <= 255
+              then return ()
+              else throwError invalidSlotError
+invalidSlotError = "slot number out of range"
 
 apply :: Value -> Value -> MoveStep Value
 
@@ -91,9 +96,8 @@ doDbl _  = throwError dblNANmsg
 dblNANmsg = "dbl applied to non-number"
 
 doGet :: Value -> MoveStep Value
-doGet (ValueNum i) = if i >= 0 && i <= 255
-                     then getProponentField i
-                     else throwError getRangeMsg
+doGet (ValueNum i) = do validSlot i
+                        getProponentField i
 doGet _ = throwError getNANmsg
 getRangeMsg = "get out of range"
 getNANmsg = "get applied to non-number"
@@ -111,18 +115,17 @@ doK :: Value -> Value -> MoveStep Value
 doK x y = return x
 
 doInc :: Value -> MoveStep Value
-doInc (ValueNum i) = if i >= 0 && i <= 255
-                     then do v <- getProponentVitality i
-                             let v' = case v of
-                                   65535 -> 65535
-                                   0     -> 0
-                                   -1    -> -1
-                                   _     -> v+1
-                             putProponentVitality v' i
-                             return $ ValueCard IdentityCard
-                     else throwError incRangeMsg
+doInc (ValueNum i) = do validSlot i
+                        v <- getProponentVitality i
+                        let v' = case v of
+                              65535 -> 65535
+                              0     -> 0
+                              (-1)  -> (-1)
+                              _     -> v+1
+                        putProponentVitality v' i
+                        return valueI
+doInc (ValueCard ZeroCard) = doInc (ValueNum 0)
 doInc _ = throwError incNANmsg
-incRangeMsg = "inc out of range"
 incNANmsg = "inc applied to non-number"
 
 doDec :: Value -> MoveStep Value
@@ -141,27 +144,22 @@ decNANmsg = "dec applied to non-number"
 
 doAttack :: Value -> Value -> Value -> MoveStep Value
 doAttack (ValueNum i) arg2 (ValueNum n) =
-    if i < 0 || i > 255
-    then throwError attackRangeI
-    else do
-        v <- getProponentVitality i
-        if v < n
-          then throwError attackRangeN
-          else do
-            putProponentVitality (v-n) i
-            j <- case arg2 of
-              ValueNum jj -> return jj
-              _ -> throwError attackNANj
-            if j < 0 || j > 255
-              then throwError attackRangeJ
-              else do
-                w <- getOpponentVitality (255-j)
-                let n' = (n*9) `div` 10
-                    w' = if      w <= 0  then w
-                         else if w <= n' then 0
-                              else            w-n'
-                putOpponentVitality w' (255-j)
-                return $ valueI
+  do validSlot i
+     v <- getProponentVitality i
+     if v < n
+       then throwError attackRangeN
+       else do putProponentVitality (v-n) i
+               j <- case arg2 of
+                 ValueNum jj -> return jj
+                 _ -> throwError attackNANj
+               validSlot j
+               w <- getOpponentVitality (255-j)
+               let n' = (n*9) `div` 10
+                   w' = if      w <= 0  then w
+                        else if w <= n' then 0
+                             else            w-n'
+               putOpponentVitality w' (255-j)
+               return $ valueI
 doAttack _ _ _ = throwError attackNAN
 
 attackRangeI = "attack i-value out of range"
@@ -172,28 +170,23 @@ attackNAN = "attack i or n value is a non-number"
 
 doHelp :: Value -> Value -> Value -> MoveStep Value
 doHelp (ValueNum i) arg2 (ValueNum n) =
-    if i < 0 || i > 255
-    then throwError helpRangeI
-    else do
-        v <- getProponentVitality i
-        if v < n
-          then throwError helpRangeN
-          else do
-            putProponentVitality (v-n) i
-            j <- case arg2 of
-              ValueNum jj -> return jj
-              _ -> throwError helpNANj
-            if j < 0 || j > 255
-              then throwError helpRangeJ
-              else do
-                w <- getProponentVitality j
-                let n' = (n*11) `div` 10
-                    w' = w+n'
-                    w'' = if      w  <= 0     then w
-                          else if w' >= 65535 then 65535
-                               else                w'
-                putProponentVitality w'' j
-                return $ valueI
+  do validSlot i
+     v <- getProponentVitality i
+     if v < n
+       then throwError helpRangeN
+       else do putProponentVitality (v-n) i
+               j <- case arg2 of
+                 ValueNum jj -> return jj
+                 _ -> throwError helpNANj
+               validSlot j
+               w <- getProponentVitality j
+               let n' = (n*11) `div` 10
+                   w' = w+n'
+                   w'' = if      w  <= 0     then w
+                         else if w' >= 65535 then 65535
+                              else                w'
+               putProponentVitality w'' j
+               return $ valueI
 
 doHelp _ _ _ = throwError helpNAN
 
@@ -204,40 +197,32 @@ helpNANj = "help j-value is a non-number (health still decremented)"
 helpNAN = "help i or n value is a non-number"
 
 doCopy :: Value -> MoveStep Value
-doCopy (ValueNum i) = if i >= 0 && i <= 255
-                      then getOpponentField i -- note that this is NOT (255-i)!
-                      else throwError copyRangeMsg
+doCopy (ValueNum i) = do validSlot i
+                         getOpponentField i -- note that this is NOT (255-i)!
 doCopy _ = throwError copyNANmsg
-copyRangeMsg = "copy out of range"
 copyNANmsg = "copy applied to non-number"
 
 doRevive :: Value -> MoveStep Value
-doRevive (ValueNum i) = if i >= 0 && i <= 255
-                        then do v <- getProponentVitality i
-                                let v' = case v of
-                                      0  -> 1
-                                      (-1) -> 1
-                                      _  -> v
-                                putProponentVitality v' i
-                                return ValueI
-                        else throwError reviveRangeMsg
+doRevive (ValueNum i) = do validSlot i
+                           v <- getProponentVitality i
+                           let v' = case v of
+                                 0  -> 1
+                                 (-1) -> 1
+                                 _  -> v
+                           putProponentVitality v' i
+                           return valueI
 doRevive _ = throwError reviveNANmsg
-reviveRangeMsg = "revive out of range"
 reviveNANmsg = "revive applied to non-number"
 
 doZombie :: Value -> Value -> MoveStep Value
 doZombie (ValueNum i) x =
-    if i < 0 || i > 255
-    then throwError zombieRangeI
-    else do
-        v <- getOpponentVitality (255-i)
-        if v > 0
-          then throwError zombieNotDead
-          else do
-            putOpponentVitality (-1) (255-i)
-            putOpponentField x (255-i)
-            return $ valueI
-zombieRangeI  = "zombie i-value out of range"
+    do validSlot i
+       v <- getOpponentVitality (255-i)
+       if v > 0
+         then throwError zombieNotDead
+         else do putOpponentVitality (-1) (255-i)
+                 putOpponentField x (255-i)
+                 return $ valueI
 zombieNotDead = "zombie called on cell that isn't dead"
 
 test_CardBehavior = [
@@ -279,7 +264,7 @@ test_CardBehavior = [
   runMove (doGet (ValueNum 255)) initialState ~?=
     (initialState,Right $ valueI),
   runMove (doGet (ValueNum 256)) initialState ~?=
-    (initialState,Left getRangeMsg),
+    (initialState,Left invalidSlotError),
   runMove (doGet valueI) initialState ~?=
     (initialState,Left getNANmsg),
 
@@ -295,7 +280,7 @@ test_CardBehavior = [
   runMove (doS valueI valueI (ValueNum 0)) initialState ~?=
     (initialState,Left applyNumMsg),
   runMove (doS valueI valueI valueI) initialState ~?=
-    (initialState,Right $ ValueCard IdentityCard),
+    (initialState,Right valueI),
   -- Paul made this example
   runMove (doS (ValueApplication valueK valueSucc) valueSucc valueZero) initialState ~?=
     (initialState,Right $ ValueNum 2),
@@ -312,18 +297,20 @@ test_CardBehavior = [
   runMove (doK (ValueNum 3) (ValueNum 6)) initialState ~?=
     (initialState,Right $ ValueNum 3),
   runMove (doK valueS valueSucc) initialState ~?=
-    (initialState,Right $ valueS),
+    (initialState,Right valueS),
 
   runMove (doInc valueI) initialState ~?=
     (initialState,Left incNANmsg),
   runMove (doInc (ValueNum 256)) initialState ~?=
-    (initialState,Left incRangeMsg),
+    (initialState,Left invalidSlotError),
   runMove (doInc (ValueNum 0)) initialState ~?=
-    (alterFirstBoard (updateVitality 10001 0) initialState, Right $ valueI),
+    (alterFirstBoard (updateVitality 10001 0) initialState, Right valueI),
   runMove (doInc (ValueNum 0)) (alterFirstBoard (updateVitality 0 0) initialState) ~?=
-    (alterFirstBoard (updateVitality 0 0) initialState, Right $ valueI),
+    (alterFirstBoard (updateVitality 0 0) initialState, Right valueI),
   runMove (doInc (ValueNum 0)) (alterFirstBoard (updateVitality 65535 0) initialState) ~?=
-    (alterFirstBoard (updateVitality 65535 0) initialState, Right $ valueI)
+    (alterFirstBoard (updateVitality 65535 0) initialState, Right valueI),
+  runMove (doInc (ValueCard ZeroCard)) initialState ~?=
+    (alterFirstBoard (updateVitality 10001 0) initialState, Right valueI)
   {-
   -- Infinite loop example
   runMove (doS (ValueCard IdentityCard) (ValueCard IdentityCard)
