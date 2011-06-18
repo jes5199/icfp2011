@@ -63,13 +63,10 @@ instance Eq Perspective where
 instance Show Perspective where
     show (Perspective _ _ _ _ who) = (show who) ++ " point of view"
 
-makePerspective board who = Perspective (extractVitality . board) undefined undefined undefined who
+makePerspective board who = Perspective (extractVitality . board) (extractField . board) undefined undefined who
 
 firstPersonView = makePerspective firstPlayerBoard FirstPlayer
 secondPersonView = makePerspective secondPlayerBoard SecondPlayer
-
---attack i j n state =
---  adjustVitality (myEnemy state) 19 (damage state 33)
 
 -- The perspective of a particular player.
 perspectiveFor :: Who -> Perspective
@@ -128,6 +125,10 @@ test_GameState = [
 
     getVitality firstPersonView startingGame 3 ~?= 8000,
     getVitality secondPersonView startingGame 3 ~?= 12000,
+    getField firstPersonView startingGame 0 ~?= valueHelp,
+    getField secondPersonView startingGame 0 ~?= valueAttack,
+--    getVitality firstPersonView (modifyVitality firstPersonView startingGame 3 (-100)) 3 ~?= 7900,
+--    getVitality secondPersonView (modifyVitality secondPersonView startingGame 3 100) 3 ~?= 12100,
 
     damage 33 startingGame ~?= -33,
     damage 66 zombieTime ~?= 66,
