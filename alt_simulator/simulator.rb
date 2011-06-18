@@ -1,5 +1,6 @@
 Size = 256
 Starting_vitality = 10000
+Max_applications = 1000
 class Cells
     def vitality
         @vitality ||= [Starting_vitality]*Size
@@ -33,6 +34,7 @@ def ask(prompt,type)
     end
 
 class GameState
+    attr_reader :zombie
     def player
         @player ||= 0
       end
@@ -46,11 +48,22 @@ class GameState
         return if @mode == :only
         @proponent,@opponent = @opponent,@proponent
         @player = 1-player
+        (0...Size).each { |i|
+            if proponent.vitality[i] == -1
+                begin
+                    @applications = 0
+                    apply(poponent.field[i],'I')
+                  ensure
+                    proponent.vitality[i] = 0
+                    proponent.field[i] = "I"
+                  end
+              end
+          }
       end
     def initialize(mode)
         @turn = -1
         @mode = mode
-        puts "Lambda: The Gathering version $Date:: 2011-06-15 18:44:34 +0900\#\$"
+        puts "Lambda: The Gathering version $Date:: #{Time.now.to_s }2011-06-15 18:44:34 +0900\#\$"
       end
     def header
         puts "###### turn #{@turn+=1}"
@@ -70,14 +83,12 @@ class GameState
         0
       end
     def succ n
-        p [:succ,n]
         n+1
       end
     def dbl n
         2*n
       end
     def get i
-        p [:get,i]
         proponent.field[i] || fail
       end
     def put x,y
@@ -93,17 +104,44 @@ class GameState
         x
       end
     def inc i
-        proponent.vitality[i] += 1 if proponent.vitality[i] > 0 
+        if zombie
+            proponent.vitality[i] -= 1 if proponent.vitality[i] > 0 
+            proponent.vitality[i] = Max_vitality if proponent.vitality[i] > Max_vitality
+          else
+            proponent.vitality[i] += 1 if proponent.vitality[i] > 0 
+            proponent.vitality[i] = Max_vitality if proponent.vitality[i] > Max_vitality
+          end
         "I"
       end
     def dec i
-        opponent.vitality[i] -= 1 if opponent.vitality[i] < 0
+        if zombie
+            opponent.vitality[i] += 1 if opponent.vitality[i] > 0
+            opponent.vitality[i] = Max_vitality if proponent.vitality[i] > Max_vitality
+          else
+            opponent.vitality[i] -= 1 if opponent.vitality[i] > 0
+          end
         "I"
       end
     def attack i,j,n
+        proponent.vitality[i] -= n
+        if zombie
+            opponent.vitality[255-j] += (n*9)/10 
+            opponent.vitality[255-j] = Max_vitality if opponent.vitality[255-j] > Max_vitality
+          else
+            opponent.vitality[255-j] -= (n*9)/10 
+            opponent.vitality[255-j] = 0 if opponent.vitality[255-j] < 0
+          end
         "I"
       end
     def help i,j,n
+        proponent.vitality[i] -= n
+        if zombie
+            proponent.vitality[j] -= (n*11)/10 
+            proponent.vitality[j] = 0 if proponent.vitality[255-j] < 0
+          else
+            proponent.vitality[j] += (n*11)/10 
+            proponent.vitality[j] = Max_vitality if proponent.vitality[255-j] > Max_vitality
+          end
         "I"
       end
     def copy i
@@ -117,6 +155,9 @@ class GameState
         "I"
       end
     def zombie i,x
+        fail unless opponent.vitality[255-j] <= 0
+        opponent.vitality[255-j] = -1
+        opponent.field[255-j] = x
         "I"
       end
     #
@@ -130,6 +171,8 @@ class GameState
           end
       end
     def apply(x,y)
+        @applications += 1
+        fail if @applications > Max_applications
         result = (x.is_a? Array) ? (x + [y]) : [x,y]
         f = result.first
         if result.length <= arity(f)
@@ -143,6 +186,7 @@ class GameState
       end
     def move(side=nil,card=nil,cell=nil)
         header
+        @applications = 0
         side ||= ask("(1) apply card to slot, or (2) apply slot to card?",Integer)
         if side == 1
             card ||= ask("card name?",String)
