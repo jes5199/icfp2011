@@ -61,6 +61,14 @@ getEnemy :: GameState -> (Who, Slots)
 getEnemy (GameState who p1 p2 zombies) =
     (if zombies then side who else side (opponent who)) p1 p2
 
+damage :: Int -> GameState -> Int
+damage val (GameState _ _ _ zombies) =
+    if zombies then val else (- val)
+
+heal :: Int -> GameState -> Int
+heal val (GameState _ _ _ zombies) =
+    if zombies then (- val) else val
+
 alterFirstBoard :: (Slots -> Slots) -> GameState -> GameState
 alterFirstBoard transform (GameState who firstBoard secondBoard zombies) = GameState who (transform firstBoard) secondBoard zombies
 
@@ -89,7 +97,13 @@ test_GameState = [
     getEnemy startingGame ~?= secondPlayerSide,
     getEnemy (switchPlayer startingGame) ~?= firstPlayerSide,
     getEnemy zombieTime ~?= firstPlayerSide,
-    getEnemy (switchPlayer zombieTime) ~?= secondPlayerSide
+    getEnemy (switchPlayer zombieTime) ~?= secondPlayerSide,
+
+    damage 33 startingGame ~?= -33,
+    damage 66 zombieTime ~?= 66,
+
+    heal 33 startingGame ~?= 33,
+    heal 66 zombieTime ~?= -66
     ]
   where
     firstSide = updateField valueHelp 0 initialSide
