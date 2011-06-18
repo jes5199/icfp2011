@@ -86,16 +86,26 @@ instance Eq GSPerspective where
 instance Show GSPerspective where
     show (GSPerspective _ _ _ _ _ who zombies) = if zombies then "zombies are swarming " ++ (show who) else (show who) ++ " is acting"
 
-makeGSPerspective board replaceBoard who = GSPerspective (extractVitality . board) (extractField . board)
-    (\game -> \idx -> \adjustment -> replaceBoard game (changeVitalityInSlot (board game) idx adjustment))
-    (\game -> \idx -> \value -> replaceBoard game (updateField value idx (board game)))
-    (\game -> \idx -> \vitality -> replaceBoard game (replaceVitalityOnDeadSlot (board game) idx vitality))
+makeGSPerspective fieldBoard vitalityBoard replaceFieldBoard replaceVitalityBoard who zombies = GSPerspective
+    (extractVitality . vitalityBoard)
+    (extractField . fieldBoard)
+    (\game -> \idx -> \adjustment -> replaceVitalityBoard game (changeVitalityInSlot (vitalityBoard game) idx adjustment))
+    (\game -> \idx -> \value -> replaceFieldBoard game (updateField value idx (fieldBoard game)))
+    (\game -> \idx -> \vitality -> replaceFieldBoard game (replaceVitalityOnDeadSlot (fieldBoard game) idx vitality)) -- The effects that target dead cells always target the same side as for field operations, not like other vitality-impacting operations.
     who
+    zombies
 
-firstPersonView = makeGSPerspective firstPlayerBoard
-    (\game -> \newSlots -> GameState (playerToMove game) newSlots (secondPlayerBoard game) (zombiesAreOut game)) FirstPlayer
-secondPersonView = makeGSPerspective secondPlayerBoard
-    (\game -> \newSlots -> GameState (playerToMove game) (firstPlayerBoard game) newSlots (zombiesAreOut game)) SecondPlayer
+replaceFirstBoard (GameState who _ p2 zombies) newSlots = GameState who newSlots p2 zombies
+replaceSecondBoard (GameState who p1 _ zombies) newSlots = GameState who p1 newSlots zombies
+
+firstPersonView zombies = makeGSPerspective
+    firstPlayerBoard (if zombies then secondPlayerBoard else firstPlayerBoard)
+    replaceFirstBoard (if zombies then replaceSecondBoard else replaceFirstBoard)
+    FirstPlayer zombies
+secondPersonView zombies = makeGSPerspective
+    secondPlayerBoard (if zombies then firstPlayerBoard else secondPlayerBoard)
+    replaceSecondBoard (if zombies then replaceFirstBoard else replaceSecondBoard)
+    SecondPlayer zombies
 
 -- The perspective of a particular player.
 perspectiveFor :: Who -> (Bool-> GSPerspective)
@@ -146,6 +156,7 @@ test_GameState = [
     updateVitality 19 1 (Slots testSlots) ~?= Slots (testSlots // [(1, Slot 19 idValue)]),
     updateField (ValueNum 5) 1 (Slots testSlots) ~?= Slots (testSlots // [(1, Slot 10000 (ValueNum 5))]),
 
+    -- Begin tests to get the right perspectives
     gsMyFriend startingGame ~?= player1,
     gsMyFriend (switchPlayer startingGame) ~?= player2,
     gsMyFriend zombieTime ~?= zombie1,
@@ -154,23 +165,41 @@ test_GameState = [
     gsMyEnemy (switchPlayer startingGame) ~?= player1,
     gsMyEnemy zombieTime ~?= zombie2,
     gsMyEnemy (switchPlayer zombieTime) ~?= zombie1,
+    -- End tests to get the right perspectives
 
+    -- Begin tests of perspective behaviors
     gsGetVitality player1 startingGame 3 ~?= 8000,
     gsGetVitality player2 startingGame 3 ~?= 12000,
     gsGetField player1 startingGame 0 ~?= valueHelp,
     gsGetField player2 startingGame 0 ~?= valueAttack,
+    
+    gsGetVitality zombie1 zombieTime 3 ~?= 12000,
+    gsGetVitality zombie2 zombieTime 3 ~?= 8000,
+    gsGetField zombie1 zombieTime 0 ~?= valueHelp,
+    gsGetField zombie2 zombieTime 0 ~?= valueAttack,
+    
     gsGetVitality player1 (gsModifyVitality player1 startingGame 3 (-100)) 3 ~?= 7900,
     gsGetVitality player2 (gsModifyVitality player2 startingGame 3 100) 3 ~?= 12100,
     gsGetField player1 (gsSetField player1 startingGame 0 valueZombie) 0 ~?= valueZombie,
     gsGetField player2 (gsSetField player2 startingGame 0 valueRevive) 0 ~?= valueRevive,
-
-    gsGetVitality player1 (gsModifyVitality player1 startingGame 3 (-10000)) 3 ~?= 0,
-    gsGetVitality player2 (gsModifyVitality player2 startingGame 3 70000) 3 ~?= 65535,
+    
+    gsGetVitality player2 (gsModifyVitality zombie1 zombieTime 3 (-100)) 3 ~?= 11900,
+    gsGetVitality player1 (gsModifyVitality zombie2 zombieTime 3 100) 3 ~?= 8100,
+    gsGetField player1 (gsSetField zombie1 zombieTime 0 valueZombie) 0 ~?= valueZombie,
+    gsGetField player2 (gsSetField zombie2 zombieTime 0 valueRevive) 0 ~?= valueRevive,
 
     gsGetVitality player1 (gsSetVitalityOnDeadSlot player1 someDeath 3 1) 3 ~?= 1,
     gsGetVitality player2 (gsSetVitalityOnDeadSlot player2 someDeath 3 (-1)) 3 ~?= (-1),
+    gsGetVitality player1 (gsSetVitalityOnDeadSlot zombie1 someDeath 3 1) 3 ~?= 1,
+    gsGetVitality player2 (gsSetVitalityOnDeadSlot zombie2 someDeath 3 (-1)) 3 ~?= (-1),
+    -- End tests of perspective behaviors
 
+    -- Begin boundary check tests
+    gsGetVitality player1 (gsModifyVitality player1 startingGame 3 (-10000)) 3 ~?= 0,
+    gsGetVitality player1 (gsModifyVitality player1 startingGame 3 70000) 3 ~?= 65535,
+    gsGetVitality player1 (gsSetVitalityOnDeadSlot player1 startingGame 3 1) 3 ~?= 8000,
     gsGetVitality player1 (gsModifyVitality player1 someDeath 3 5000) 3 ~?= 0,
+    -- End boundary check tests
 
     gsDamage 33 startingGame ~?= -33,
     gsDamage 66 zombieTime ~?= 66,
