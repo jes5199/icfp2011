@@ -254,13 +254,13 @@ test_CardBehavior = [
   runMove (doInc (ValueNum 256)) initialState ~?=
     (initialState,Left incRangeMsg),
   runMove (doInc (ValueNum 0)) initialState ~?=
-    (GameState FirstPlayer (updateVitality 10001 0 initialSide) initialSide,
+    (alterFirstBoard (updateVitality 10001 0) initialState,
      Right $ ValueCard IdentityCard),
-  runMove (doInc (ValueNum 0)) (GameState FirstPlayer (updateVitality 0 0 initialSide) initialSide) ~?=
-    (GameState FirstPlayer (updateVitality 0 0 initialSide) initialSide,
+  runMove (doInc (ValueNum 0)) (alterFirstBoard (updateVitality 0 0) initialState) ~?=
+    (alterFirstBoard (updateVitality 0 0) initialState,
      Right $ ValueCard IdentityCard),
-  runMove (doInc (ValueNum 0)) (GameState FirstPlayer (updateVitality 65535 0 initialSide) initialSide) ~?=
-    (GameState FirstPlayer (updateVitality 65535 0 initialSide) initialSide,
+  runMove (doInc (ValueNum 0)) (alterFirstBoard (updateVitality 65535 0) initialState) ~?=
+    (alterFirstBoard (updateVitality 65535 0) initialState,
      Right $ ValueCard IdentityCard)
   {-
   -- Infinite loop example
