@@ -3,3 +3,4 @@
 *.o
 braintester
 braindriver
+genTestCases
