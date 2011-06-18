@@ -207,6 +207,7 @@ doZombie (ValueNum i') x =
                  setField p i x
                  return $ valueI
 doZombie (ValueCard ZeroCard) x = doZombie (ValueNum 0) x
+doZombie _ _ = throwError nanMsg
 zombieNotDead = "zombie called on cell that isn't dead"
 
 test_CardBehavior = [
