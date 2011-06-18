@@ -1,0 +1,35 @@
+#!/bin/bash
+ROOT_DIR=`dirname "$0"`/..
+SHORT_NAME=`basename "$0"`
+
+cd $ROOT_DIR || exit 1
+mkdir -p test_results || exit 1
+
+FAIL_COUNT=0
+TOTAL_COUNT=0
+
+while [[ $# != 0 ]]; do
+    FAIL=0
+    cat "test_cases/$1" | bin/runner bin/ltg alt > "test_results/$1.ref"
+    cat "test_cases/$1" | simulator/simdriver > "test_results/$1.out" 2> /dev/null
+    sed '
+      2d;
+      s/AppLimitExceeded/Native.AppLimitExceeded/
+      s/slot number out of range/Invalid_argument(_)/
+    ' "test_results/$1.out" > "test_results/$1.out.clean"
+
+    if ! diff "test_results/$1.ref" "test_results/$1.out.clean" ; then
+        FAIL=1
+    fi
+    if [ $FAIL -ne '0' ]; then
+        echo "Test failed: $1"
+        FAIL_COUNT=$(( $FAIL_COUNT + 1 ))
+    fi
+    TOTAL_COUNT=$(( $TOTAL_COUNT + 1 ))
+    shift 1
+done
+
+echo "Ran $TOTAL_COUNT tests, got $FAIL_COUNT failures."
+if [[ $FAIL_COUNT ]]; then
+    exit 1
+fi

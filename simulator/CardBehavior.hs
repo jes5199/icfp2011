@@ -72,6 +72,7 @@ apply x y = error (show x ++ " APPLIED TO " ++ show y)
 
 applyNumMsg = "Number on left of application"
 arityMsg = "Something applied to too many args"
+nanMsg = "Something applied to a non-number"
 
 doI :: Value -> MoveStep Value
 doI x = return x
@@ -83,24 +84,22 @@ doSucc :: Value -> MoveStep Value
 doSucc (ValueNum n) = return $ ValueNum $ if n == 65535
                                           then 65535
                                           else n+1
-doSucc (ValueCard ZeroCard) = return $ ValueNum 1
-doSucc _ = throwError succNANmsg
--- definition is separate for benefit of unit test
-succNANmsg = "succ applied to non-number"
+doSucc (ValueCard ZeroCard) = doSucc (ValueNum 0)
+doSucc _ = throwError nanMsg
 
 doDbl :: Value -> MoveStep Value
 doDbl (ValueNum n) = return $ ValueNum $ if n > 32767
                                          then 65535
                                          else n * 2
-doDbl _  = throwError dblNANmsg
-dblNANmsg = "dbl applied to non-number"
+doDbl (ValueCard ZeroCard) = doDbl (ValueNum 0)
+doDbl _  = throwError nanMsg
 
 doGet :: Value -> MoveStep Value
 doGet (ValueNum i) = do validSlot i
                         getProponentField i
-doGet _ = throwError getNANmsg
+doGet (ValueCard ZeroCard) = doGet (ValueNum 0)
+doGet _ = throwError nanMsg
 getRangeMsg = "get out of range"
-getNANmsg = "get applied to non-number"
 
 doPut :: Value -> MoveStep Value
 doPut _ = return $ ValueCard IdentityCard
@@ -125,8 +124,7 @@ doInc (ValueNum i) = do validSlot i
                         putProponentVitality v' i
                         return valueI
 doInc (ValueCard ZeroCard) = doInc (ValueNum 0)
-doInc _ = throwError incNANmsg
-incNANmsg = "inc applied to non-number"
+doInc _ = throwError nanMsg
 
 doDec :: Value -> MoveStep Value
 doDec (ValueNum i) = do validSlot i
@@ -137,8 +135,8 @@ doDec (ValueNum i) = do validSlot i
                               _  -> v-1
                         putOpponentVitality v' (255-i)
                         return $ ValueCard IdentityCard
-doDec _ = throwError decNANmsg
-decNANmsg = "dec applied to non-number"
+doDec (ValueCard ZeroCard) = doDec (ValueNum 0)
+doDec _ = throwError nanMsg
 
 doAttack :: Value -> Value -> Value -> MoveStep Value
 doAttack (ValueNum i) arg2 (ValueNum n) =
@@ -149,6 +147,7 @@ doAttack (ValueNum i) arg2 (ValueNum n) =
        else do putProponentVitality (v-n) i
                j <- case arg2 of
                  ValueNum jj -> return jj
+                 ValueCard ZeroCard -> return 0
                  _ -> throwError attackNANj
                validSlot j
                w <- getOpponentVitality (255-j)
@@ -158,13 +157,12 @@ doAttack (ValueNum i) arg2 (ValueNum n) =
                              else            w-n'
                putOpponentVitality w' (255-j)
                return $ valueI
-doAttack _ _ _ = throwError attackNAN
+doAttack (ValueCard ZeroCard) b c = doAttack (ValueNum 0) b c
+doAttack a b (ValueCard ZeroCard) = doAttack a b (ValueNum 0)
+doAttack _ _ _ = throwError nanMsg
 
-attackRangeI = "attack i-value out of range"
 attackRangeN = "attack n-value greater than vitality of [i]"
-attackRangeJ = "attack j-value out of range"
 attackNANj = "attack j-value is a non-number (health still decremented)"
-attackNAN = "attack i or n value is a non-number"
 
 doHelp :: Value -> Value -> Value -> MoveStep Value
 doHelp (ValueNum i) arg2 (ValueNum n) =
@@ -175,6 +173,7 @@ doHelp (ValueNum i) arg2 (ValueNum n) =
        else do putProponentVitality (v-n) i
                j <- case arg2 of
                  ValueNum jj -> return jj
+                 ValueCard ZeroCard -> return 0
                  _ -> throwError helpNANj
                validSlot j
                w <- getProponentVitality j
@@ -185,20 +184,18 @@ doHelp (ValueNum i) arg2 (ValueNum n) =
                               else                w'
                putProponentVitality w'' j
                return $ valueI
+doHelp (ValueCard ZeroCard) b c = doHelp (ValueNum 0) b c
+doHelp a b (ValueCard ZeroCard) = doHelp a b (ValueNum 0)
+doHelp _ _ _ = throwError nanMsg
 
-doHelp _ _ _ = throwError helpNAN
-
-helpRangeI = "help i-value out of range"
 helpRangeN = "help n-value greater than vitality of [i]"
-helpRangeJ = "help j-value out of range"
 helpNANj = "help j-value is a non-number (health still decremented)"
-helpNAN = "help i or n value is a non-number"
 
 doCopy :: Value -> MoveStep Value
 doCopy (ValueNum i) = do validSlot i
                          getOpponentField i -- note that this is NOT (255-i)!
-doCopy _ = throwError copyNANmsg
-copyNANmsg = "copy applied to non-number"
+doCopy (ValueCard ZeroCard) = doCopy (ValueNum 0)
+doCopy _ = throwError nanMsg
 
 doRevive :: Value -> MoveStep Value
 doRevive (ValueNum i) = do validSlot i
@@ -209,8 +206,8 @@ doRevive (ValueNum i) = do validSlot i
                                  _  -> v
                            putProponentVitality v' i
                            return valueI
-doRevive _ = throwError reviveNANmsg
-reviveNANmsg = "revive applied to non-number"
+doRevive (ValueCard ZeroCard) = doRevive (ValueNum 0)
+doRevive _ = throwError nanMsg
 
 doZombie :: Value -> Value -> MoveStep Value
 doZombie (ValueNum i) x =
@@ -221,6 +218,7 @@ doZombie (ValueNum i) x =
          else do putOpponentVitality (-1) (255-i)
                  putOpponentField x (255-i)
                  return $ valueI
+doZombie (ValueCard ZeroCard) x = doZombie (ValueNum 0) x
 zombieNotDead = "zombie called on cell that isn't dead"
 
 test_CardBehavior = [
@@ -240,7 +238,7 @@ test_CardBehavior = [
   runMove (doSucc (ValueNum 65535)) initialState ~?=
     (initialState,Right $ ValueNum 65535),
   runMove (doSucc valueI) initialState ~?=
-    (initialState,Left succNANmsg),
+    (initialState,Left nanMsg),
   runMove (doSucc valueZero) initialState ~?=
     (initialState,Right $ ValueNum 1),
 
@@ -255,7 +253,7 @@ test_CardBehavior = [
   runMove (doDbl (ValueNum 65535)) initialState ~?=
     (initialState,Right $ ValueNum 65535),
   runMove (doDbl valueI) initialState ~?=
-    (initialState,Left dblNANmsg),
+    (initialState,Left nanMsg),
 
   runMove (doGet (ValueNum 0)) initialState ~?=
     (initialState,Right $ valueI),
@@ -264,7 +262,7 @@ test_CardBehavior = [
   runMove (doGet (ValueNum 256)) initialState ~?=
     (initialState,Left invalidSlotError),
   runMove (doGet valueI) initialState ~?=
-    (initialState,Left getNANmsg),
+    (initialState,Left nanMsg),
 
   runMove (doPut (ValueNum 345)) initialState ~?=
     (initialState,Right $ valueI),
@@ -298,7 +296,7 @@ test_CardBehavior = [
     (initialState,Right valueS),
 
   runMove (doInc valueI) initialState ~?=
-    (initialState,Left incNANmsg),
+    (initialState,Left nanMsg),
   runMove (doInc (ValueNum 256)) initialState ~?=
     (initialState,Left invalidSlotError),
   runMove (doInc (ValueNum 0)) initialState ~?=

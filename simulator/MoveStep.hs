@@ -21,7 +21,7 @@ incAppCount :: MoveStep ()
 incAppCount = do c <- getAppCount
                  let c' = c+1
                  case c' of
-                   1000 -> throwError "AppLimitExceeded"
+                   1001 -> throwError "AppLimitExceeded"
                    _ -> putAppCount c'
 
 getGameState :: MoveStep GameState
@@ -97,8 +97,6 @@ putOpponentVitality v n = transformOpponentSlots (updateVitality v n)
 
 -- Executes the lambda function corresponding to a move, incorporates
 -- side effects into the GameState, and stops execution if an error
--- occurs.
-runMove :: MoveStep a -> GameState -> (GameState,Either String a)
 runMove step state = (newState,result)
   where
     (result,(newState,appsUsed)) = runState (runErrorT step) (state,0)
