@@ -95,6 +95,22 @@ putOpponentField v n = transformOpponentSlots (updateField v n)
 putOpponentVitality :: Vitality -> SlotNumber -> MoveStep ()
 putOpponentVitality v n = transformOpponentSlots (updateVitality v n)
 
+myFriend :: MoveStep Perspective
+myFriend = do (state,_) <- get
+              return $ gsMyFriend state
+
+myEnemy :: MoveStep Perspective
+myEnemy = do (state,_) <- get
+             return $ gsMyEnemy state
+
+damage :: Int -> MoveStep Int
+damage val = do (state,_) <- get
+                return $ gsDamage val state
+
+heal :: Int -> MoveStep Int
+heal val = do (state,_) <- get
+              return $ gsHeal val state
+
 -- Executes the lambda function corresponding to a move, incorporates
 -- side effects into the GameState, and stops execution if an error
 runMove step state = (newState,result)

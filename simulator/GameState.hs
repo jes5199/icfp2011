@@ -1,4 +1,4 @@
-module GameState (GameState(..),Slots(..),Slot(..),initialState,Who(..),updateVitality,updateField,test_GameState,Vitality,initialSide,switchPlayer,alterFirstBoard,opponent,myFriend,myEnemy) where
+module GameState (GameState(..),Slots(..),Slot(..),initialState,Who(..),updateVitality,updateField,test_GameState,Vitality,initialSide,switchPlayer,alterFirstBoard,opponent,gsMyFriend,gsMyEnemy,gsDamage,gsHeal,Perspective) where
 
 import Test.HUnit
 import Data.Array
@@ -68,9 +68,16 @@ data GameState = GameState { playerToMove :: Who, firstPlayerBoard :: Slots, sec
                deriving (Eq, Show)
 
 -- This is a perspective on the board, as viewed by some player or zombie.
-data Perspective = Perspective { getVitality :: (GameState -> SlotNumber -> Vitality), getField :: (GameState -> SlotNumber -> Value),
-    modifyVitality :: (GameState -> SlotNumber -> Vitality -> GameState), setField :: (GameState -> SlotNumber -> Value -> GameState),
-    setVitalityOnDeadSlot :: (GameState -> SlotNumber -> Vitality -> GameState), viewer :: Who }
+data Perspective = Perspective
+                   { getVitality :: (GameState -> SlotNumber -> Vitality),
+                     getField :: (GameState -> SlotNumber -> Value),
+                     modifyVitality :: (GameState -> SlotNumber ->
+                                        Vitality -> GameState),
+                     setField :: (GameState -> SlotNumber ->
+                                  Value -> GameState),
+                     setVitalityOnDeadSlot :: (GameState -> SlotNumber ->
+                                               Vitality -> GameState),
+                     viewer :: Who }
 
 instance Eq Perspective where
     (==) lhs rhs = (viewer lhs) == (viewer rhs)
@@ -97,21 +104,21 @@ perspectiveFor who =
         SecondPlayer -> secondPersonView
 
 -- The current actor's friend. An actor is a player or a zombie master.
-myFriend :: GameState -> Perspective
-myFriend (GameState who p1 p2 zombies) =
+gsMyFriend :: GameState -> Perspective
+gsMyFriend (GameState who p1 p2 zombies) =
     if zombies then perspectiveFor (opponent who) else perspectiveFor who
 
 -- The current actor's enemy. An actor is a player or a zombie master.
-myEnemy :: GameState -> Perspective
-myEnemy (GameState who p1 p2 zombies) =
+gsMyEnemy :: GameState -> Perspective
+gsMyEnemy (GameState who p1 p2 zombies) =
     if zombies then perspectiveFor who else perspectiveFor (opponent who)
 
-damage :: Int -> GameState -> Int
-damage val (GameState _ _ _ zombies) =
+gsDamage :: Int -> GameState -> Int
+gsDamage val (GameState _ _ _ zombies) =
     if zombies then val else (- val)
 
-heal :: Int -> GameState -> Int
-heal val (GameState _ _ _ zombies) =
+gsHeal :: Int -> GameState -> Int
+gsHeal val (GameState _ _ _ zombies) =
     if zombies then (- val) else val
 
 alterFirstBoard :: (Slots -> Slots) -> GameState -> GameState
@@ -134,15 +141,15 @@ initialSide = Slots $
 test_GameState = [
     updateVitality 19 1 (Slots testSlots) ~?= Slots (testSlots // [(1, Slot 19 idValue)]),
     updateField (ValueNum 5) 1 (Slots testSlots) ~?= Slots (testSlots // [(1, Slot 10000 (ValueNum 5))]),
-    
-    myFriend startingGame ~?= firstPersonView,
-    myFriend (switchPlayer startingGame) ~?= secondPersonView,
-    myFriend zombieTime ~?= secondPersonView,
-    myFriend (switchPlayer zombieTime) ~?= firstPersonView,
-    myEnemy startingGame ~?= secondPersonView,
-    myEnemy (switchPlayer startingGame) ~?= firstPersonView,
-    myEnemy zombieTime ~?= firstPersonView,
-    myEnemy (switchPlayer zombieTime) ~?= secondPersonView,
+
+    gsMyFriend startingGame ~?= firstPersonView,
+    gsMyFriend (switchPlayer startingGame) ~?= secondPersonView,
+    gsMyFriend zombieTime ~?= secondPersonView,
+    gsMyFriend (switchPlayer zombieTime) ~?= firstPersonView,
+    gsMyEnemy startingGame ~?= secondPersonView,
+    gsMyEnemy (switchPlayer startingGame) ~?= firstPersonView,
+    gsMyEnemy zombieTime ~?= firstPersonView,
+    gsMyEnemy (switchPlayer zombieTime) ~?= secondPersonView,
 
     getVitality firstPersonView startingGame 3 ~?= 8000,
     getVitality secondPersonView startingGame 3 ~?= 12000,
@@ -161,11 +168,11 @@ test_GameState = [
 
     getVitality firstPersonView (modifyVitality firstPersonView someDeath 3 5000) 3 ~?= 0,
 
-    damage 33 startingGame ~?= -33,
-    damage 66 zombieTime ~?= 66,
+    gsDamage 33 startingGame ~?= -33,
+    gsDamage 66 zombieTime ~?= 66,
 
-    heal 33 startingGame ~?= 33,
-    heal 66 zombieTime ~?= -66
+    gsHeal 33 startingGame ~?= 33,
+    gsHeal 66 zombieTime ~?= -66
     ]
   where
     firstSide = updateField valueHelp 0 (updateVitality 8000 3 initialSide)
