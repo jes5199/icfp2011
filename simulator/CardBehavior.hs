@@ -171,7 +171,29 @@ attackNANj = "attack j-value is a non-number (health still decremented)"
 attackNAN = "attack i or n value is a non-number"
 
 doHelp :: Value -> Value -> Value -> MoveStep Value
-doHelp = undefined
+doHelp (ValueNum i) (ValueNum j) (ValueNum n) =
+    if i < 0 || i > 255
+    then throwError helpRangeI
+    else do
+        v <- getProponentVitality i
+        if v < n
+          then throwError helpRangeN
+          else do
+            putProponentVitality (v-n) i
+            if j < 0 || j > 255
+              then throwError helpRangeJ
+              else do
+                w <- getProponentVitality j
+                let n' = (n*11) `div` 10
+                    w' = w+n'
+                    w'' = if     w  <= 0     then w
+                         else if w' >= 65535 then 65535
+                              else                w'
+                putProponentVitality w'' j
+                return $ ValueCard IdentityCard
+helpRangeI = "help i-value out of range"
+helpRangeN = "help n-value greater than vitality of [i]"
+helpRangeJ = "help j-value out of range"
 
 doCopy :: Value -> MoveStep Value
 doCopy (ValueNum i) = if i >= 0 && i <= 255
@@ -195,7 +217,19 @@ reviveRangeMsg = "revive out of range"
 reviveNANmsg = "revive applied to non-number"
 
 doZombie :: Value -> Value -> MoveStep Value
-doZombie = undefined
+doZombie (ValueNum i) x =
+    if i < 0 || i > 255
+    then throwError zombieRangeI
+    else do
+        v <- getOpponentVitality (255-i)
+        if v > 0
+          then throwError zombieNotDead
+          else do
+            putOpponentVitality (-1) (255-i)
+            putOpponentField x (255-i)
+            return $ ValueCard IdentityCard
+zombieRangeI  = "zombie i-value out of range"
+zombieNotDead = "zombie called on cell that isn't dead"
 
 test_CardBehavior = [
   runMove (doI (ValueNum 3)) initialState ~?=
