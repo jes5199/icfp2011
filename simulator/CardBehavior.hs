@@ -98,6 +98,7 @@ dblNANmsg = "dbl applied to non-number"
 doGet :: Value -> MoveStep Value
 doGet (ValueNum i) = do validSlot i
                         getProponentField i
+doGet (ValueCard ZeroCard) = doGet (ValueNum 0)
 doGet _ = throwError getNANmsg
 getRangeMsg = "get out of range"
 getNANmsg = "get applied to non-number"
