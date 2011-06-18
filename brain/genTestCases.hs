@@ -333,6 +333,21 @@ testCases = [
                       buildNewValue (parse "help 200 0 10000")
                       buildNewValue (parse "get 200")
                       return ()),
+ -- ZOMBIE TESTS
+ ("ZKK", do buildNewValue (parse "zombie K K")
+            return ()),
+ ("Z0K", do buildNewValue (parse "zombie 0 K")
+            return ()),
+ ("ZK0", do buildNewValue (parse "zombie K 0")
+            return ()),
+ ("Z00", do buildNewValue (parse "zombie 0 0")
+            return ()),
+ ("Z.dead", do buildNewValue (parse "attack 0 123 8000")
+               buildNewValue (parse "attack 1 123 8000")
+               buildNewValue (parse "zombie 123 I")
+               buildNewValue (parse "S")
+               return ()),
+ -- END ZOMBIE TESTS
  ("grapeshot", do buildNewValueAt (grapeshot 8192 0) 0
                   rightApply 0 ZeroCard
                   assertProponent (\pers gs -> all (\i -> gsGetVitality pers gs i == 1808) [0..65])
