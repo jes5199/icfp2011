@@ -1,4 +1,4 @@
-module GameState (GameState(..),Slots(..),Slot(..),initialState,Who(..),updateVitality,updateField,test_GameState,Vitality,initialSide,switchPlayer,alterFirstBoard,opponent,getFriend,getEnemy) where
+module GameState (GameState(..),Slots(..),Slot(..),initialState,Who(..),updateVitality,updateField,test_GameState,Vitality,initialSide,switchPlayer,alterFirstBoard,opponent,getFriend,myEnemy) where
 
 import Test.HUnit
 import Data.Array
@@ -14,6 +14,12 @@ data Slot = Slot { vitality :: Vitality, field :: Value }
 instance Show Slot where
     show (Slot v f) = "{" ++ (show v) ++ "," ++ (show f) ++ "}"
 
+replaceVitality :: Vitality -> Slot -> Slot
+replaceVitality hp slot = Slot hp (field slot)
+
+replaceField :: Value -> Slot -> Slot
+replaceField value slot = Slot (vitality slot) value
+
 newtype Slots = Slots (Array Int Slot)
     deriving Eq
 
@@ -22,12 +28,6 @@ instance Show Slots where
         where isInteresting (_, Slot 10000 (ValueCard IdentityCard)) = False
               isInteresting _ = True
               showSlotOnALine (n, slot) = (show n) ++ "=" ++ (show slot) ++ "\n"
-
-replaceVitality :: Vitality -> Slot -> Slot
-replaceVitality hp slot = Slot hp (field slot)
-
-replaceField :: Value -> Slot -> Slot
-replaceField value slot = Slot (vitality slot) value
 
 transformSlot :: (Slot -> Slot) -> Int -> Slots -> Slots
 transformSlot transformation idx (Slots slots) = Slots $ slots // [(idx, transformation (slots ! idx) )]
@@ -47,19 +47,38 @@ opponent SecondPlayer = FirstPlayer
 data GameState = GameState { playerToMove :: Who, firstPlayerBoard :: Slots, secondPlayerBoard :: Slots, zombiesAreOut :: Bool }
                deriving (Eq, Show)
 
-side :: Who -> Slots -> Slots -> (Who, Slots)
-side who p1 p2 =
+-- This is a perspective on the board, as viewed by some player or zombie.
+data Perspective = Perspective { getVitality :: (SlotNumber -> GameState -> Vitality), getField :: (SlotNumber -> GameState -> Value),
+    modifyVitality :: (Vitality -> SlotNumber -> GameState), setField :: (Value -> SlotNumber -> GameState), viewer :: Who }
+
+instance Eq Perspective where
+    (==) lhs rhs = (viewer lhs) == (viewer rhs)
+
+instance Show Perspective where
+    show (Perspective _ _ _ _ who) = (show who) ++ " point of view"
+
+firstPersonView = Perspective undefined undefined undefined undefined FirstPlayer
+secondPersonView = Perspective undefined undefined undefined undefined SecondPlayer
+
+--attack i j n state =
+--  adjustVitality (myEnemy state) 19 (damage state 33)
+
+-- The perspective of a particular player.
+perspectiveFor :: Who -> Perspective
+perspectiveFor who =
     case who of
-        FirstPlayer  -> (FirstPlayer, p1)
-        SecondPlayer -> (SecondPlayer, p2)
+        FirstPlayer  -> firstPersonView
+        SecondPlayer -> secondPersonView
 
-getFriend :: GameState -> (Who, Slots)
-getFriend (GameState who p1 p2 zombies) =
-    (if zombies then side (opponent who) else side who) p1 p2
+-- The current actor's friend. An actor is a player or a zombie master.
+myFriend :: GameState -> Perspective
+myFriend (GameState who p1 p2 zombies) =
+    if zombies then perspectiveFor (opponent who) else perspectiveFor who
 
-getEnemy :: GameState -> (Who, Slots)
-getEnemy (GameState who p1 p2 zombies) =
-    (if zombies then side who else side (opponent who)) p1 p2
+-- The current actor's enemy. An actor is a player or a zombie master.
+myEnemy :: GameState -> Perspective
+myEnemy (GameState who p1 p2 zombies) =
+    if zombies then perspectiveFor who else perspectiveFor (opponent who)
 
 damage :: Int -> GameState -> Int
 damage val (GameState _ _ _ zombies) =
@@ -90,14 +109,14 @@ test_GameState = [
     updateVitality 19 1 (Slots testSlots) ~?= Slots (testSlots // [(1, Slot 19 idValue)]),
     updateField (ValueNum 5) 1 (Slots testSlots) ~?= Slots (testSlots // [(1, Slot 10000 (ValueNum 5))]),
     
-    getFriend startingGame ~?= firstPlayerSide,
-    getFriend (switchPlayer startingGame) ~?= secondPlayerSide,
-    getFriend zombieTime ~?= secondPlayerSide,
-    getFriend (switchPlayer zombieTime) ~?= firstPlayerSide,
-    getEnemy startingGame ~?= secondPlayerSide,
-    getEnemy (switchPlayer startingGame) ~?= firstPlayerSide,
-    getEnemy zombieTime ~?= firstPlayerSide,
-    getEnemy (switchPlayer zombieTime) ~?= secondPlayerSide,
+    myFriend startingGame ~?= firstPersonView,
+    myFriend (switchPlayer startingGame) ~?= secondPersonView,
+    myFriend zombieTime ~?= secondPersonView,
+    myFriend (switchPlayer zombieTime) ~?= firstPersonView,
+    myEnemy startingGame ~?= secondPersonView,
+    myEnemy (switchPlayer startingGame) ~?= firstPersonView,
+    myEnemy zombieTime ~?= firstPersonView,
+    myEnemy (switchPlayer zombieTime) ~?= secondPersonView,
 
     damage 33 startingGame ~?= -33,
     damage 66 zombieTime ~?= 66,
@@ -110,8 +129,6 @@ test_GameState = [
     secondSide = updateField valueAttack 0 initialSide
     startingGame = GameState FirstPlayer firstSide secondSide False
     zombieTime = GameState FirstPlayer firstSide secondSide True
-    firstPlayerSide = (FirstPlayer, firstSide)
-    secondPlayerSide = (SecondPlayer, secondSide)
     testSlots = array (0,3::Int) [(n,Slot 10000 (cardToValue IdentityCard)) |
                         n <- [0..3]]
     idValue = cardToValue IdentityCard
