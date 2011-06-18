@@ -140,7 +140,7 @@ decRangeMsg = "dec out of range"
 decNANmsg = "dec applied to non-number"
 
 doAttack :: Value -> Value -> Value -> MoveStep Value
-doAttack (ValueNum i) (ValueNum j) (ValueNum n) =
+doAttack (ValueNum i) arg2 (ValueNum n) =
     if i < 0 || i > 255
     then throwError attackRangeI
     else do
@@ -149,6 +149,9 @@ doAttack (ValueNum i) (ValueNum j) (ValueNum n) =
           then throwError attackRangeN
           else do
             putProponentVitality (v-n) i
+            j <- case arg2 of
+              ValueNum jj -> return jj
+              _ -> throwError attackNANj
             if j < 0 || j > 255
               then throwError attackRangeJ
               else do
@@ -159,12 +162,16 @@ doAttack (ValueNum i) (ValueNum j) (ValueNum n) =
                               else            w-n'
                 putOpponentVitality w' (255-j)
                 return $ ValueCard IdentityCard
+doAttack _ _ _ = throwError attackNAN
+
 attackRangeI = "attack i-value out of range"
 attackRangeN = "attack n-value greater than vitality of [i]"
 attackRangeJ = "attack j-value out of range"
+attackNANj = "attack j-value is a non-number (health still decremented)"
+attackNAN = "attack i or n value is a non-number"
 
 doHelp :: Value -> Value -> Value -> MoveStep Value
-doHelp (ValueNum i) (ValueNum j) (ValueNum n) =
+doHelp (ValueNum i) arg2 (ValueNum n) =
     if i < 0 || i > 255
     then throwError helpRangeI
     else do
@@ -173,20 +180,27 @@ doHelp (ValueNum i) (ValueNum j) (ValueNum n) =
           then throwError helpRangeN
           else do
             putProponentVitality (v-n) i
+            j <- case arg2 of
+              ValueNum jj -> return jj
+              _ -> throwError helpNANj
             if j < 0 || j > 255
               then throwError helpRangeJ
               else do
                 w <- getProponentVitality j
                 let n' = (n*11) `div` 10
                     w' = w+n'
-                    w'' = if     w  <= 0     then w
-                         else if w' >= 65535 then 65535
-                              else                w'
+                    w'' = if      w  <= 0     then w
+                          else if w' >= 65535 then 65535
+                               else                w'
                 putProponentVitality w'' j
                 return $ ValueCard IdentityCard
+doHelp _ _ _ = throwError helpNAN
+
 helpRangeI = "help i-value out of range"
 helpRangeN = "help n-value greater than vitality of [i]"
 helpRangeJ = "help j-value out of range"
+helpNANj = "help j-value is a non-number (health still decremented)"
+helpNAN = "help i or n value is a non-number"
 
 doCopy :: Value -> MoveStep Value
 doCopy (ValueNum i) = if i >= 0 && i <= 255
@@ -309,13 +323,13 @@ test_CardBehavior = [
   runMove (doInc (ValueNum 256)) initialState ~?=
     (initialState,Left incRangeMsg),
   runMove (doInc (ValueNum 0)) initialState ~?=
-    (GameState FirstPlayer (updateVitality 10001 0 initialSide) initialSide,
+    (alterFirstBoard (updateVitality 10001 0) initialState,
      Right $ ValueCard IdentityCard),
-  runMove (doInc (ValueNum 0)) (GameState FirstPlayer (updateVitality 0 0 initialSide) initialSide) ~?=
-    (GameState FirstPlayer (updateVitality 0 0 initialSide) initialSide,
+  runMove (doInc (ValueNum 0)) (alterFirstBoard (updateVitality 0 0) initialState) ~?=
+    (alterFirstBoard (updateVitality 0 0) initialState,
      Right $ ValueCard IdentityCard),
-  runMove (doInc (ValueNum 0)) (GameState FirstPlayer (updateVitality 65535 0 initialSide) initialSide) ~?=
-    (GameState FirstPlayer (updateVitality 65535 0 initialSide) initialSide,
+  runMove (doInc (ValueNum 0)) (alterFirstBoard (updateVitality 65535 0) initialState) ~?=
+    (alterFirstBoard (updateVitality 65535 0) initialState,
      Right $ ValueCard IdentityCard)
   {-
   -- Infinite loop example
