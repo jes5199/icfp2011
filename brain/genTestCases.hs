@@ -84,7 +84,36 @@ testCases = [
  ("SKSSSK", do buildNewValue (parse "S(K)(S(S)(S(K)))")
                return ()),
  ("put12", do buildNewValue (parse "put 1 2")
-              return ())
+              return ()),
+ ("inc0", do buildNewValue (parse "inc 0")
+             return ()),
+ ("inc1", do buildNewValue (parse "inc 1")
+             return ()),
+ ("inc255", do buildNewValue (parse "inc 255")
+               return ()),
+ ("incK", do buildNewValue (parse "inc K")
+             return ()),
+ ("inc256", do buildNewValue (parse "inc 256")
+               return ()),
+ ("inc_maxed", do buildNewValueAt (parse "S") 100
+                  buildNewValueAt (parse "S") 101
+                  buildNewValueAt (parse "S") 102
+                  buildNewValueAt (parse "S") 103
+                  buildNewValueAt (parse "S") 104
+                  buildNewValueAt (parse "S") 105
+                  buildNewValueAt (parse "K") 200
+                  buildNewValue (parse "help 100 200 10000")
+                  buildNewValue (parse "help 101 200 10000")
+                  buildNewValue (parse "help 102 200 10000")
+                  buildNewValue (parse "help 103 200 10000")
+                  buildNewValue (parse "help 104 200 10000")
+                  buildNewValue (parse "help 105 200 10000")
+                  buildNewValue (parse "inc 200")
+                  return ()),
+ ("inc_dead", do buildNewValueAt (parse "S") 100
+                 buildNewValue (parse "help 100 200 10000")
+                 buildNewValue (parse "inc 100")
+                 return ())
  ]
 
 outputTestCase :: String -> TestCaseGenerator () -> IO ()
