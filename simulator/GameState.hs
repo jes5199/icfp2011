@@ -17,6 +17,9 @@ instance Show Slot where
 replaceVitality :: Vitality -> Slot -> Slot
 replaceVitality hp slot = Slot hp (field slot)
 
+changeVitality :: Vitality -> Slot -> Slot
+changeVitality hp slot = Slot (hp + vitality slot) (field slot)
+
 replaceField :: Value -> Slot -> Slot
 replaceField value slot = Slot (vitality slot) value
 
@@ -29,14 +32,23 @@ instance Show Slots where
               isInteresting _ = True
               showSlotOnALine (n, slot) = (show n) ++ "=" ++ (show slot) ++ "\n"
 
-transformSlot :: (Slot -> Slot) -> Int -> Slots -> Slots
+transformSlot :: (Slot -> Slot) -> SlotNumber -> Slots -> Slots
 transformSlot transformation idx (Slots slots) = Slots $ slots // [(idx, transformation (slots ! idx) )]
 
 updateVitality :: Vitality -> SlotNumber -> Slots -> Slots
 updateVitality hp idx slots = transformSlot (replaceVitality hp) idx slots
 
+changeVitalityInSlot :: Slots -> SlotNumber -> Vitality -> Slots
+changeVitalityInSlot slots idx adjustment = transformSlot (changeVitality adjustment) idx slots
+
 updateField :: Value -> SlotNumber -> Slots -> Slots
 updateField value idx slots = transformSlot (replaceField value) idx slots
+
+extractVitality :: Slots -> SlotNumber -> Vitality
+extractVitality (Slots slots) idx = vitality (slots ! idx)
+
+extractField :: Slots -> SlotNumber -> Value
+extractField (Slots slots) idx = field (slots ! idx)
 
 data Who = FirstPlayer | SecondPlayer
          deriving (Eq, Show)
@@ -48,8 +60,8 @@ data GameState = GameState { playerToMove :: Who, firstPlayerBoard :: Slots, sec
                deriving (Eq, Show)
 
 -- This is a perspective on the board, as viewed by some player or zombie.
-data Perspective = Perspective { getVitality :: (SlotNumber -> GameState -> Vitality), getField :: (SlotNumber -> GameState -> Value),
-    modifyVitality :: (Vitality -> SlotNumber -> GameState), setField :: (Value -> SlotNumber -> GameState), viewer :: Who }
+data Perspective = Perspective { getVitality :: (GameState -> SlotNumber -> Vitality), getField :: (GameState -> SlotNumber -> Value),
+    modifyVitality :: (GameState -> SlotNumber -> Vitality -> GameState), setField :: (GameState -> SlotNumber -> Value -> GameState), viewer :: Who }
 
 instance Eq Perspective where
     (==) lhs rhs = (viewer lhs) == (viewer rhs)
@@ -57,11 +69,13 @@ instance Eq Perspective where
 instance Show Perspective where
     show (Perspective _ _ _ _ who) = (show who) ++ " point of view"
 
-firstPersonView = Perspective undefined undefined undefined undefined FirstPlayer
-secondPersonView = Perspective undefined undefined undefined undefined SecondPlayer
+makePerspective board replaceBoard who = Perspective (extractVitality . board) (extractField . board)
+    (\game -> \idx -> \adjustment -> replaceBoard game (changeVitalityInSlot (board game) idx adjustment)) undefined who
 
---attack i j n state =
---  adjustVitality (myEnemy state) 19 (damage state 33)
+firstPersonView = makePerspective firstPlayerBoard
+    (\game -> \newSlots -> GameState (playerToMove game) newSlots (secondPlayerBoard game) (zombiesAreOut game)) FirstPlayer
+secondPersonView = makePerspective secondPlayerBoard
+    (\game -> \newSlots -> GameState (playerToMove game) (firstPlayerBoard game) newSlots (zombiesAreOut game)) SecondPlayer
 
 -- The perspective of a particular player.
 perspectiveFor :: Who -> Perspective
@@ -118,6 +132,13 @@ test_GameState = [
     myEnemy zombieTime ~?= firstPersonView,
     myEnemy (switchPlayer zombieTime) ~?= secondPersonView,
 
+    getVitality firstPersonView startingGame 3 ~?= 8000,
+    getVitality secondPersonView startingGame 3 ~?= 12000,
+    getField firstPersonView startingGame 0 ~?= valueHelp,
+    getField secondPersonView startingGame 0 ~?= valueAttack,
+    getVitality firstPersonView (modifyVitality firstPersonView startingGame 3 (-100)) 3 ~?= 7900,
+    getVitality secondPersonView (modifyVitality secondPersonView startingGame 3 100) 3 ~?= 12100,
+
     damage 33 startingGame ~?= -33,
     damage 66 zombieTime ~?= 66,
 
@@ -125,8 +146,8 @@ test_GameState = [
     heal 66 zombieTime ~?= -66
     ]
   where
-    firstSide = updateField valueHelp 0 initialSide
-    secondSide = updateField valueAttack 0 initialSide
+    firstSide = updateField valueHelp 0 (updateVitality 8000 3 initialSide)
+    secondSide = updateField valueAttack 0 (updateVitality 12000 3 initialSide)
     startingGame = GameState FirstPlayer firstSide secondSide False
     zombieTime = GameState FirstPlayer firstSide secondSide True
     testSlots = array (0,3::Int) [(n,Slot 10000 (cardToValue IdentityCard)) |

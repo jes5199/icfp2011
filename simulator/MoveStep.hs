@@ -97,8 +97,6 @@ putOpponentVitality v n = transformOpponentSlots (updateVitality v n)
 
 -- Executes the lambda function corresponding to a move, incorporates
 -- side effects into the GameState, and stops execution if an error
--- occurs.
-runMove :: MoveStep a -> GameState -> (GameState,Either String a)
 runMove step state = (newState,result)
   where
     (result,(newState,appsUsed)) = runState (runErrorT step) (state,0)
