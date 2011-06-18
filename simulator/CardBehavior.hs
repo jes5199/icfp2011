@@ -204,21 +204,22 @@ helpNAN = "help i or n value is a non-number"
 
 doCopy :: Value -> MoveStep Value
 doCopy (ValueNum i) = if i >= 0 && i <= 255
-                     then getOpponentField i -- note that this is NOT (255-i)!
-                     else throwError copyRangeMsg
+                      then getOpponentField i -- note that this is NOT (255-i)!
+                      else throwError copyRangeMsg
 doCopy _ = throwError copyNANmsg
 copyRangeMsg = "copy out of range"
 copyNANmsg = "copy applied to non-number"
 
 doRevive :: Value -> MoveStep Value
 doRevive (ValueNum i) = if i >= 0 && i <= 255
-                     then do v <- getProponentVitality i
-                             let v' = case v of
-                                   0  -> 1
-                                   _  -> v
-                             putProponentVitality v' i
-                             return $ ValueCard IdentityCard
-                     else throwError reviveRangeMsg
+                        then do v <- getProponentVitality i
+                                let v' = case v of
+                                      0  -> 1
+                                      (-1) -> 1
+                                      _  -> v
+                                putProponentVitality v' i
+                                return $ ValueCard IdentityCard
+                        else throwError reviveRangeMsg
 doRevive _ = throwError reviveNANmsg
 reviveRangeMsg = "revive out of range"
 reviveNANmsg = "revive applied to non-number"
