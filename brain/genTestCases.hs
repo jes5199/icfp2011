@@ -21,10 +21,25 @@ data TestCaseAtom = TestCaseMove Who Move
 assert :: (GameState -> Bool) -> TestCaseGenerator ()
 assert f = tell [TestCaseAssertion f]
 
+assertProponent :: (GSPerspective -> GameState -> Bool) -> TestCaseGenerator ()
+assertProponent f = do
+  who <- getProponent
+  assert (f (perspectiveFor who False))
+
+assertOpponent :: (GSPerspective -> GameState -> Bool) -> TestCaseGenerator ()
+assertOpponent f = do
+  who <- getProponent
+  assert (f (perspectiveFor (opponent who) False))
+
 getProponent :: TestCaseGenerator Who
 getProponent = do
   (_, _, who) <- get
   return who
+
+getPerspective :: TestCaseGenerator GSPerspective
+getPerspective = do
+  who <- getProponent
+  return (perspectiveFor who False)
 
 getProponentAvailSlots :: TestCaseGenerator [SlotNumber]
 getProponentAvailSlots = do
@@ -308,8 +323,7 @@ testCases = [
  ("copy_non_identity", do buildNewValueAt (parse "K") 0
                           switchPlayers
                           buildNewValue (parse "copy 0")
-                          who <- getProponent
-                          assert (\gs -> gsGetField (perspectiveFor who False) gs 0 == parse "K")
+                          assertProponent (\pers gs -> gsGetField pers gs 0 == parse "K")
                           return ()),
  ("lazy", do loc <- buildNewValue (parse "lazy (inc 0)")
              rightApply loc ZombieCard),
@@ -320,18 +334,20 @@ testCases = [
                       buildNewValue (parse "get 200")
                       return ()),
  ("grapeshot", do buildNewValueAt (grapeShot 8192 0) 0
-                  rightApply 0 ZeroCard)
+                  rightApply 0 ZeroCard
+                  assertProponent (\pers gs -> all (\i -> gsGetVitality pers gs i == 1808) [0..65])
+                  assertOpponent (\pers gs -> all (\i -> gsGetVitality pers gs i == 2628) [190..255]))
  ]
 
-testCaseAtomsToMoves :: [TestCaseAtom] -> [Move]
-testCaseAtomsToMoves = testCaseAtomsToMoves' initialState
+testCaseAtomsToMoves :: String -> [TestCaseAtom] -> [Move]
+testCaseAtomsToMoves testName = testCaseAtomsToMoves' initialState
     where testCaseAtomsToMoves' gs [] = [nullMove]
           testCaseAtomsToMoves' gs all@(TestCaseMove who' move : rest)
               | playerToMove gs == who' = (move : testCaseAtomsToMoves' (updateGs move gs) rest)
               | otherwise = (nullMove : testCaseAtomsToMoves' (updateGs nullMove gs) all)
           testCaseAtomsToMoves' gs (TestCaseAssertion f : rest)
               | f gs = testCaseAtomsToMoves' gs rest
-              | otherwise = error "Assertion failure, too bad"
+              | otherwise = error ("Assertion failure in test " ++ testName)
           nullMove = Move LeftApplication IdentityCard 0
           updateGs move gs = switchPlayer $ fst $ simulate gs move -- TODO: zombies
 
@@ -339,7 +355,7 @@ outputTestCase :: String -> TestCaseGenerator () -> IO ()
 outputTestCase testName testCase = do
   [directory] <- getArgs
   let testCaseAtoms = execWriter (evalStateT testCase ([0..255], [0..255], FirstPlayer))
-      fileContents = printMoves $ testCaseAtomsToMoves testCaseAtoms
+      fileContents = printMoves $ testCaseAtomsToMoves testName testCaseAtoms
   writeFile (directory ++ "/" ++ testName) fileContents
 
 main :: IO ()
