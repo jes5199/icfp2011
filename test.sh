@@ -13,3 +13,6 @@ cd brain
 make
 ./braintester
 cd ..
+
+mkdir -p test_cases
+brain/genTestCases test_cases
