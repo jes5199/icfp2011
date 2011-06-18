@@ -17,6 +17,9 @@ instance Show Slot where
 replaceVitality :: Vitality -> Slot -> Slot
 replaceVitality hp slot = Slot hp (field slot)
 
+changeVitality :: Vitality -> Slot -> Slot
+changeVitality hp slot = Slot (hp + vitality slot) (field slot)
+
 replaceField :: Value -> Slot -> Slot
 replaceField value slot = Slot (vitality slot) value
 
@@ -29,11 +32,14 @@ instance Show Slots where
               isInteresting _ = True
               showSlotOnALine (n, slot) = (show n) ++ "=" ++ (show slot) ++ "\n"
 
-transformSlot :: (Slot -> Slot) -> Int -> Slots -> Slots
+transformSlot :: (Slot -> Slot) -> SlotNumber -> Slots -> Slots
 transformSlot transformation idx (Slots slots) = Slots $ slots // [(idx, transformation (slots ! idx) )]
 
 updateVitality :: Vitality -> SlotNumber -> Slots -> Slots
 updateVitality hp idx slots = transformSlot (replaceVitality hp) idx slots
+
+changeVitalityInSlot :: Slots -> SlotNumber -> Vitality -> Slots
+changeVitalityInSlot slots idx adjustment = transformSlot (changeVitality adjustment) idx slots
 
 updateField :: Value -> SlotNumber -> Slots -> Slots
 updateField value idx slots = transformSlot (replaceField value) idx slots
@@ -63,10 +69,13 @@ instance Eq Perspective where
 instance Show Perspective where
     show (Perspective _ _ _ _ who) = (show who) ++ " point of view"
 
-makePerspective board who = Perspective (extractVitality . board) (extractField . board) undefined undefined who
+makePerspective board replaceBoard who = Perspective (extractVitality . board) (extractField . board)
+    (\game -> \idx -> \adjustment -> replaceBoard game (changeVitalityInSlot (board game) idx adjustment)) undefined who
 
-firstPersonView = makePerspective firstPlayerBoard FirstPlayer
-secondPersonView = makePerspective secondPlayerBoard SecondPlayer
+firstPersonView = makePerspective firstPlayerBoard
+    (\game -> \newSlots -> GameState (playerToMove game) newSlots (secondPlayerBoard game) (zombiesAreOut game)) FirstPlayer
+secondPersonView = makePerspective secondPlayerBoard
+    (\game -> \newSlots -> GameState (playerToMove game) (firstPlayerBoard game) newSlots (zombiesAreOut game)) SecondPlayer
 
 -- The perspective of a particular player.
 perspectiveFor :: Who -> Perspective
@@ -127,8 +136,8 @@ test_GameState = [
     getVitality secondPersonView startingGame 3 ~?= 12000,
     getField firstPersonView startingGame 0 ~?= valueHelp,
     getField secondPersonView startingGame 0 ~?= valueAttack,
---    getVitality firstPersonView (modifyVitality firstPersonView startingGame 3 (-100)) 3 ~?= 7900,
---    getVitality secondPersonView (modifyVitality secondPersonView startingGame 3 100) 3 ~?= 12100,
+    getVitality firstPersonView (modifyVitality firstPersonView startingGame 3 (-100)) 3 ~?= 7900,
+    getVitality secondPersonView (modifyVitality secondPersonView startingGame 3 100) 3 ~?= 12100,
 
     damage 33 startingGame ~?= -33,
     damage 66 zombieTime ~?= 66,
