@@ -95,13 +95,35 @@ putOpponentField v n = transformOpponentSlots (updateField v n)
 putOpponentVitality :: Vitality -> SlotNumber -> MoveStep ()
 putOpponentVitality v n = transformOpponentSlots (updateVitality v n)
 
+data Perspective = Perspective
+                   { getVitality :: SlotNumber -> MoveStep Vitality,
+                     getField :: SlotNumber -> MoveStep Value,
+                     modifyVitality :: SlotNumber -> Vitality -> MoveStep (),
+                     setField :: SlotNumber -> Value -> MoveStep (),
+                     setVitalityOnDeadSlot :: SlotNumber -> Vitality ->
+                                              MoveStep () }
+
+liftPerspective :: GSPerspective -> Perspective
+liftPerspective p =
+  Perspective
+  ( \n -> do state <- getGameState
+             return $ gsGetVitality p state n)
+  ( \n -> do state <- getGameState
+             return $ gsGetField p state n)
+  ( \n v -> do state <- getGameState
+               putGameState $ gsModifyVitality p state n v)
+  ( \n a -> do state <- getGameState
+               putGameState $ gsSetField p state n a)
+  ( \n v -> do state <- getGameState
+               putGameState $ gsSetVitalityOnDeadSlot p state n v)
+
 myFriend :: MoveStep Perspective
 myFriend = do (state,_) <- get
-              return $ gsMyFriend state
+              return $ liftPerspective $ gsMyFriend state
 
 myEnemy :: MoveStep Perspective
 myEnemy = do (state,_) <- get
-             return $ gsMyEnemy state
+             return $ liftPerspective $ gsMyEnemy state
 
 damage :: Int -> MoveStep Int
 damage val = do (state,_) <- get
