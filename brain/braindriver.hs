@@ -16,7 +16,8 @@ main = do
     let their_agents = [gaMakeThisAt "I" 0]
     let our_moves   = planSteps (chooseGoal   our_agents game_state ) game_state
     let their_moves = planSteps (chooseGoal their_agents game_state ) game_state ++ their_moves
-    putStr (printMoves (concat [[our_move, their_move] | (our_move,their_move) <- zip our_moves their_moves]))
+    putStr (printMoves (interleave our_moves their_moves))
+
 
 --
 -- Goal Agents
@@ -25,16 +26,35 @@ main = do
 -- Make a specfic thing, ignoring game state
 gaMakeThisAt what targetCell game_state = (0, translateValue (parse what))
 
+-- TODO: read and parse the action they took and assume that doing that was their goal
+--     (Note: this should be expressed as a "do this", not acomplish this) 
+gaExternal game_state = undefined
+
+
+
 --
 -- Choose best goal based on all sorts of clever logic
 --      For now, use "first thing on the list"
 --
-chooseGoal goal_agents game_state = (goal_agents !! 0) game_state
+chooseGoal goal_agents game_state =
+    let goals = ($game_state) `map` goal_agents
+    in head goals
 
 --
--- Figure out the next steps(s) to accomplish a goal
+-- Figure out the next steps(s) to accomplish a given goal
 --
 planSteps = planStepsBlindly
 
 -- Blindly do the whole thing ignoring state
 planStepsBlindly goal game_state = fst $ runState (buildValue (fst goal) (snd goal)) [1..255]
+
+
+
+
+--
+-- Utilities
+--
+interleave :: [a] -> [a] -> [a]
+interleave as bs = concat [[a, b] | (a,b) <- zip as bs]
+
+
