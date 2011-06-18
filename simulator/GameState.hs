@@ -17,10 +17,10 @@ instance Show Slot where
 replaceVitality :: Vitality -> Slot -> Slot
 replaceVitality hp slot = Slot hp (field slot)
 
-clamp hp = if hp < 0 then 0 else (if hp > 65535 then 65535 else hp)
+addIfAlive current adj = if current <= 0 then current else current + adj
 
 changeVitality :: Vitality -> Slot -> Slot
-changeVitality hp slot = Slot (clamp (hp + vitality slot)) (field slot)
+changeVitality hp slot = Slot (clamp (addIfAlive (vitality slot) hp)) (field slot)
 
 replaceField :: Value -> Slot -> Slot
 replaceField value slot = Slot (vitality slot) value
@@ -148,6 +148,8 @@ test_GameState = [
     getVitality firstPersonView (modifyVitality firstPersonView startingGame 3 (-10000)) 3 ~?= 0,
     getVitality secondPersonView (modifyVitality secondPersonView startingGame 3 70000) 3 ~?= 65535,
 
+    getVitality firstPersonView (modifyVitality firstPersonView someDeath 3 5000) 3 ~?= 0,
+
     damage 33 startingGame ~?= -33,
     damage 66 zombieTime ~?= 66,
 
@@ -157,8 +159,10 @@ test_GameState = [
   where
     firstSide = updateField valueHelp 0 (updateVitality 8000 3 initialSide)
     secondSide = updateField valueAttack 0 (updateVitality 12000 3 initialSide)
+    deadCellSide = updateVitality 0 3 initialSide
     startingGame = GameState FirstPlayer firstSide secondSide False
     zombieTime = GameState FirstPlayer firstSide secondSide True
+    someDeath = GameState FirstPlayer deadCellSide secondSide True
     testSlots = array (0,3::Int) [(n,Slot 10000 (cardToValue IdentityCard)) |
                         n <- [0..3]]
     idValue = cardToValue IdentityCard
