@@ -188,6 +188,8 @@ testCases = [
                      return ()),
  ("attack_11.11", do buildNewValue (parse "attack 1 1 11")
                      return ()),
+ ("attack_11.10001", do buildNewValue (parse "attack 1 1 10001")
+                        return ()),
  ("help_KKK", do buildNewValue (parse "help K K K")
                  return ()),
  ("help_0KK", do buildNewValue (parse "help 0 K K")
@@ -220,12 +222,20 @@ testCases = [
                    return ()),
  ("help_11.11", do buildNewValue (parse "help 1 1 11")
                    return ()),
+ ("help_11.10001", do buildNewValue (parse "help 1 1 10001")
+                      return ()),
  ("copy0", do buildNewValue (parse "copy 0")
               return ()),
  ("copy255", do buildNewValue (parse "copy 255")
                 return ()),
  ("copy256", do buildNewValue (parse "copy 256")
-                return ())
+                return ()),
+ ("revive0", do buildNewValue (parse "revive 0")
+                return ()),
+ ("revive255", do buildNewValue (parse "revive 255")
+                  return ()),
+ ("revive256", do buildNewValue (parse "revive 256")
+                  return ())
  ]
 
 outputTestCase :: String -> TestCaseGenerator () -> IO ()
