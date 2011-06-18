@@ -21,7 +21,7 @@ incAppCount :: MoveStep ()
 incAppCount = do c <- getAppCount
                  let c' = c+1
                  case c' of
-                   1000 -> throwError "AppLimitExceeded"
+                   1001 -> throwError "AppLimitExceeded"
                    _ -> putAppCount c'
 
 getGameState :: MoveStep GameState
