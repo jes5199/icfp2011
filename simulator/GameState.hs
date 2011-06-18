@@ -71,7 +71,9 @@ data GameState = GameState { playerToMove :: Who, firstPlayerBoard :: Slots, sec
 data GSPerspective = GSPerspective
                      { gsGetVitality :: (GameState -> SlotNumber -> Vitality),
                        gsGetField :: (GameState -> SlotNumber -> Value),
-                       gsModifyVitality :: (GameState -> SlotNumber ->
+                       gsPayVitalityCost :: (GameState -> SlotNumber ->
+                                          Vitality -> GameState),
+                       gsApplyVitalityConsequence :: (GameState -> SlotNumber ->
                                           Vitality -> GameState),
                        gsSetField :: (GameState -> SlotNumber ->
                                     Value -> GameState),
@@ -89,6 +91,7 @@ instance Show GSPerspective where
 makeGSPerspective fieldBoard vitalityBoard replaceFieldBoard replaceVitalityBoard who zombies = GSPerspective
     (extractVitality . vitalityBoard)
     (extractField . fieldBoard)
+    (\game -> \idx -> \adjustment -> replaceVitalityBoard game (changeVitalityInSlot (vitalityBoard game) idx adjustment))
     (\game -> \idx -> \adjustment -> replaceVitalityBoard game (changeVitalityInSlot (vitalityBoard game) idx adjustment))
     (\game -> \idx -> \value -> replaceFieldBoard game (updateField value idx (fieldBoard game)))
     (\game -> \idx -> \vitality -> replaceFieldBoard game (replaceVitalityOnDeadSlot (fieldBoard game) idx vitality)) -- The effects that target dead cells always target the same side as for field operations, not like other vitality-impacting operations.
@@ -178,13 +181,17 @@ test_GameState = [
     gsGetField zombie1 zombieTime 0 ~?= valueHelp,
     gsGetField zombie2 zombieTime 0 ~?= valueAttack,
     
-    gsGetVitality player1 (gsModifyVitality player1 startingGame 3 (-100)) 3 ~?= 7900,
-    gsGetVitality player2 (gsModifyVitality player2 startingGame 3 100) 3 ~?= 12100,
+    gsGetVitality player1 (gsPayVitalityCost player1 startingGame 3 (-100)) 3 ~?= 7900,
+    
+    gsGetVitality player1 (gsApplyVitalityConsequence player1 startingGame 3 (-100)) 3 ~?= 7900,
+    gsGetVitality player2 (gsApplyVitalityConsequence player2 startingGame 3 100) 3 ~?= 12100,
+    
+    gsGetVitality player2 (gsApplyVitalityConsequence zombie1 zombieTime 3 (-100)) 3 ~?= 11900,
+    gsGetVitality player1 (gsApplyVitalityConsequence zombie2 zombieTime 3 100) 3 ~?= 8100,
+    
     gsGetField player1 (gsSetField player1 startingGame 0 valueZombie) 0 ~?= valueZombie,
     gsGetField player2 (gsSetField player2 startingGame 0 valueRevive) 0 ~?= valueRevive,
     
-    gsGetVitality player2 (gsModifyVitality zombie1 zombieTime 3 (-100)) 3 ~?= 11900,
-    gsGetVitality player1 (gsModifyVitality zombie2 zombieTime 3 100) 3 ~?= 8100,
     gsGetField player1 (gsSetField zombie1 zombieTime 0 valueZombie) 0 ~?= valueZombie,
     gsGetField player2 (gsSetField zombie2 zombieTime 0 valueRevive) 0 ~?= valueRevive,
 
