@@ -81,16 +81,12 @@ doZero :: MoveStep Value
 doZero = return $ ValueNum 0
 
 doSucc :: Value -> MoveStep Value
-doSucc (ValueNum n) = return $ ValueNum $ if n == 65535
-                                          then 65535
-                                          else n+1
+doSucc (ValueNum n) = return $ makeNumVal $ n+1
 doSucc (ValueCard ZeroCard) = doSucc (ValueNum 0)
 doSucc _ = throwError nanMsg
 
 doDbl :: Value -> MoveStep Value
-doDbl (ValueNum n) = return $ ValueNum $ if n > 32767
-                                         then 65535
-                                         else n * 2
+doDbl (ValueNum n) = return $ makeNumVal $ n * 2
 doDbl (ValueCard ZeroCard) = doDbl (ValueNum 0)
 doDbl _  = throwError nanMsg
 

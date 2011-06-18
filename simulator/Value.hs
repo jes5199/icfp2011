@@ -1,4 +1,4 @@
-module Value (Value(..),cardToValue,test_Value,valueI,valueZero,valueSucc,valueDbl,valueGet,valuePut,valueS,valueK,valueInc,valueDec,valueAttack,valueHelp,valueCopy,valueRevive,valueZombie,clamp,makeIntVal) where
+module Value (Value(..),cardToValue,test_Value,valueI,valueZero,valueSucc,valueDbl,valueGet,valuePut,valueS,valueK,valueInc,valueDec,valueAttack,valueHelp,valueCopy,valueRevive,valueZombie,clamp,makeNumVal) where
 
 import Test.HUnit
 import Card
@@ -22,7 +22,7 @@ cardToValue = ValueCard
 
 clamp val = if val < 0 then 0 else (if val > 65535 then 65535 else val)
 
-makeIntVal val = ValueNum (clamp val)
+makeNumVal val = ValueNum (clamp val)
 
 valueI  = ValueCard IdentityCard
 valueZero = ValueCard ZeroCard
