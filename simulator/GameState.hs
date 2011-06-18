@@ -22,6 +22,9 @@ addIfAlive current adj = if current <= 0 then current else current + adj
 changeVitality :: Vitality -> Slot -> Slot
 changeVitality hp slot = Slot (clamp (addIfAlive (vitality slot) hp)) (field slot)
 
+replaceVitalityIfDead :: Vitality -> Slot -> Slot
+replaceVitalityIfDead hp slot = if (vitality slot) > 0 then slot else Slot hp (field slot)
+
 replaceField :: Value -> Slot -> Slot
 replaceField value slot = Slot (vitality slot) value
 
@@ -43,6 +46,9 @@ updateVitality hp idx slots = transformSlot (replaceVitality hp) idx slots
 changeVitalityInSlot :: Slots -> SlotNumber -> Vitality -> Slots
 changeVitalityInSlot slots idx adjustment = transformSlot (changeVitality adjustment) idx slots
 
+replaceVitalityOnDeadSlot :: Slots -> SlotNumber -> Vitality -> Slots
+replaceVitalityOnDeadSlot slots idx vitality = transformSlot (replaceVitalityIfDead vitality) idx slots
+
 updateField :: Value -> SlotNumber -> Slots -> Slots
 updateField value idx slots = transformSlot (replaceField value) idx slots
 
@@ -63,17 +69,19 @@ data GameState = GameState { playerToMove :: Who, firstPlayerBoard :: Slots, sec
 
 -- This is a perspective on the board, as viewed by some player or zombie.
 data Perspective = Perspective { getVitality :: (GameState -> SlotNumber -> Vitality), getField :: (GameState -> SlotNumber -> Value),
-    modifyVitality :: (GameState -> SlotNumber -> Vitality -> GameState), setField :: (GameState -> SlotNumber -> Value -> GameState), viewer :: Who }
+    modifyVitality :: (GameState -> SlotNumber -> Vitality -> GameState), setField :: (GameState -> SlotNumber -> Value -> GameState),
+    setVitalityOnDeadSlot :: (GameState -> SlotNumber -> Vitality -> GameState), viewer :: Who }
 
 instance Eq Perspective where
     (==) lhs rhs = (viewer lhs) == (viewer rhs)
 
 instance Show Perspective where
-    show (Perspective _ _ _ _ who) = (show who) ++ " point of view"
+    show (Perspective _ _ _ _ _ who) = (show who) ++ " point of view"
 
 makePerspective board replaceBoard who = Perspective (extractVitality . board) (extractField . board)
     (\game -> \idx -> \adjustment -> replaceBoard game (changeVitalityInSlot (board game) idx adjustment))
     (\game -> \idx -> \value -> replaceBoard game (updateField value idx (board game)))
+    (\game -> \idx -> \vitality -> replaceBoard game (replaceVitalityOnDeadSlot (board game) idx vitality))
     who
 
 firstPersonView = makePerspective firstPlayerBoard
@@ -148,6 +156,9 @@ test_GameState = [
     getVitality firstPersonView (modifyVitality firstPersonView startingGame 3 (-10000)) 3 ~?= 0,
     getVitality secondPersonView (modifyVitality secondPersonView startingGame 3 70000) 3 ~?= 65535,
 
+    getVitality firstPersonView (setVitalityOnDeadSlot firstPersonView someDeath 3 1) 3 ~?= 1,
+    getVitality secondPersonView (setVitalityOnDeadSlot secondPersonView someDeath 3 (-1)) 3 ~?= (-1),
+
     getVitality firstPersonView (modifyVitality firstPersonView someDeath 3 5000) 3 ~?= 0,
 
     damage 33 startingGame ~?= -33,
@@ -162,7 +173,7 @@ test_GameState = [
     deadCellSide = updateVitality 0 3 initialSide
     startingGame = GameState FirstPlayer firstSide secondSide False
     zombieTime = GameState FirstPlayer firstSide secondSide True
-    someDeath = GameState FirstPlayer deadCellSide secondSide True
+    someDeath = GameState FirstPlayer deadCellSide deadCellSide True
     testSlots = array (0,3::Int) [(n,Slot 10000 (cardToValue IdentityCard)) |
                         n <- [0..3]]
     idValue = cardToValue IdentityCard
