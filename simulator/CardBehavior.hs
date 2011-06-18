@@ -295,10 +295,6 @@ test_CardBehavior = [
     (alterFirstBoard (updateVitality 65535 0) initialState, Right valueI),
   runMove (doInc (ValueCard ZeroCard)) initialState ~?=
     (alterFirstBoard (updateVitality 10001 0) initialState, Right valueI)
-  {-
-  -- Infinite loop example
-  runMove (doS (ValueCard IdentityCard) (ValueCard IdentityCard)
-           (ValueCard SuccCard))
-  initialState ~?=
-    (initialState,Right $ ValueCard IdentityCard) -}
   ]
+  where
+    zombieState = beginZombieApocolypse initialState
