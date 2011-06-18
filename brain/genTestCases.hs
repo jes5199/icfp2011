@@ -38,7 +38,14 @@ testCycleCount wasteCycles = do
 testCases :: [(String, TestCaseGenerator ())]
 testCases = [
  ("cycle_count_91", testCycleCount 0),
- ("cycle_count_90", testCycleCount 1)
+ ("cycle_count_90", testCycleCount 1),
+ ("get_inc", do 0 <- buildNewValue (parse "inc")
+                triggerLoc <- buildNewValue (parse "S get I")
+                rightApply triggerLoc ZeroCard),
+ ("basic_inc", do buildNewValue (parse "inc 5")
+                  return ()),
+ ("inc_out_of_range", do buildNewValue (parse "inc 256")
+                         return ())
  ]
 
 outputTestCase :: String -> TestCaseGenerator () -> IO ()
