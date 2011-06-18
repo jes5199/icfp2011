@@ -161,7 +161,7 @@ doAttack (ValueNum i) arg2 (ValueNum n) =
                          else if w <= n' then 0
                               else            w-n'
                 putOpponentVitality w' (255-j)
-                return $ ValueCard IdentityCard
+                return $ valueI
 doAttack _ _ _ = throwError attackNAN
 
 attackRangeI = "attack i-value out of range"
@@ -193,7 +193,8 @@ doHelp (ValueNum i) arg2 (ValueNum n) =
                           else if w' >= 65535 then 65535
                                else                w'
                 putProponentVitality w'' j
-                return $ ValueCard IdentityCard
+                return $ valueI
+
 doHelp _ _ _ = throwError helpNAN
 
 helpRangeI = "help i-value out of range"
@@ -218,7 +219,7 @@ doRevive (ValueNum i) = if i >= 0 && i <= 255
                                       (-1) -> 1
                                       _  -> v
                                 putProponentVitality v' i
-                                return $ ValueCard IdentityCard
+                                return ValueI
                         else throwError reviveRangeMsg
 doRevive _ = throwError reviveNANmsg
 reviveRangeMsg = "revive out of range"
@@ -235,15 +236,15 @@ doZombie (ValueNum i) x =
           else do
             putOpponentVitality (-1) (255-i)
             putOpponentField x (255-i)
-            return $ ValueCard IdentityCard
+            return $ valueI
 zombieRangeI  = "zombie i-value out of range"
 zombieNotDead = "zombie called on cell that isn't dead"
 
 test_CardBehavior = [
   runMove (doI (ValueNum 3)) initialState ~?=
     (initialState,Right $ ValueNum 3),
-  runMove (doI (ValueCard IdentityCard)) initialState ~?=
-    (initialState,Right $ ValueCard IdentityCard),
+  runMove (doI valueI) initialState ~?=
+    (initialState,Right $ valueI),
 
   runMove doZero initialState ~?= (initialState,Right $ ValueNum 0),
 
@@ -255,9 +256,9 @@ test_CardBehavior = [
     (initialState,Right $ ValueNum 65535),
   runMove (doSucc (ValueNum 65535)) initialState ~?=
     (initialState,Right $ ValueNum 65535),
-  runMove (doSucc (ValueCard IdentityCard)) initialState ~?=
+  runMove (doSucc valueI) initialState ~?=
     (initialState,Left succNANmsg),
-  runMove (doSucc (ValueCard ZeroCard)) initialState ~?=
+  runMove (doSucc valueZero) initialState ~?=
     (initialState,Right $ ValueNum 1),
 
   runMove (doDbl (ValueNum 0)) initialState ~?=
@@ -270,68 +271,59 @@ test_CardBehavior = [
     (initialState,Right $ ValueNum 65535),
   runMove (doDbl (ValueNum 65535)) initialState ~?=
     (initialState,Right $ ValueNum 65535),
-  runMove (doDbl (ValueCard IdentityCard)) initialState ~?=
+  runMove (doDbl valueI) initialState ~?=
     (initialState,Left dblNANmsg),
 
   runMove (doGet (ValueNum 0)) initialState ~?=
-    (initialState,Right $ ValueCard IdentityCard),
+    (initialState,Right $ valueI),
   runMove (doGet (ValueNum 255)) initialState ~?=
-    (initialState,Right $ ValueCard IdentityCard),
+    (initialState,Right $ valueI),
   runMove (doGet (ValueNum 256)) initialState ~?=
     (initialState,Left getRangeMsg),
-  runMove (doGet (ValueCard IdentityCard)) initialState ~?=
+  runMove (doGet valueI) initialState ~?=
     (initialState,Left getNANmsg),
 
   runMove (doPut (ValueNum 345)) initialState ~?=
-    (initialState,Right $ ValueCard IdentityCard),
-  runMove (doPut (ValueCard SCard)) initialState ~?=
-    (initialState,Right $ ValueCard IdentityCard),
+    (initialState,Right $ valueI),
+  runMove (doPut valueS) initialState ~?=
+    (initialState,Right $ valueI),
 
-  runMove (doS (ValueNum 0) (ValueCard IdentityCard) (ValueCard IdentityCard))
-  initialState ~?=
+  runMove (doS (ValueNum 0) valueI valueI) initialState ~?=
     (initialState,Left applyNumMsg),
-  runMove (doS (ValueCard IdentityCard) (ValueNum 0) (ValueCard IdentityCard))
-  initialState ~?=
+  runMove (doS valueI (ValueNum 0) valueI) initialState ~?=
     (initialState,Left applyNumMsg),
-  runMove (doS (ValueCard IdentityCard) (ValueCard IdentityCard) (ValueNum 0))
-  initialState ~?=
+  runMove (doS valueI valueI (ValueNum 0)) initialState ~?=
     (initialState,Left applyNumMsg),
-  runMove (doS (ValueCard IdentityCard) (ValueCard IdentityCard)
-           (ValueCard IdentityCard))
-  initialState ~?=
+  runMove (doS valueI valueI valueI) initialState ~?=
     (initialState,Right $ ValueCard IdentityCard),
   -- Paul made this example
-  runMove (doS (ValueApplication (ValueCard KCard) (ValueCard SuccCard))
-           (ValueCard SuccCard) (ValueCard ZeroCard)) initialState ~?=
+  runMove (doS (ValueApplication valueK valueSucc) valueSucc valueZero) initialState ~?=
     (initialState,Right $ ValueNum 2),
   runMove (apply (ValueApplication
                   (ValueApplication
-                   (ValueCard SCard)
+                   valueS
                    (ValueApplication
-                    (ValueCard KCard)
-                    (ValueCard SuccCard)))
-                  (ValueCard SuccCard))
-           (ValueCard ZeroCard)) initialState ~?=
+                    valueK
+                    valueSucc))
+                  valueSucc)
+           valueZero) initialState ~?=
     (initialState,Right $ ValueNum 2),
 
   runMove (doK (ValueNum 3) (ValueNum 6)) initialState ~?=
     (initialState,Right $ ValueNum 3),
-  runMove (doK (ValueCard SCard) (ValueCard SuccCard)) initialState ~?=
-    (initialState,Right $ ValueCard SCard),
+  runMove (doK valueS valueSucc) initialState ~?=
+    (initialState,Right $ valueS),
 
-  runMove (doInc (ValueCard IdentityCard)) initialState ~?=
+  runMove (doInc valueI) initialState ~?=
     (initialState,Left incNANmsg),
   runMove (doInc (ValueNum 256)) initialState ~?=
     (initialState,Left incRangeMsg),
   runMove (doInc (ValueNum 0)) initialState ~?=
-    (alterFirstBoard (updateVitality 10001 0) initialState,
-     Right $ ValueCard IdentityCard),
+    (alterFirstBoard (updateVitality 10001 0) initialState, Right $ valueI),
   runMove (doInc (ValueNum 0)) (alterFirstBoard (updateVitality 0 0) initialState) ~?=
-    (alterFirstBoard (updateVitality 0 0) initialState,
-     Right $ ValueCard IdentityCard),
+    (alterFirstBoard (updateVitality 0 0) initialState, Right $ valueI),
   runMove (doInc (ValueNum 0)) (alterFirstBoard (updateVitality 65535 0) initialState) ~?=
-    (alterFirstBoard (updateVitality 65535 0) initialState,
-     Right $ ValueCard IdentityCard)
+    (alterFirstBoard (updateVitality 65535 0) initialState, Right $ valueI)
   {-
   -- Infinite loop example
   runMove (doS (ValueCard IdentityCard) (ValueCard IdentityCard)

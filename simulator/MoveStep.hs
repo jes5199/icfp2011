@@ -31,17 +31,17 @@ putGameState s = do (_,c) <- get
                     put (s,c)
 
 getProponentSlots :: MoveStep Slots
-getProponentSlots = do GameState who p1 p2 <- getGameState
+getProponentSlots = do GameState who p1 p2 _ <- getGameState
                        case who of
                          FirstPlayer  -> return p1
                          SecondPlayer -> return p2
 
 transformProponentSlots :: (Slots -> Slots) -> MoveStep ()
 transformProponentSlots transform
-    = do GameState who p1 p2 <- getGameState
+    = do GameState who p1 p2 z <- getGameState
          case who of
-           FirstPlayer  -> putGameState (GameState who (transform p1) p2)
-           SecondPlayer -> putGameState (GameState who p1 (transform p2))
+           FirstPlayer  -> putGameState (GameState who (transform p1) p2 z)
+           SecondPlayer -> putGameState (GameState who p1 (transform p2) z)
 
 getProponentSlot :: SlotNumber -> MoveStep Slot
 getProponentSlot n = do Slots slots <- getProponentSlots
@@ -64,17 +64,17 @@ putProponentVitality v n = transformProponentSlots (updateVitality v n)
 
 
 getOpponentSlots :: MoveStep Slots
-getOpponentSlots = do GameState who p1 p2 <- getGameState
+getOpponentSlots = do GameState who p1 p2 _ <- getGameState
                       case who of
                         FirstPlayer  -> return p2
                         SecondPlayer -> return p1
 
 transformOpponentSlots :: (Slots -> Slots) -> MoveStep ()
 transformOpponentSlots transform
-    = do GameState who p1 p2 <- getGameState
+    = do GameState who p1 p2 z <- getGameState
          case who of
-           SecondPlayer  -> putGameState (GameState who (transform p1) p2)
-           FirstPlayer   -> putGameState (GameState who p1 (transform p2))
+           SecondPlayer  -> putGameState (GameState who (transform p1) p2 z)
+           FirstPlayer   -> putGameState (GameState who p1 (transform p2) z)
 
 getOpponentSlot :: SlotNumber -> MoveStep Slot
 getOpponentSlot n = do Slots slots <- getOpponentSlots
