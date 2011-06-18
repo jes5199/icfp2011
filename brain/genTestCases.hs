@@ -243,6 +243,10 @@ testCases = [
  ("use_dead", do buildNewValue (parse "help 200 0 10000")
                  buildNewValueAt (parse "S") 200
                  return ()),
+ ("use_dead2", do buildNewValueAt (parse "K") 200
+                  buildNewValue (parse "help 200 0 10000")
+                  rightApply 200 SCard
+                  return ()),
  ("lazy", do loc <- buildNewValue (parse "lazy (inc 0)")
              rightApply loc ZombieCard),
  ("health_bomb", do loc <- buildNewValue (parse "\\x -> get x (lazy (help 0 0 8196) x)")
