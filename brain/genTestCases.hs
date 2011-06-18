@@ -10,11 +10,9 @@ import Control.Monad.Writer.Strict
 import Control.Monad.State
 import Data.List
 
-type SlotNum = Int
+type TestCaseGenerator = StateT [SlotNumber] (Writer [Move])
 
-type TestCaseGenerator = StateT [SlotNum] (Writer [Move])
-
-buildNewValue :: Value -> TestCaseGenerator SlotNum
+buildNewValue :: Value -> TestCaseGenerator SlotNumber
 buildNewValue value = do
   (destSlot : availSlots) <- get
   let (moves, availSlots') = runState (buildValue destSlot (translateValue value)) availSlots
@@ -22,7 +20,7 @@ buildNewValue value = do
   put availSlots'
   return destSlot
 
-buildNewValueAt :: Value -> SlotNum -> TestCaseGenerator SlotNum
+buildNewValueAt :: Value -> SlotNumber -> TestCaseGenerator SlotNumber
 buildNewValueAt value destSlot = do
   slots <- get
   case elem destSlot slots of
@@ -33,7 +31,7 @@ buildNewValueAt value destSlot = do
                put availSlots'
                return destSlot
 
-rightApply :: SlotNum -> Card -> TestCaseGenerator ()
+rightApply :: SlotNumber -> Card -> TestCaseGenerator ()
 rightApply slot card = tell [Move RightApplication card slot]
 
 testCycleCount :: Int -> TestCaseGenerator ()
