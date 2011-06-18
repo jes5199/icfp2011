@@ -92,10 +92,13 @@ doDbl _  = throwError nanMsg
 
 doGet :: Value -> MoveStep Value
 doGet (ValueNum i) = do validSlot i
-                        getProponentField i
+                        v <- getProponentVitality i
+                        if v <= 0
+                          then throwError getFromDead
+                          else getProponentField i
 doGet (ValueCard ZeroCard) = doGet (ValueNum 0)
 doGet _ = throwError nanMsg
-getRangeMsg = "get out of range"
+getFromDead = "tried to get from a dead cell"
 
 doPut :: Value -> MoveStep Value
 doPut _ = return $ ValueCard IdentityCard
