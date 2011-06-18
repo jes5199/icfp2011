@@ -5,13 +5,15 @@ import Strategy
 import Value
 import Card
 import Move
+import GameState
+import Simulator
 import Parser
 import System(getArgs)
 
 main :: IO ()
 main = do 
     [arg] <- getArgs
-    let game_state = () -- yeah, there's a game state, but we don't know what it is yet
+    let game_state = initialState
     let our_agents   = [gaMakeThisAt arg 0]
     let their_agents = [gaMakeThisAt "I" 0]
     let our_moves   = planSteps (chooseGoal   our_agents game_state ) game_state
