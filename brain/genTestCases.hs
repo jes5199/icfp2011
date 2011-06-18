@@ -163,6 +163,62 @@ testCases = [
  ("attack_KK0", do buildNewValue (parse "attack K K 0")
                    return ()),
  ("attack_0K0", do buildNewValue (parse "attack 0 K 0")
+                   return ()),
+ ("attack_0K1", do buildNewValue (parse "attack 0 K 1")
+                   return ()),
+ ("attack_1K1", do buildNewValue (parse "attack 1 K 1")
+                   return ()),
+ ("attack_255K1", do buildNewValue (parse "attack 255 K 1")
+                     return ()),
+ ("attack_256K1", do buildNewValue (parse "attack 256 K 1")
+                     return ()),
+ ("attack_101", do buildNewValue (parse "attack 1 0 1")
+                   return ()),
+ ("attack_111", do buildNewValue (parse "attack 1 1 1")
+                   return ()),
+ ("attack_112", do buildNewValue (parse "attack 1 1 2")
+                   return ()),
+ ("attack_1.255.2", do buildNewValue (parse "attack 1 255 2")
+                       return ()),
+ ("attack_1.256.2", do buildNewValue (parse "attack 1 256 2")
+                       return ()),
+ ("attack_119", do buildNewValue (parse "attack 1 1 9")
+                   return ()),
+ ("attack_11.10", do buildNewValue (parse "attack 1 1 10")
+                     return ()),
+ ("attack_11.11", do buildNewValue (parse "attack 1 1 11")
+                     return ()),
+ ("help_KKK", do buildNewValue (parse "help K K K")
+                 return ()),
+ ("help_0KK", do buildNewValue (parse "help 0 K K")
+                 return ()),
+ ("help_KK0", do buildNewValue (parse "help K K 0")
+                 return ()),
+ ("help_0K0", do buildNewValue (parse "help 0 K 0")
+                 return ()),
+ ("help_0K1", do buildNewValue (parse "help 0 K 1")
+                 return ()),
+ ("help_1K1", do buildNewValue (parse "help 1 K 1")
+                 return ()),
+ ("help_255K1", do buildNewValue (parse "help 255 K 1")
+                   return ()),
+ ("help_256K1", do buildNewValue (parse "help 256 K 1")
+                   return ()),
+ ("help_101", do buildNewValue (parse "help 1 0 1")
+                 return ()),
+ ("help_111", do buildNewValue (parse "help 1 1 1")
+                 return ()),
+ ("help_112", do buildNewValue (parse "help 1 1 2")
+                 return ()),
+ ("help_1.255.2", do buildNewValue (parse "help 1 255 2")
+                     return ()),
+ ("help_1.256.2", do buildNewValue (parse "help 1 256 2")
+                     return ()),
+ ("help_119", do buildNewValue (parse "help 1 1 9")
+                 return ()),
+ ("help_11.10", do buildNewValue (parse "help 1 1 10")
+                   return ()),
+ ("help_11.11", do buildNewValue (parse "help 1 1 11")
                    return ())
  ]
 
