@@ -8,6 +8,7 @@ import Parser
 import System(getArgs)
 import Control.Monad.Writer.Strict
 import Control.Monad.State
+import Data.List
 
 type SlotNum = Int
 
@@ -39,4 +40,4 @@ testCase = testCycleCount 1
 main :: IO ()
 main = do
   let moves = execWriter (evalStateT testCase [0..255])
-  putStr (printMoves moves)
+  putStr (printMoves (concat [[move, Move LeftApplication IdentityCard 0] | move <- moves]))
