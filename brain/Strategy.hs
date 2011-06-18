@@ -1,4 +1,4 @@
-module Strategy(test_Strategy, buildValue, translateValue) where
+module Strategy(test_Strategy, buildValue, translateValue, makeK) where
 
 import Control.Monad.State
 import Test.HUnit ( (~?=) )
@@ -38,8 +38,10 @@ translateValue card = case card of
           _ `includes` varName = False
           lazify (ValueApplication f x) = ValueApplication (ValueApplication (ValueCard SCard) (ValueApplication (ValueApplication (ValueCard SCard) (makeK f)) (makeK x))) (ValueCard IdentityCard)
           lazify value = value
-          makeK (ValueCard IdentityCard) = ValueCard PutCard
-          makeK value = ValueApplication (ValueCard KCard) value
+
+-- (makeK v) is like (K v) but it transforms (K I) into put.
+makeK (ValueCard IdentityCard) = ValueCard PutCard
+makeK value = ValueApplication (ValueCard KCard) value
 
 -- Determine whether the given value is in "vine" form.  "Vine" form
 -- requires that:
