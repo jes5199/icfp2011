@@ -41,20 +41,20 @@ updateField value idx slots = transformSlot (replaceField value) idx slots
 data Who = FirstPlayer | SecondPlayer
          deriving (Eq, Show)
 
-data GameState = GameState { playerToMove :: Who, firstPlayerBoard :: Slots, secondPlayerBoard :: Slots }
+data GameState = GameState { playerToMove :: Who, firstPlayerBoard :: Slots, secondPlayerBoard :: Slots, zombiesAreOut :: Bool }
                deriving (Eq, Show)
 
 alterFirstBoard :: (Slots -> Slots) -> GameState -> GameState
-alterFirstBoard transform (GameState who firstBoard secondBoard) = GameState who (transform firstBoard) secondBoard
+alterFirstBoard transform (GameState who firstBoard secondBoard zombies) = GameState who (transform firstBoard) secondBoard zombies
 
 switchPlayer :: GameState -> GameState
-switchPlayer (GameState FirstPlayer side1 side2) =
-  GameState SecondPlayer side1 side2
-switchPlayer (GameState SecondPlayer side1 side2) =
-  GameState FirstPlayer side1 side2
+switchPlayer (GameState FirstPlayer side1 side2 zombies) =
+  GameState SecondPlayer side1 side2 zombies
+switchPlayer (GameState SecondPlayer side1 side2 zombies) =
+  GameState FirstPlayer side1 side2 zombies
 
 initialState :: GameState
-initialState = GameState FirstPlayer initialSide initialSide
+initialState = GameState FirstPlayer initialSide initialSide False
 
 initialSide :: Slots
 initialSide = Slots $
