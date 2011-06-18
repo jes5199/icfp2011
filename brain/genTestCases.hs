@@ -22,6 +22,17 @@ buildNewValue value = do
   put availSlots'
   return destSlot
 
+buildNewValueAt :: Value -> SlotNum -> TestCaseGenerator SlotNum
+buildNewValueAt value destSlot = do
+  slots <- get
+  case elem destSlot slots of
+    False -> error "Slot not available"
+    True -> do let availSlots = filter (/= destSlot) slots
+                   (moves, availSlots') = runState (buildValue destSlot (translateNums $ translateLambda value)) availSlots
+               tell moves
+               put availSlots'
+               return destSlot
+
 rightApply :: SlotNum -> Card -> TestCaseGenerator ()
 rightApply slot card = tell [Move RightApplication card slot]
 
@@ -45,7 +56,35 @@ testCases = [
  ("basic_inc", do buildNewValue (parse "inc 5")
                   return ()),
  ("inc_out_of_range", do buildNewValue (parse "inc 256")
-                         return ())
+                         return ()),
+ ("I5", do buildNewValue (parse "I I I I I")
+           return ()),
+ ("I5_3", do buildNewValue (parse "I I I I I 3")
+             return ()),
+ ("65534", do buildNewValue (parse "65534")
+              return ()),
+ ("65535", do buildNewValue (parse "65535")
+              return ()),
+ ("65536", do buildNewValue (parse "65536")
+              return ()),
+ ("get255", do buildNewValueAt (parse "S") 255
+               buildNewValue (parse "get 255")
+               return ()),
+ ("get0", do buildNewValueAt (parse "K") 0
+             buildNewValue (parse "get 0")
+             return ()),
+ ("get256", do buildNewValue (parse "get 256")
+               return ()),
+ ("double0", do buildNewValue (parse "dbl 0")
+                return ()),
+ ("double32767", do buildNewValue (parse "dbl 32767")
+                    return ()),
+ ("double32768", do buildNewValue (parse "dbl 32768")
+                    return ()),
+ ("SKSSSK", do buildNewValue (parse "S(K)(S(S)(S(K)))")
+               return ()),
+ ("put12", do buildNewValue (parse "put 1 2")
+              return ())
  ]
 
 outputTestCase :: String -> TestCaseGenerator () -> IO ()

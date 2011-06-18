@@ -1,0 +1,28 @@
+#!/bin/bash
+THIS_DIR=`dirname "$0"`
+
+case `uname` in
+    Darwin)
+        SIMULATOR="$THIS_DIR/ltg.macosx-10.6-intel"
+        ;;
+    Linux)
+        case `uname -m` in
+            x86_64)
+                SIMULATOR="$THIS_DIR/ltg.linux64"
+                ;;
+            i686)
+                SIMULATOR="$THIS_DIR/ltg.linux32"
+                ;;
+            *)
+                echo "What kind of linux machine is this?" >&2
+                exit 1
+                ;;
+        esac
+        ;;
+    *)
+        echo "What kind of machine is this?" >&2
+        exit 1
+        ;;
+esac
+
+exec "$SIMULATOR" "$@"
