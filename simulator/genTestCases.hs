@@ -144,6 +144,7 @@ runMoveWriter moveWriter = do
 
 testStrategy :: Strategy -> TestCaseGenerator ()
 testStrategy (drive, contractor) = do
+      ensureOurMove
       gs <- getGameState
       let desires = drive gs
       case desires of
@@ -152,6 +153,7 @@ testStrategy (drive, contractor) = do
       return ()
     where iterateTest [] = return ()
           iterateTest desires@(Desire _ goalConj : _) = do
+            ensureOurMove
             gs <- getGameState
             case contractor gs goalConj of
               Left msg -> assert ("contractor failed: " ++ msg) (const False)
@@ -513,7 +515,17 @@ testCases = [
     assertOpponent "Opponent slot 255 killed" (\pers gs -> gsGetVitality pers gs 255 == 0 )
     runMoveWriter KillerOf255.goblinSappersAtLowEnd
     return () ),
- ("set_up_the_bomb", testStrategy KillerOf255.setUpTheBomb)
+ ("set_up_the_bomb", testStrategy KillerOf255.setUpTheBomb),
+ ("kill_some_of_them", do
+    runMoveWriter KillerOf255.speedKillTheMadBomberCell
+    assertOpponent "Opponent slot 255 killed" (\pers gs -> gsGetVitality pers gs 255 == 0 )
+    testStrategy KillerOf255.killSomeOfThem),
+ ("doublePunchStrategy", testStrategy KillerOf255.doublePunchStrategy),
+ ("doublePunch", do
+    runMoveWriter KillerOf255.doublePunch
+    assertProponent "spent 4080 from 126" (\pers gs -> gsGetVitality pers gs 126 == (10000 - KillerOf255.doublePunchForce) )
+    assertProponent "spent 4080 from 127" (\pers gs -> gsGetVitality pers gs 127 == (10000 - KillerOf255.doublePunchForce) )
+    assertOpponent "slot 0 is dead" (\pers gs -> gsGetVitality pers gs 0 == 0 ))
  ]
 
 testCaseAtomsToMoves :: String -> [TestCaseAtom] -> [Move]
@@ -523,7 +535,7 @@ testCaseAtomsToMoves testName = testCaseAtomsToMoves'
           testCaseAtomsToMoves' (TestCaseAssertionFailure gs msg : _)
               = error $ unlines $
                 ["Assertion failure in test " ++ testName
-                ,"Game state is: " ++ showGameStateNicely gs
+                ,"Game state is: " ++ show gs
                 ,"Assertion message: " ++ msg
                 ]
 
