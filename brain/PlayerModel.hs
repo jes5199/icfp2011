@@ -13,7 +13,7 @@ import Parser
 --
 -- A PlayerModel encapsulates collection functions that players use
 -- to make choices about their moves
-data PlayerModel = PlayerModel { goalAgents :: [ GameState -> [Goal] ], priorityAgents :: [ Goal -> Int ] }
+data PlayerModel = ModeledPlayer { goalAgents :: [ GameState -> [Goal] ], priorityAgents :: [ Goal -> Int ] } | ExternalPlayer { }
 
 
 
@@ -41,7 +41,7 @@ gaMakeThisAt what targetCell game_state =
 -- TODO: read and parse the action they took and assume that doing that was
 -- their goal
 --     (Note: this should be expressed as a "do this", not acomplish this)
-gaExternal game_state = [TakeSpecificAction (Move LeftApplication IdentityCard 0)]
+gaIForever game_state = [TakeSpecificAction (Move LeftApplication IdentityCard 0)]
 
 gaReviveTheDead = undefined
 gaHealTheWounded = undefined
