@@ -41,7 +41,7 @@ play state   [] brain   other_plan other_brain = do
 
 play state   (move:rest_of_plan) brain   other_plan other_brain = do
     case brain of
-        (ModeledPlayer _ _) -> do mapM_ putStr (printMove move)
+        (ModeledPlayer _ _) -> do mapM_ putStrLn (printMove move)
         (ExternalPlayer) -> do return ()
     let new_state = simulate state move
     play new_state   other_plan other_brain   rest_of_plan brain
