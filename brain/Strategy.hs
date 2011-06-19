@@ -18,8 +18,7 @@ translateValue card = case card of
                         (ValueApplication f x) -> expandMacro (ValueApplication (translateValue f) (translateValue x))
                         (ValueLambda x v) -> expandMacro (ValueLambda x (translateValue v))
                         (ValueVariable x) -> ValueVariable x
-    where expandMacro (ValueNum i) = translateNum i
-          expandMacro (ValueLambda varName (ValueVariable x)) | varName == x = ValueCard IdentityCard
+    where expandMacro (ValueLambda varName (ValueVariable x)) | varName == x = ValueCard IdentityCard
           expandMacro (ValueLambda varName value) | not (value `includes` varName) = makeK value
           expandMacro (ValueLambda varName (ValueApplication f (ValueVariable x)))
               | varName == x && not (f `includes` varName) = f
@@ -60,6 +59,7 @@ template s vars = assignVars $ translateValue $ parse s
           assignVars (ValueVariable x) = case lookup x vars' of
                                            Nothing -> error ("Unbound variable " ++ x)
                                            Just v -> v
+          assignVars (ValueNum x) = ValueNum x
           assignVars _ = error "Internal error: translateValue produced an unexpected value"
           vars' = [(name, translateValue value) | (name, value) <- vars]
 
@@ -133,14 +133,13 @@ buildValue destSlot (ValueApplication f x)
                      return $ moves1 ++ moves2 ++ moves3
 
 test_Strategy = [
-  translateValue (ValueNum 0) ~?= zero,
-  translateValue (ValueNum 1) ~?= app succ zero,
-  translateValue (ValueNum 2) ~?= app dbl (app succ zero),
-  translateValue (ValueNum 3) ~?= app succ (app dbl (app succ zero)),
-  translateValue (ValueNum 4) ~?= app dbl (app dbl (app succ zero)),
-  translateValue (ValueNum 5) ~?= app succ (app dbl (app dbl (app succ zero))),
+  translateValue (ValueNum 0) ~?= (ValueNum 0),
+  translateValue (ValueNum 1) ~?= (ValueNum 1),
+  translateValue (ValueNum 2) ~?= (ValueNum 2),
+  translateValue (ValueNum 3) ~?= (ValueNum 3),
+  translateValue (ValueNum 4) ~?= (ValueNum 4),
+  translateValue (ValueNum 5) ~?= (ValueNum 5),
   translateValue succ ~?= succ,
-  translateValue (app (ValueNum 1) (ValueNum 2)) ~?= app (app succ zero) (app dbl (app succ zero)),
   translateNum 0 ~?= zero,
   translateNum 1 ~?= app succ zero,
   translateNum 2 ~?= app dbl (app succ zero),
