@@ -23,6 +23,7 @@ while [[ $# != 0 ]]; do
       s/tried to get from a dead cell/Native.Error/
       s/Dead slot application/Native.Error/
       s/zombie called on cell that isn'"'"'t dead/Native.Error/
+      s/Number on left of application/Native.Error/
     ' "test_results/$1.out" > "test_results/$1.out.clean"
 
     sed '
