@@ -1,12 +1,12 @@
 all: braintester braindriver genTestCases
 
-braintester: *.hs
+braintester: *.hs ../simulator/*.hs
 	ghc -i../simulator --make -O3 braintester
 
-braindriver: *.hs
+braindriver: *.hs ../simulator/*.hs
 	ghc -i../simulator --make -O3 braindriver
 
-genTestCases: *.hs
+genTestCases: *.hs ../simulator/*.hs
 	ghc -i../simulator --make -O3 genTestCases
 
 clean:
