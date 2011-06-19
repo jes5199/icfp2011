@@ -18,7 +18,7 @@ translateValue card = case card of
                         (ValueApplication f x) -> expandMacro (ValueApplication (translateValue f) (translateValue x))
                         (ValueLambda x v) -> expandMacro (ValueLambda x (translateValue v))
                         (ValueVariable x) -> ValueVariable x
-    where expandMacro (ValueNum i) = translateNum (ValueNum i)
+    where expandMacro (ValueNum i) = translateNum i
           expandMacro (ValueLambda varName (ValueVariable x)) | varName == x = ValueCard IdentityCard
           expandMacro (ValueLambda varName value) | not (value `includes` varName) = makeK value
           expandMacro (ValueLambda varName (ValueApplication f (ValueVariable x)))
@@ -36,15 +36,12 @@ translateValue card = case card of
           lazify (ValueApplication f x) = ValueApplication (ValueApplication (ValueCard SCard) (ValueApplication (ValueApplication (ValueCard SCard) (makeK f)) (makeK x))) (ValueCard IdentityCard)
           lazify value = value
 
--- Eventually translateValue will only translate things other than
--- numbers, and translateNum will only translate numbers.  For now
--- they do the same thing.
-translateNum (ValueNum 0) = ValueCard ZeroCard
-translateNum (ValueNum i)
+-- Like translateValue, but translate numbers to sequences of succ, dbl, and zero.
+translateNum 0 = ValueCard ZeroCard
+translateNum i
     | i < 0 = error "negative ValueNum"
-    | i `mod` 2 == 1 = ValueApplication (ValueCard SuccCard) (translateNum (ValueNum (i-1)))
-    | otherwise = ValueApplication (ValueCard DoubleCard) (translateNum (ValueNum (i `div` 2)))
-translateNum _ = error "Not a number"
+    | i `mod` 2 == 1 = ValueApplication (ValueCard SuccCard) (translateNum (i-1))
+    | otherwise = ValueApplication (ValueCard DoubleCard) (translateNum (i `div` 2))
 
 -- (makeK v) is like (K v) but it transforms (K I) into put.
 makeK (ValueCard IdentityCard) = ValueCard PutCard
@@ -94,7 +91,7 @@ isRightVine (ValueApplication _ _) = False
 buildVine :: SlotNumber -> Value -> [Move]
 buildVine slot vine = buildVine' vine []
     where buildVine' (ValueCard c) = (Move RightApplication c slot :)
-          buildVine' v@(ValueNum _) = buildVine' (translateNum v)
+          buildVine' (ValueNum v) = buildVine' (translateNum v)
           buildVine' (ValueApplication (ValueCard c) v) = buildVine' v . (Move LeftApplication c slot :)
           buildVine' (ValueApplication v (ValueCard c)) = buildVine' v . (Move RightApplication c slot :)
           buildVine' (ValueApplication v w) = error "buildVine': not a vine"
@@ -106,7 +103,7 @@ applyRightVine slot (ValueCard c) = [Move RightApplication c slot]
 applyRightVine slot (ValueApplication (ValueCard c) v)
     = [Move LeftApplication KCard slot, Move LeftApplication SCard slot, Move RightApplication c slot]
       ++ applyRightVine slot v
-applyRightVine slot v@(ValueNum _) = applyRightVine slot (translateNum v)
+applyRightVine slot (ValueNum v) = applyRightVine slot (translateNum v)
 applyRightVine _ _ = error "applyRightVine: not a right vine"
 
 -- Build a value of the form (ValueApplication v rv), where v
@@ -144,12 +141,12 @@ test_Strategy = [
   translateValue (ValueNum 5) ~?= app succ (app dbl (app dbl (app succ zero))),
   translateValue succ ~?= succ,
   translateValue (app (ValueNum 1) (ValueNum 2)) ~?= app (app succ zero) (app dbl (app succ zero)),
-  translateNum (ValueNum 0) ~?= zero,
-  translateNum (ValueNum 1) ~?= app succ zero,
-  translateNum (ValueNum 2) ~?= app dbl (app succ zero),
-  translateNum (ValueNum 3) ~?= app succ (app dbl (app succ zero)),
-  translateNum (ValueNum 4) ~?= app dbl (app dbl (app succ zero)),
-  translateNum (ValueNum 5) ~?= app succ (app dbl (app dbl (app succ zero))),
+  translateNum 0 ~?= zero,
+  translateNum 1 ~?= app succ zero,
+  translateNum 2 ~?= app dbl (app succ zero),
+  translateNum 3 ~?= app succ (app dbl (app succ zero)),
+  translateNum 4 ~?= app dbl (app dbl (app succ zero)),
+  translateNum 5 ~?= app succ (app dbl (app dbl (app succ zero))),
   isVine dbl ~?= True,
   isVine (ValueNum 1) ~?= True,
   isVine (ValueApplication succ zero) ~?= True,
@@ -168,7 +165,7 @@ test_Strategy = [
    ~?= [Move RightApplication ZeroCard 10, Move LeftApplication SuccCard 10, Move LeftApplication SuccCard 10]),
   (buildVine 10 (ValueApplication (ValueApplication k succ) zero)
    ~?= [Move RightApplication SuccCard 10, Move LeftApplication KCard 10, Move RightApplication ZeroCard 10]),
-  (buildVine 10 (ValueNum 3) ~?= buildVine 10 (translateNum $ ValueNum 3)),
+  (buildVine 10 (ValueNum 3) ~?= buildVine 10 (translateNum 3)),
   applyRightVine 10 zero ~?= [Move RightApplication ZeroCard 10],
   (applyRightVine 10 (ValueApplication succ zero)
    ~?= [Move LeftApplication KCard 10, Move LeftApplication SCard 10, Move RightApplication SuccCard 10,
@@ -177,7 +174,7 @@ test_Strategy = [
    ~?= [Move LeftApplication KCard 10, Move LeftApplication SCard 10, Move RightApplication DoubleCard 10,
         Move LeftApplication KCard 10, Move LeftApplication SCard 10, Move RightApplication SuccCard 10,
         Move RightApplication ZeroCard 10]),
-  (applyRightVine 10 (ValueNum 5) ~?= applyRightVine 10 (translateNum (ValueNum 5))),
+  (applyRightVine 10 (ValueNum 5) ~?= applyRightVine 10 (translateNum 5)),
   buildVrv 10 (ValueApplication succ zero) ~?= [Move RightApplication SuccCard 10, Move RightApplication ZeroCard 10],
   (buildVrv 10 (ValueApplication (ValueApplication (ValueApplication s (ValueApplication k get)) get)
                 (ValueApplication succ zero)) -- get(get(1))
