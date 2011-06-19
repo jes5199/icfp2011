@@ -38,7 +38,7 @@ setUpTheBomb = makeStrategy
         _ -> Nothing)
 
 killSomeOfThem = makeStrategy
-    (allTrue ([(isDead his 255)] ++ (map (enoughHp mine 8192) [0..16])))
+    (allTrue ([(isDead his 255)] ++ (map (enoughHp his 8192) [0..2])))
     ([Desire 100.0 (GoalConj [OpponentSlotsDeadStartingAt 0])])
     (\objective -> case objective of
         [OpponentSlotsDeadStartingAt 0] -> Just goblinSappersAtLowEnd
