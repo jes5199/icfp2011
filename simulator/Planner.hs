@@ -1,4 +1,4 @@
-module Planner(makePlanner,Goal(..),Drive,Contractor) where
+module Planner(makePlanner,GoalConj(..),Drive,Contractor,GoalItem(..)) where
 
 import Move
 import Value
@@ -6,19 +6,20 @@ import GameState
 import Card
 import PlayerModel(PlayerModel(PurePlayer))
 
--- A goal represents a gamestate characteristic we would like to
--- achieve.
-data Goal = SlotContains SlotNumber Value
+-- A GoalConj represents a set of gamestate characteristics we would
+-- like to all achieve simultaneously.
+newtype GoalConj = GoalConj [GoalItem]
+data GoalItem = SlotContains SlotNumber Value
 
 -- A Drive is a function from GameState to a list of Goals.  The
 -- planner will call all possible drives to figure out what goals it
 -- should be pursuing.
-type Drive = GameState -> [Goal]
+type Drive = GameState -> [GoalConj]
 
--- A contractor is a function from Goal (and GameState) to either a
--- list of Moves, or Nothing (if the contractor doesn't know how to
+-- A contractor is a function from GoalConj (and GameState) to either
+-- a list of Moves, or Nothing (if the contractor doesn't know how to
 -- make progress on the goal).
-type Contractor = GameState -> Goal -> Maybe [Move]
+type Contractor = GameState -> GoalConj -> Maybe [Move]
 
 makePlanner :: [Drive] -> [Contractor] -> PlayerModel
 makePlanner drives contractors = PurePlayer (decide drives contractors)
