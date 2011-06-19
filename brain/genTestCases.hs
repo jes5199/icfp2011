@@ -368,7 +368,14 @@ testCases = [
                    assertProponent (\pers gs -> gsGetVitality pers gs  0 ==  9100 )
                    assertProponent (\pers gs -> all (\i -> gsGetVitality pers gs i == 10090) [1..65])
                    assertProponent (\pers gs -> gsGetVitality pers gs 66 == 10990 )
-                   )
+                   ),
+ ("cureLightWounds", do --buildNewValueAt (heal 0 8192 0) 0
+                     --rightApply 0 ZeroCard
+                     -- buildNewValueAt (spreadLove 49152 0) 0
+                     buildNewValueAt (cureLightWounds 999 0) 0
+                     rightApply 0 ZeroCard
+                     assertProponent (\pers gs -> all (\i -> gsGetVitality pers gs i == 10099) [0..65])
+                     )
  ]
 
 testCaseAtomsToMoves :: String -> [TestCaseAtom] -> [Move]

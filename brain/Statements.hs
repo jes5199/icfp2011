@@ -97,6 +97,11 @@ spreadLove :: Int -> SlotNumber -> Value
 spreadLove amount = forLoop $
   statement (template "\\i -> help i (succ i) amount" $ numericArgs [("amount", amount) ])
 
+cureLightWounds :: Int -> SlotNumber -> Value
+cureLightWounds amount = forLoop $
+  statement (template "\\i -> help i i amount" $ numericArgs [("amount", amount) ])
+
+
 forLoop :: UnaryFunc -> SlotNumber -> Value
 forLoop stuff = infLoop $
                   semi stuff
