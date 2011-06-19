@@ -30,9 +30,14 @@ assertSlotsUsed _ = return ()
 move :: Move -> MoveWriter ()
 move m = do
   gs <- get
-  (gs', Right ()) <- return (simulateTurn gs m)
-  put gs'
-  tell [m]
+  case simulateTurn gs m of
+    (gs', Right ()) -> do put gs'
+                          tell [m]
+    (gs', Left msg) -> lift $ lift $ Left $ unlines $
+                       ["Error occurred while executing " ++ show m
+                       ,"Game state was " ++ showGameStateNicely gs
+                       ,"Error message: " ++ msg
+                       ]
 
 moves :: [Move] -> MoveWriter()
 moves = mapM_ move

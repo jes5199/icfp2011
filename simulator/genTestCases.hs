@@ -134,6 +134,7 @@ getGameState = do
 
 runMoveWriter :: MoveWriter () -> TestCaseGenerator ()
 runMoveWriter moveWriter = do
+  ensureOurMove
   gs <- getGameState
   case execMoveWriterOrError gs moveWriter of
     Left msg -> assert ("runMoveWriter failed: " ++ msg) (const False)
@@ -500,9 +501,7 @@ testCaseAtomsToMoves testName = testCaseAtomsToMoves'
           testCaseAtomsToMoves' (TestCaseAssertionFailure gs msg : _)
               = error $ unlines $
                 ["Assertion failure in test " ++ testName
-                ,"Game state is: " ++ show (playerToMove gs) ++ " to move"
-                ,"First player board:\n" ++ show (firstPlayerBoard gs)
-                ,"Second player board:\n" ++ show (secondPlayerBoard gs)
+                ,"Game state is: " ++ showGameStateNicely gs
                 ,"Assertion message: " ++ msg
                 ]
 
