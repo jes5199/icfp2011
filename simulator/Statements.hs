@@ -63,10 +63,22 @@ bind f value = -- S (K f) (K value)
 -- compose it with other statements safely.
 infLoop :: UnaryFunc -> SlotNumber -> Value
 infLoop f n = -- S (bind get n) f
-              ValueApplication (ValueApplication (ValueCard SCard) (funcValue (bind get nValue)))
+              ValueApplication (ValueApplication valueS (funcValue (bind get nValue)))
                                (funcValue f)
     where nValue = translateValue (ValueNum n)
-          get = statement (ValueCard GetCard)
+          get = statement valueGet
+
+-- zombieLoop creates a loop that can only be used by zombies. This loop is based on
+-- copy, rather than get. That's because zombies are dead, and so cannot get themselves.
+-- But they can copy from you...
+--
+-- This also means that zombies don't destroy their weapons. You just lose the zombie and his
+-- cheap trigger.
+zombieLoop :: UnaryFunc -> SlotNumber -> Value
+zombieLoop f localSlotWithCodeForNextIteration = -- the local slot to fetch will often be the slot with this loop, but not necessarily...
+    ValueApplication (ValueApplication valueS (funcValue $ bind get nextSlot)) (funcValue f)
+    where nextSlot = translateValue (ValueNum localSlotWithCodeForNextIteration)
+          get = statement valueCopy
 
 -- \x -> f(g(x))
 compose :: UnaryFunc -> UnaryFunc -> UnaryFunc
@@ -99,6 +111,19 @@ spreadLove amount = forLoop $
 
 cureLightWounds :: Int -> SlotNumber -> Value
 cureLightWounds amount = forLoop $
+  statement (template "\\i -> help i i amount" $ numericArgs [("amount", amount) ])
+
+loneZombie :: Int -> SlotNumber -> SlotNumber -> Value
+loneZombie weaponInput mySlotWithWeapon target =
+    template "zombie target weapon" $ [("target", (ValueNum target)), ("weapon", trigger)]
+    where
+        trigger = ValueApplication (ValueApplication valueS (funcValue $ bind get nextSlot)) (ValueApplication valueK input)
+        nextSlot = translateValue (ValueNum mySlotWithWeapon)
+        input = ValueNum weaponInput
+        get = statement valueCopy
+
+goblinSapperBomb :: Int -> SlotNumber -> Value
+goblinSapperBomb amount = zombieLoop $
   statement (template "\\i -> help i i amount" $ numericArgs [("amount", amount) ])
 
 -- Note: this doesn't qualify as a "spell" by the strict definition
