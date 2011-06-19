@@ -76,12 +76,13 @@ runZombieSlot state slot =
   case gsGetVitality p state slot of
     (-1) ->
       let zombieMove = Move RightApplication IdentityCard slot
-          (postZombieState,message) = runMove (thisMove zombieMove) state
+          (postZombieState,result) = runMove (thisMove zombieMove) state
           finalState = gsSetField              slot valueI p $
                        gsSetVitalityOnDeadSlot slot 0      p $
                        postZombieState
-          applyMsg = "applying zombie slot " ++ show slot ++ "={-1," ++ show (fromRight $ snd $ runMove (getProponentField slot) state) ++ "} to I"
-      in case message of
+          applyMsg = "applying zombie slot " ++ show slot ++ "={-1," ++
+                     show (gsGetField p state slot) ++ "} to I"
+      in case result of
         Left x -> (finalState, ["Exception: "++ x, applyMsg])
         _ -> (finalState,[applyMsg])
     _ -> (state, [])
