@@ -11,6 +11,7 @@ import Data.List
 -- like to all achieve simultaneously.
 newtype GoalConj = GoalConj [GoalItem]
 data GoalItem = SlotContains SlotNumber Value
+              | OpponentSlotDead SlotNumber -- slot number from opponent pov
 
 -- A Drive is a function from GameState to a list of Goals.  The
 -- planner will call all possible drives to figure out what goals it
@@ -42,7 +43,7 @@ decide drives contractors game =
     let bids =  do drive <- drives
                    goal <- drive game
                    contractor <- contractors
-                   let Just bid = contractor game goal
+                   Just bid <- return (contractor game goal)
                    return bid
                 ++ [(InfiniteCost, [Move LeftApplication IdentityCard 0])]
     in snd (head (sort bids))

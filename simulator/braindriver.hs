@@ -9,11 +9,12 @@ import System(getArgs)
 import System.IO (hFlush,stdout)
 import Planner
 import qualified AltPlanner
+import qualified KillerOf255
 
 main :: IO ()
 main = do
     [arg] <- getArgs
-    let our_brain   = makePlanner [AltPlanner.drive] [AltPlanner.contractor, AltPlanner.contractor2] -- ModeledPlayer [(gaMakeThisAt "6" 0),gaIForever] []
+    let our_brain   = makePlanner [AltPlanner.drive, KillerOf255.drive] [AltPlanner.contractor, AltPlanner.contractor2, KillerOf255.contractor] -- ModeledPlayer [(gaMakeThisAt "6" 0),gaIForever] []
     let their_brain = ExternalPlayer
     if (arg == "0")
        then play initialState [] our_brain   [] their_brain
