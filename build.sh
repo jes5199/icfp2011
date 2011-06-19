@@ -7,7 +7,7 @@ chmod a+x build/install
 
 cp brain/braindriver build/run
 
-src_dirs="brain simulator"
+src_dirs="simulator"
 
 for D in $src_dirs ; do
   mkdir -p build/src/$D

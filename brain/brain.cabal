@@ -20,9 +20,9 @@ data-files:
 data-dir: ""
 extra-source-files:
 extra-tmp-files:
- 
-executable: spelltester
-main-is: spelltester.hs
+
+executable: braintester
+main-is: braintester.hs
 buildable: True
 build-tools:
 cpp-options:
@@ -40,7 +40,7 @@ extra-libraries:
 extra-lib-dirs:
 includes:
 install-includes:
-include-dirs:
+include-dirs: ../simulator
 hs-source-dirs: .
 other-modules: Tactics Spells
 ghc-prof-options:

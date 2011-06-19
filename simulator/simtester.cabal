@@ -6,7 +6,8 @@ license: AllRightsReserved
 license-file: ""
 copyright:
 maintainer:
-build-depends: HUnit -any, array -any, base -any, mtl -any
+build-depends: HUnit -any, array -any, base -any, haskell-src -any,
+               haskell98 -any, mtl -any
 stability:
 homepage:
 package-url:
@@ -20,7 +21,7 @@ data-files:
 data-dir: ""
 extra-source-files:
 extra-tmp-files:
- 
+
 executable: simtester
 main-is: simtester.hs
 buildable: True
@@ -42,7 +43,8 @@ includes:
 install-includes:
 include-dirs:
 hs-source-dirs: .
-other-modules: Value Simulator MoveStep Move GameState CardBehavior
+other-modules: Value Tactics Strategy Statements Spells Simulator
+               PlayerModel Planner Parser MoveStep Move GameState CardBehavior
                Card
 ghc-prof-options:
 ghc-shared-options:
@@ -50,7 +52,7 @@ ghc-options:
 hugs-options:
 nhc98-options:
 jhc-options:
- 
+
 executable: simdriver
 main-is: simdriver.hs
 buildable: True
@@ -72,7 +74,70 @@ includes:
 install-includes:
 include-dirs:
 hs-source-dirs: .
-other-modules: Value Simulator MoveStep Move GameState CardBehavior
+other-modules: Value Tactics Strategy Statements Spells Simulator
+               PlayerModel Planner Parser MoveStep Move GameState CardBehavior
+               Card
+ghc-prof-options:
+ghc-shared-options:
+ghc-options:
+hugs-options:
+nhc98-options:
+jhc-options:
+
+executable: braindriver
+main-is: braindriver.hs
+buildable: True
+build-tools:
+cpp-options:
+cc-options:
+ld-options:
+pkgconfig-depends:
+frameworks:
+c-sources:
+default-language:
+other-languages:
+default-extensions:
+other-extensions:
+extensions:
+extra-libraries:
+extra-lib-dirs:
+includes:
+install-includes:
+include-dirs:
+hs-source-dirs: .
+other-modules: Value Tactics Strategy Statements Spells Simulator
+               PlayerModel Planner Parser MoveStep Move GameState CardBehavior
+               Card
+ghc-prof-options:
+ghc-shared-options:
+ghc-options:
+hugs-options:
+nhc98-options:
+jhc-options:
+
+executable: braintester
+main-is: braintester.hs
+buildable: True
+build-tools:
+cpp-options:
+cc-options:
+ld-options:
+pkgconfig-depends:
+frameworks:
+c-sources:
+default-language:
+other-languages:
+default-extensions:
+other-extensions:
+extensions:
+extra-libraries:
+extra-lib-dirs:
+includes:
+install-includes:
+include-dirs:
+hs-source-dirs: .
+other-modules: Value Tactics Strategy Statements Spells Simulator
+               PlayerModel Planner Parser MoveStep Move GameState CardBehavior
                Card
 ghc-prof-options:
 ghc-shared-options:
