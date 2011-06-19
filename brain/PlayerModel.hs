@@ -1,6 +1,7 @@
 module PlayerModel where
 
 import Control.Monad.State
+import Data.List (minimumBy)
 import Strategy
 import Value
 import Card
@@ -31,7 +32,7 @@ data Goal = TakeSpecificAction Move
 -- Goal Agents
 --
 
--- Make a specfic thing at a specific location, unless it's already there
+-- Make a specific thing at a specific location, unless it's already there
 gaMakeThisAt :: String -> SlotNumber -> GameState -> [Goal]
 gaMakeThisAt what targetCell game_state =
     let
@@ -44,7 +45,7 @@ gaMakeThisAt what targetCell game_state =
 
 -- TODO: read and parse the action they took and assume that doing that was
 -- their goal
---     (Note: this should be expressed as a "do this", not acomplish this)
+--     (Note: this should be expressed as a "do this", not accomplish this)
 gaIForever :: GameState -> [Goal]
 gaIForever game_state = [TakeSpecificAction (Move LeftApplication IdentityCard 0)]
 
@@ -63,14 +64,18 @@ chooseGoal brain game_state =
 
 --
 -- Figure out the next steps(s) to accomplish a given goal
+-- For now, do the thing that takes the fewest number of turns
 --
 planSteps :: Goal -> GameState -> [Move]
 planSteps (TakeSpecificAction m) _ = [m]
-planSteps other game_state = planStepsBlindly other game_state
+planSteps goal game_state =
+  shortestSequence [
+    planStepsBlindly goal game_state
+    ]
 
+shortestSequence :: [[a]] -> [a]
+shortestSequence xs = minimumBy (\x y -> compare (length x) (length y)) xs
 
 -- Blindly do the whole thing ignoring state
 planStepsBlindly :: Goal -> GameState -> [Move]
 planStepsBlindly (BuildValue loc val) game_state = fst $ runState (buildValue loc val) [1..255]
-
-
