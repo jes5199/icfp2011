@@ -1,6 +1,7 @@
 module Main where
 
 import Strategy
+import Translator
 import Value
 import Card
 import Move

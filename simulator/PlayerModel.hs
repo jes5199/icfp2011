@@ -3,6 +3,7 @@ module PlayerModel where
 import Control.Monad.State
 import Data.List (minimumBy)
 import Strategy
+import Translator
 import Value
 import Card
 import Move

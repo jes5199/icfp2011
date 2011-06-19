@@ -2,7 +2,7 @@ module Statements where
 
 import Value
 import Card
-import Strategy
+import Translator
 import Move
 
 -- A UnaryFunc encapsulates a value for which:
