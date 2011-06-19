@@ -45,7 +45,7 @@ include-dirs:
 hs-source-dirs: .
 other-modules: Value Tactics SimpleBuilder Statements Spells Simulator
                PlayerModel Planner Parser MoveStep Move GameState CardBehavior
-               Card KillerOf255 Translator
+               Card KillerOf255 Translator MoveWriter
 ghc-prof-options:
 ghc-shared-options:
 ghc-options:
@@ -76,7 +76,7 @@ include-dirs:
 hs-source-dirs: .
 other-modules: Value Tactics SimpleBuilder Statements Spells Simulator
                PlayerModel Planner Parser MoveStep Move GameState CardBehavior
-               Card KillerOf255 Translator
+               Card KillerOf255 Translator  MoveWriter
 ghc-prof-options:
 ghc-shared-options:
 ghc-options:
@@ -107,7 +107,7 @@ include-dirs:
 hs-source-dirs: .
 other-modules: Value Tactics SimpleBuilder Statements Spells Simulator
                PlayerModel Planner Parser MoveStep Move GameState CardBehavior
-               Card KillerOf255 Translator
+               Card KillerOf255 Translator  MoveWriter
 ghc-prof-options:
 ghc-shared-options:
 ghc-options:
@@ -138,7 +138,7 @@ include-dirs:
 hs-source-dirs: .
 other-modules: Value Tactics SimpleBuilder Statements Spells Simulator
                PlayerModel Planner Parser MoveStep Move GameState CardBehavior
-               Card KillerOf255 Translator
+               Card KillerOf255 Translator  MoveWriter
 ghc-prof-options:
 ghc-shared-options:
 ghc-options:
@@ -169,7 +169,7 @@ include-dirs:
 hs-source-dirs: .
 other-modules: Value Tactics SimpleBuilder Statements Spells Simulator
                PlayerModel Planner Parser MoveStep Move GameState CardBehavior
-               Card KillerOf255 Translator
+               Card KillerOf255 Translator  MoveWriter
 ghc-prof-options:
 ghc-shared-options:
 ghc-options:

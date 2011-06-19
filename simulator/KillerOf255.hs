@@ -5,6 +5,7 @@ import Planner
 import Card
 import Parser
 import MoveWriter
+import Statements
 
 drive :: Drive
 drive gs | gsGetVitality (gsMyEnemy gs) gs 255 > 0 = [Desire 100.0 (GoalConj [OpponentSlotDead 255])]
@@ -17,6 +18,11 @@ contractor gs goal
 
 strategy :: Strategy
 strategy = (drive, contractor)
+
+goblinSappersAtLowEnd :: MoveWriter ()
+goblinSappersAtLowEnd =
+    do achieveGoal 1 (goblinSapperBomb 8192 1)
+       achieveGoal 130 (loneZombie 0 1 0)
 
 speedKillTheMadBomberCell :: MoveWriter ()
 speedKillTheMadBomberCell =
