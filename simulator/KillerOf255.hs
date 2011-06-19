@@ -10,7 +10,7 @@ import Parser
 import Strategy
 
 drive :: Drive
-drive gs | gsGetVitality (gsMyEnemy gs) gs 255 > 0 = [GoalConj [OpponentSlotDead 255]]
+drive gs | gsGetVitality (gsMyEnemy gs) gs 255 > 0 = [Desire 100.0 (GoalConj [OpponentSlotDead 255])]
 drive _ = []
 
 contractor gs (GoalConj [OpponentSlotDead 255]) = Just (FiniteCost (length speedKillTheMadBomberCell), speedKillTheMadBomberCell)

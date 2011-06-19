@@ -58,10 +58,10 @@ metGoalItem gs (SlotContains slot value) = value == mySlotValue
 
 getSlotValue gs = gsGetField ( gsMyFriend gs ) gs
 
-drive :: GameState -> [GoalConj]
+drive :: Drive
 drive gs = if metGoal gs goal
            then []
-           else [goal]
+           else [Desire 0.1 goal]
     where goal = thinkOfGoal gs
 
 contractor :: GameState -> GoalConj -> Maybe Bid
