@@ -73,35 +73,38 @@ planStepsBlindly (BuildValue loc val) game_state = fst $ runState (buildValue lo
 
 
 
-getInterrupts :: PlayerModel -> GameState -> [Move]
-getInterrupts (ExternalPlayer) _ = []
-getInterrupts (PurePlayer _) 
-    gameState = reviveZero $
-                reviveOne $
-                grabOur 255 197 $
-                grabTheir 255 197 $
-                grabOur 254 196 $
-                grabTheir 254 196 $
-                []
+getInterrupts :: PlayerModel -> GameState -> [Move] -> [Move]
+getInterrupts (ExternalPlayer) _ _ = []
+getInterrupts (PurePlayer _) gameState plan =
+    revive 0 199 $
+    revive 1 198 $
+    revive 255 197 $
+    revive 254 196 $
+    revive_target_of_next_move $
+    grabOur 255 197 $
+    grabTheir 255 197 $
+    grabOur 254 196 $
+    grabTheir 254 196 $
+    []
     where
-        reviveZero next =
-            if getSlotVitality gameState 0 == 0
+        revive slot temp next = 
+            if getSlotVitality gameState slot == 0
             then
-                case findMe gameState (ValueNum 0) of
-                Nothing  -> [ Move RightApplication ZeroCard 199 ]
-                Just x   -> [ Move LeftApplication ReviveCard x, Move RightApplication ZeroCard x ]
+                case findMe gameState (ValueNum slot) of
+                Nothing  -> buildNum slot temp (getSlotValue gameState slot) next
+                Just x   -> [ Move LeftApplication ReviveCard x] ++ buildVine x (ValueNum slot)
             else next
-        reviveOne  next = 
-            if getSlotVitality gameState 1 == 0
-            then
-                case findMe gameState (ValueNum 1) of
-                Nothing  -> repairOneIn198 $ getSlotValue gameState 198
-                Just x   -> [ Move LeftApplication ReviveCard x, Move RightApplication ZeroCard x ]
-            else next
-        repairOneIn198 v
-          | v == (ValueNum 0)             = [ Move LeftApplication  SuccCard 198 ]
-          | v == (ValueCard IdentityCard) = [ Move RightApplication ZeroCard 198 ]
-          | otherwise                     = [ Move LeftApplication  PutCard  198 ]
+        revive_target_of_next_move next =
+            case plan of
+            (Move _ _ slot):_ -> revive slot 190 next
+            _                 -> next
+        buildNum n slot cur next
+          | cur == (ValueNum n)                       = next -- Soft failure we were asked to build something that was already there
+          | n == 0 && cur == (ValueCard IdentityCard) = [ Move RightApplication ZeroCard   slot ]
+          | n == 0                                    = [ Move LeftApplication  PutCard    slot ]
+          | cur == (ValueNum (n-1))                   = [ Move LeftApplication  SuccCard   slot ]
+          | cur == (ValueNum (n `div` 2))             = [ Move LeftApplication  DoubleCard slot ]
+          | otherwise                                 = buildNum (n `div` 2) slot cur next
         grabOur val loc next =
             if getSlotValue gameState 0 == (ValueNum val) && getSlotValue gameState loc /= (ValueNum val)
             then 

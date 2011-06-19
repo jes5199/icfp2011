@@ -7,6 +7,7 @@ import Parser
 import MoveWriter
 import Statements
 
+makeStrategy :: (GameState -> Bool) -> [Desire] -> ([GoalItem] -> Maybe (MoveWriter () )) -> Strategy
 makeStrategy condition desire implemetation = (drive, contractor)
     where
         drive gs | (condition gs) = desire
@@ -19,16 +20,27 @@ makeStrategy condition desire implemetation = (drive, contractor)
                          return (FiniteCost (length moves), moves)
                     _ -> Left $ "I don't know how to handle " ++ show objective
 
+isAlive perspective slotNum = \gs -> gsGetVitality (perspective gs) gs slotNum > 0
+isDead perspective slotNum = \gs -> gsGetVitality (perspective gs) gs slotNum == 0
+enoughHp perspective minHp slotNum = \gs -> gsGetVitality (perspective gs) gs slotNum >= minHp
+hpBelow perspective maxHp slotNum = \gs -> gsGetVitality (perspective gs) gs slotNum < maxHp
+
+mine = gsMyFriend
+his = gsMyEnemy
+
+allTrue :: [GameState -> Bool] -> GameState -> Bool
+allTrue conditions gs = all (\f -> f gs) conditions
+
 setUpTheBomb = makeStrategy
-    (\gs -> gsGetVitality (gsMyEnemy gs) gs 255 > 0)
-    ([Desire 100.0 (GoalConj [OpponentSlotDead 255])])
+    (allTrue [(isAlive his 255), (enoughHp mine 4096 4), (enoughHp mine 8192 8)])
+    [Desire 100.0 (GoalConj [OpponentSlotDead 255])]
     (\objective -> case objective of
         [OpponentSlotDead 255] -> Just speedKillTheMadBomberCell
         _ -> Nothing)
 
 killSomeOfThem = makeStrategy
-    (\gs -> (gsGetVitality (gsMyEnemy gs) gs 255 == 0) && (all (\i -> gsGetVitality (gsMyEnemy gs) gs i >= 8192) [0]))
-    ([Desire 120.0 (GoalConj [OpponentSlotsDeadStartingAt 0])])
+    (allTrue ([(isDead his 255)] ++ (map (enoughHp his 8192) [0..2])))
+    [Desire 100.0 (GoalConj [OpponentSlotsDeadStartingAt 0])]
     (\objective -> case objective of
         [OpponentSlotsDeadStartingAt 0] -> Just goblinSappersAtLowEnd
         _ -> Nothing)
@@ -36,14 +48,11 @@ killSomeOfThem = makeStrategy
 doublePunchForce = 8160
 
 doublePunchStrategy = makeStrategy
-    (\gs -> (isEnemyAliveAt gs 0) && (isMyHealthGreaterThan gs 126 doublePunchForce) && (isMyHealthGreaterThan gs 127 doublePunchForce) )
+    (allTrue [(isAlive his 0), (enoughHp mine doublePunchForce 126), (enoughHp mine doublePunchForce 127)])
     ([Desire 110.0 (GoalConj [OpponentSlotDead 0] )])
     (\objective -> case objective of
         [OpponentSlotDead 0] -> Just doublePunch
         _ -> Nothing)
-
-isEnemyAliveAt gs slotNum = (gsGetVitality (gsMyEnemy gs) gs slotNum > 0)
-isMyHealthGreaterThan gs slotNum value = (gsGetVitality (gsMyFriend gs) gs slotNum > value)
 
 strategies :: [Strategy]
 strategies = [setUpTheBomb, killSomeOfThem, doublePunchStrategy]
