@@ -26,6 +26,8 @@ playPly playerNumber state =
        0 -> firstPlayerBoard state
        1 -> secondPlayerBoard state
      putStrLn "(slots {10000,I} are omitted)"
+     let (state', zerrs) = simulateZombies state
+     mapM_ putStrLn zerrs
      putStrLn "(1) apply card to slot, or (2) apply slot to card?"
      applicationDir <- readInt
      move <- case applicationDir of
@@ -37,10 +39,10 @@ playPly playerNumber state =
                card <- askCard
                putStrLn $ "player " ++ show playerNumber ++ " applied slot " ++ show slotNumber ++ " to card " ++ show card
                return $ Move RightApplication card slotNumber
-     let (game, err) = simulate state move
+     let (game, err) = simulateTurn state' move
      either (putStrLn . (\e -> "Exception: " ++ e ++ "\nslot " ++ (show $ slotNumOfMove move) ++ " reset to I" ))
             (const $ return ()) $ err
-     return $ game
+     return game
 
 readInt :: IO Int
 readInt = do str <- getLine
