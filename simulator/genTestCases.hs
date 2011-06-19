@@ -478,7 +478,7 @@ testCases = [
     return () ),
   ("zombie_sapper_to_low_registers", do
     runMoveWriter initialState KillerOf255.speedKillTheMadBomberCell
-    assertOpponent (\pers gs -> gsGetVitality pers gs 255 == 0 )
+    assertOpponent "Opponent slot 255 killed" (\pers gs -> gsGetVitality pers gs 255 == 0 )
 --    runMoveWriter initialState KillerOf255.goblinSappersAtLowEnd
     return () ),
  ("killerOf255", do
