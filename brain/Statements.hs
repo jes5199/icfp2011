@@ -101,6 +101,7 @@ cureLightWounds :: Int -> SlotNumber -> Value
 cureLightWounds amount = forLoop $
   statement (template "\\i -> help i i amount" $ numericArgs [("amount", amount) ])
 
+-- Note: this doesn't qualify as a "spell" by the strict definition
 fastKill :: SlotNumber -> SlotNumber -> SlotNumber -> Value
 fastKill friend1 friend2 enemy =
   funcValue $ semi (statement (template "attack friend enemy 4096" $ numericArgs [("friend", friend1), ("enemy", enemy) ]))
