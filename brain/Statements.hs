@@ -101,6 +101,10 @@ cureLightWounds :: Int -> SlotNumber -> Value
 cureLightWounds amount = forLoop $
   statement (template "\\i -> help i i amount" $ numericArgs [("amount", amount) ])
 
+fastKill :: SlotNumber -> SlotNumber -> SlotNumber -> Value
+fastKill friend1 friend2 enemy =
+  funcValue $ semi (statement (template "attack friend enemy 4096" $ numericArgs [("friend", friend1), ("enemy", enemy) ]))
+                   (statement (template "attack friend enemy 8192" $ numericArgs [("friend", friend2), ("enemy", enemy) ]))
 
 forLoop :: UnaryFunc -> SlotNumber -> Value
 forLoop stuff = infLoop $
