@@ -17,7 +17,7 @@ makeStrategy condition desire implemetation = (drive, contractor)
                     Just moveWriter -> do
                          moves <- execMoveWriterOrError gs moveWriter
                          return (FiniteCost (length moves), moves)
-                    _ -> Left $ "I don't know how to handle " ++ show objective 
+                    _ -> Left $ "I don't know how to handle " ++ show objective
 
 setUpTheBomb = makeStrategy
     (\gs -> gsGetVitality (gsMyEnemy gs) gs 255 > 0)
@@ -28,13 +28,25 @@ setUpTheBomb = makeStrategy
 
 killSomeOfThem = makeStrategy
     (\gs -> (gsGetVitality (gsMyEnemy gs) gs 255 == 0) && (all (\i -> gsGetVitality (gsMyEnemy gs) gs i >= 8192) [0]))
-    ([Desire 100.0 (GoalConj [OpponentSlotsDeadStartingAt 0])])
+    ([Desire 120.0 (GoalConj [OpponentSlotsDeadStartingAt 0])])
     (\objective -> case objective of
         [OpponentSlotsDeadStartingAt 0] -> Just goblinSappersAtLowEnd
         _ -> Nothing)
 
+doublePunchForce = 8160
+
+doublePunchStrategy = makeStrategy
+    (\gs -> (isEnemyAliveAt gs 0) && (isMyHealthGreaterThan gs 126 doublePunchForce) && (isMyHealthGreaterThan gs 127 doublePunchForce) )
+    ([Desire 110.0 (GoalConj [OpponentSlotDead 0] )])
+    (\objective -> case objective of
+        [OpponentSlotDead 0] -> Just doublePunch
+        _ -> Nothing)
+
+isEnemyAliveAt gs slotNum = (gsGetVitality (gsMyEnemy gs) gs slotNum > 0)
+isMyHealthGreaterThan gs slotNum value = (gsGetVitality (gsMyFriend gs) gs slotNum > value)
+
 strategies :: [Strategy]
-strategies = [setUpTheBomb, killSomeOfThem]
+strategies = [setUpTheBomb, killSomeOfThem, doublePunchStrategy]
 
 goblinSappersAtLowEnd :: MoveWriter ()
 goblinSappersAtLowEnd =
