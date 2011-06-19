@@ -19,6 +19,7 @@ data Slot = Slot { vitality :: !Vitality, field :: !Value }
 instance Show Slot where
     show (Slot v f) = "{" ++ (show v) ++ "," ++ (show f) ++ "}"
 
+-- These are private
 initialSlot = Slot { vitality = 10000, field = valueI }
 
 slotReplaceVitality :: Vitality -> Slot -> Slot
@@ -37,6 +38,7 @@ slotReplaceVitalityIfDead :: Vitality -> Slot -> Slot
 slotReplaceVitalityIfDead hp slot = if vitality slot > 0
                                     then slot
                                     else slotReplaceVitality hp slot
+-- end private
 
 type SlotNumber = Int
 

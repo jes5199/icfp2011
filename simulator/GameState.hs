@@ -1,4 +1,8 @@
-module GameState (GameState(..),initialState,Who(..),test_GameState,switchPlayer,alterFirstBoard,opponent,gsMyFriend,gsMyEnemy,GSPerspective,beginZombieApocolypse,quellZombieApocolypse,perspectiveFor,gsGetVitality,gsGetField,gsPayVitalityCost,gsApplyVitalityConsequence,gsSetField,gsSetVitalityOnDeadSlot,showGameStateNicely) where
+module GameState (Who(..), opponent,
+                  GameState(..), showGameStateNicely,
+                  initialState, switchPlayer,
+                  alterFirstBoard,gsMyFriend,gsMyEnemy,GSPerspective,beginZombieApocolypse,quellZombieApocolypse,perspectiveFor,gsGetVitality,gsGetField,gsPayVitalityCost,gsApplyVitalityConsequence,gsSetField,gsSetVitalityOnDeadSlot,
+                  test_GameState) where
 
 import Test.HUnit
 import Data.Array
@@ -14,15 +18,26 @@ data Who = FirstPlayer | SecondPlayer
 opponent FirstPlayer = SecondPlayer
 opponent SecondPlayer = FirstPlayer
 
-data GameState = GameState { playerToMove :: Who, firstPlayerBoard :: Slots, secondPlayerBoard :: Slots, zombiesAreOut :: Bool }
+data GameState = GameState { playerToMove :: Who,
+                             firstPlayerBoard :: Slots,
+                             secondPlayerBoard :: Slots,
+                             zombiesAreOut :: Bool }
                deriving (Eq, Show)
 
 showGameStateNicely :: GameState -> String
-showGameStateNicely gs = unlines $
-                         [show (playerToMove gs) ++ " to move" ++ if zombiesAreOut gs then " (zombies)" else ""
-                         ,"First player board:\n" ++ show (firstPlayerBoard gs)
-                         ,"Second player board:\n" ++ show (secondPlayerBoard gs)
-                         ]
+showGameStateNicely gs =
+  unlines $
+  [ show (playerToMove gs) ++ " to move" ++
+    if zombiesAreOut gs then " (zombies)" else ""
+  , "First player board:\n" ++ show (firstPlayerBoard gs)
+  , "Second player board:\n" ++ show (secondPlayerBoard gs)
+  ]
+
+initialState :: GameState
+initialState = GameState FirstPlayer initialSide initialSide False
+
+switchPlayer :: GameState -> GameState
+switchPlayer state = state { playerToMove = opponent (playerToMove state) }
 
 -- This is a perspective on the board, as viewed by some player or zombie.
 -- "player1's view of player 2's board" means actor is FirstPlayer, viewer is SecondPlayer.
@@ -85,17 +100,8 @@ gsMyEnemy (GameState who p1 p2 zombies) =
 alterFirstBoard :: (Slots -> Slots) -> GameState -> GameState
 alterFirstBoard transform (GameState who firstBoard secondBoard zombies) = GameState who (transform firstBoard) secondBoard zombies
 
-switchPlayer :: GameState -> GameState
-switchPlayer (GameState FirstPlayer side1 side2 zombies) =
-  GameState SecondPlayer side1 side2 zombies
-switchPlayer (GameState SecondPlayer side1 side2 zombies) =
-  GameState FirstPlayer side1 side2 zombies
-
 beginZombieApocolypse (GameState who s1 s2 _) = GameState who s1 s2 True
 quellZombieApocolypse (GameState who s1 s2 _) = GameState who s1 s2 False
-
-initialState :: GameState
-initialState = GameState FirstPlayer initialSide initialSide False
 
 test_GameState = [
     -- Begin tests to get the right perspectives
