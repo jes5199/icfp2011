@@ -72,14 +72,14 @@ strategies :: [Strategy]
 strategies = [setUpTheBomb, clearTheBeaches, screwUpTheirRegisters, doublePunchStrategy, healerStrategy]
 
 healerStrategy = makeVariableStrategy
-    (\gs -> goalsFor gs [0..8] 10000 ++ goalsFor gs [9..255] 10000)
+    (\gs -> goalsFor gs [0..8] 10000 ++ goalsFor gs [9..255] 2000)
     (\objective gs -> case objective of
                      [ProponentSlotHealedBy slot amount] -> Just $ healer slot amount
                      _ -> Nothing)
     where goalsFor gs slots targetHealth = do
             slot <- slots
             let health = gsGetVitality (gsMyFriend gs) gs slot
-            guard (health < targetHealth && health > 0)
+            guard (health < targetHealth && health > 1000)
             let urgency = 200.0 * toFloating (targetHealth - health) / toFloating targetHealth
             return $ Desire urgency (GoalConj [ProponentSlotHealedBy slot (powTwoBelow health)])
           toFloating = fromInteger . toInteger
