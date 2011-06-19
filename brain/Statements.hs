@@ -93,6 +93,10 @@ heal :: SlotNumber -> Int -> SlotNumber -> Value
 heal target amount = infLoop $
   bind ( statement $ template "help target target" $ numericArgs [("target", target)] ) (ValueNum amount)
 
+spreadLove :: Int -> SlotNumber -> Value
+spreadLove amount = forLoop $
+  statement (template "\\i -> help i (succ i) amount" $ numericArgs [("amount", amount) ])
+
 forLoop :: UnaryFunc -> SlotNumber -> Value
 forLoop stuff = infLoop $
                   semi stuff
