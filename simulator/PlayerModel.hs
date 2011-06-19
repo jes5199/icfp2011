@@ -92,7 +92,7 @@ getInterrupts (PurePlayer _) gameState plan =
             if getSlotVitality gameState slot <= 0
             then
                 case findMe gameState (ValueNum slot) of
-                Nothing  -> buildNum slot temp (getSlotValue gameState slot) next
+                Nothing  -> buildNum slot temp (getSlotValue gameState temp) next
                 Just x   -> [ Move LeftApplication ReviveCard x] ++
                   if x `elem` [190..199] then [] else buildVine x (ValueNum slot)
             else next
