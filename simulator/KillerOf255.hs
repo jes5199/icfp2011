@@ -7,20 +7,24 @@ import Parser
 import MoveWriter
 import Statements
 
-drive :: Drive
-drive gs | gsGetVitality (gsMyEnemy gs) gs 255 > 0 = [Desire 100.0 (GoalConj [OpponentSlotDead 255])]
-drive _ = []
+makeStrategy condition desire implemetation = (drive, contractor)
+    where
+        drive gs | (condition gs) = desire
+        drive _ = []
+        contractor gs goal
+            = do GoalConj objective <- return goal
+                 case (implemetation objective) of
+                    Just moveWriter -> do
+                         moves <- execMoveWriterOrError gs moveWriter
+                         return (FiniteCost (length moves), moves)
+                    _ -> Left $ "I don't know how to handle " ++ show objective 
 
-contractor :: Contractor
-contractor gs goal
-    = do GoalConj objective <- return goal
-         case objective of
-            [OpponentSlotDead 255] -> do
-                 moves <- execMoveWriterOrError gs speedKillTheMadBomberCell
-                 return (FiniteCost (length moves), moves)
-            _ -> Left $ "I don't know how to handle " ++ show objective 
-
-setUpTheBomb = (drive, contractor)
+setUpTheBomb = makeStrategy
+    (\gs -> gsGetVitality (gsMyEnemy gs) gs 255 > 0)
+    ([Desire 100.0 (GoalConj [OpponentSlotDead 255])])
+    (\objective -> case objective of
+        [OpponentSlotDead 255] -> Just speedKillTheMadBomberCell
+        _ -> Nothing)
 
 strategies :: [Strategy]
 strategies = [setUpTheBomb]
