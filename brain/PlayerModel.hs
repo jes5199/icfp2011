@@ -29,6 +29,7 @@ data Goal = TakeSpecificAction Move
 --
 
 -- Make a specfic thing at a specific location, unless it's already there
+gaMakeThisAt :: String -> SlotNumber -> GameState -> [Goal]
 gaMakeThisAt what targetCell game_state =
     let
        structure = parse what
@@ -41,6 +42,7 @@ gaMakeThisAt what targetCell game_state =
 -- TODO: read and parse the action they took and assume that doing that was
 -- their goal
 --     (Note: this should be expressed as a "do this", not acomplish this)
+gaIForever :: GameState -> [Goal]
 gaIForever game_state = [TakeSpecificAction (Move LeftApplication IdentityCard 0)]
 
 gaReviveTheDead = undefined
@@ -51,6 +53,7 @@ gaHealTheWounded = undefined
 -- Choose best goal based on all sorts of clever logic
 --      For now, use "first thing on the list"
 --
+chooseGoal :: PlayerModel -> GameState -> Goal
 chooseGoal brain game_state =
     let goals = concat (($game_state) `map` (goalAgents brain))
     in head goals
@@ -58,11 +61,13 @@ chooseGoal brain game_state =
 --
 -- Figure out the next steps(s) to accomplish a given goal
 --
+planSteps :: Goal -> GameState -> [Move]
 planSteps (TakeSpecificAction m) _ = [m]
 planSteps other game_state = planStepsBlindly other game_state
 
 
 -- Blindly do the whole thing ignoring state
+planStepsBlindly :: Goal -> GameState -> [Move]
 planStepsBlindly (BuildValue loc val) game_state = fst $ runState (buildValue loc val) [1..255]
 
 
