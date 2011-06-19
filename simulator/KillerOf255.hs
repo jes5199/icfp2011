@@ -15,6 +15,9 @@ contractor gs goal
          moves <- execMoveWriter gs speedKillTheMadBomberCell
          return (FiniteCost (length moves), moves)
 
+strategy :: Strategy
+strategy = (drive, contractor)
+
 speedKillTheMadBomberCell :: MoveWriter ()
 speedKillTheMadBomberCell =
     do assertConstructionCost 29

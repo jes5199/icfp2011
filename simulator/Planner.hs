@@ -1,4 +1,4 @@
-module Planner(makePlanner,GoalConj(..),Drive,Contractor,GoalItem(..),Bid,Cost(..),Desire(..)) where
+module Planner(makePlanner,GoalConj(..),Drive,Contractor,GoalItem(..),Bid,Cost(..),Desire(..),Strategy) where
 
 import Move
 import Value
@@ -44,6 +44,10 @@ type Bid = (Cost, [Move])
 -- a bid, or Nothing (if the contractor doesn't know how to make
 -- progress on the goal).
 type Contractor = GameState -> GoalConj -> Maybe Bid
+
+-- A strategy is a convenient bundle containing a drive and a
+-- contractor.
+type Strategy = (Drive, Contractor)
 
 makePlanner :: [Drive] -> [Contractor] -> PlayerModel
 makePlanner drives contractors = PurePlayer (decide drives contractors)
