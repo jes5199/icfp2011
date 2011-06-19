@@ -27,7 +27,7 @@ setUpTheBomb = makeStrategy
         _ -> Nothing)
 
 killSomeOfThem = makeStrategy
-    (\gs -> (gsGetVitality (gsMyEnemy gs) gs 255 == 0) && (all (\i -> gsGetVitality (gsMyEnemy gs) gs i >= 8192) [0..65]))
+    (\gs -> (gsGetVitality (gsMyEnemy gs) gs 255 == 0) && (all (\i -> gsGetVitality (gsMyEnemy gs) gs i >= 8192) [0]))
     ([Desire 100.0 (GoalConj [OpponentSlotsDeadStartingAt 0])])
     (\objective -> case objective of
         [OpponentSlotsDeadStartingAt 0] -> Just goblinSappersAtLowEnd
