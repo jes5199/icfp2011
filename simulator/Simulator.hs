@@ -7,6 +7,7 @@ import GameState
 import Move
 import Card
 import Value
+import Slots
 import MoveStep
 import CardBehavior
 import Data.List (foldl')

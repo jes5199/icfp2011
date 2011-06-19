@@ -6,6 +6,7 @@ import SimpleBuilder
 import Translator
 import Value
 import Card
+import Slots
 import Move
 import GameState
 import Parser

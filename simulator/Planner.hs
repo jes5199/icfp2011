@@ -4,6 +4,7 @@ import Move
 import Value
 import GameState
 import Card
+import Slots
 import PlayerModel(PlayerModel(PurePlayer))
 import Data.List
 

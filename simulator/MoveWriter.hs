@@ -6,6 +6,7 @@ import Control.Monad.State
 import GameState
 import Move
 import Card
+import Slots
 import SimpleBuilder
 import Simulator
 import Value

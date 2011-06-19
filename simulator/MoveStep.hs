@@ -4,6 +4,7 @@ import Test.HUnit (Test,(~?=))
 import Data.Array
 import Control.Monad.State
 import Control.Monad.Error
+import Slots
 import GameState
 import Value
 import Move

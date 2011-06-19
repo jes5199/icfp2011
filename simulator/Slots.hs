@@ -1,4 +1,4 @@
-module Slots (Vitality, Slot(..), Slots(..),
+module Slots (Vitality, Slot(..), SlotNumber, Slots(..),
               extractVitality, extractField,
               updateVitality, updateField,
               changeVitalityInSlot, replaceVitalityOnDeadSlot,
@@ -8,7 +8,6 @@ import Test.HUnit
 import Data.Array
 import Card
 import Value
-import Move
 import Util
 
 type Vitality = Int
@@ -32,7 +31,9 @@ replaceVitalityIfDead hp slot = if (vitality slot) > 0 then slot else Slot hp (f
 replaceField :: Value -> Slot -> Slot
 replaceField value slot = Slot (vitality slot) value
 
-newtype Slots = Slots (Array Int Slot)
+type SlotNumber = Int
+
+newtype Slots = Slots (Array SlotNumber Slot)
     deriving Eq
 
 instance Show Slots where
