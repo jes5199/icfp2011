@@ -23,8 +23,8 @@ playPly :: Int -> GameState -> IO GameState
 playPly playerNumber state =
   do putStrLn ("*** player " ++ show playerNumber ++ "'s turn, with slots:")
      putStr $ show $ case playerNumber of
-       0 -> firstPlayerBoard state
-       1 -> secondPlayerBoard state
+       0 -> firstPlayerSlots state
+       1 -> secondPlayerSlots state
      putStrLn "(slots {10000,I} are omitted)"
      let (state', zmsgs) = simulateZombies state
      mapM_ putStrLn zmsgs

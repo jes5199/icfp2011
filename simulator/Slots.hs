@@ -1,9 +1,9 @@
 module Slots (Vitality, Slot, vitality, field,
-              SlotNumber, Slots(..),
+              SlotNumber, Slots(..), initialSide,
               extractVitality, extractField,
               updateVitality, updateField,
               changeVitalityInSlot, replaceVitalityOnDeadSlot,
-              initialSide, test_Slots) where
+              test_Slots) where
 
 import Test.HUnit
 import Data.Array
@@ -52,9 +52,18 @@ instance Show Slots where
     where isInteresting = (/= initialSlot) . snd
           showSlotOnALine (n, slot) = (show n) ++ "=" ++ (show slot) ++ "\n"
 
+initialSide :: Slots
+initialSide = Slots $ array (0,255) [(n,initialSlot) | n <- [0..255]]
+
 transformSlot :: (Slot -> Slot) -> SlotNumber -> Slots -> Slots
 transformSlot transformation idx (Slots slots) =
   Slots $ slots // [(idx, transformation (slots ! idx) )]
+
+extractVitality :: Slots -> SlotNumber -> Vitality
+extractVitality (Slots slots) idx = vitality (slots ! idx)
+
+extractField :: Slots -> SlotNumber -> Value
+extractField (Slots slots) idx = field (slots ! idx)
 
 updateVitality :: Vitality -> SlotNumber -> Slots -> Slots
 updateVitality hp idx slots = transformSlot (slotReplaceVitality hp) idx slots
@@ -69,15 +78,6 @@ changeVitalityInSlot slots idx adjustment =
 replaceVitalityOnDeadSlot :: Slots -> SlotNumber -> Vitality -> Slots
 replaceVitalityOnDeadSlot slots idx vitality =
   transformSlot (slotReplaceVitalityIfDead vitality) idx slots
-
-extractVitality :: Slots -> SlotNumber -> Vitality
-extractVitality (Slots slots) idx = vitality (slots ! idx)
-
-extractField :: Slots -> SlotNumber -> Value
-extractField (Slots slots) idx = field (slots ! idx)
-
-initialSide :: Slots
-initialSide = Slots $ array (0,255) [(n,initialSlot) | n <- [0..255]]
 
 test_Slots = [
     updateVitality 19 1 (Slots testSlots) ~?= Slots (testSlots // [(1, Slot 19 valueI)]),
