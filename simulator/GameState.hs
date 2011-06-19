@@ -5,6 +5,7 @@ import Data.Array
 import Card
 import Value
 import Move
+import Util
 
 type Vitality = Int
 
@@ -20,7 +21,8 @@ replaceVitality hp slot = Slot hp (field slot)
 addIfAlive current adj = if current <= 0 then current else current + adj
 
 changeVitality :: Vitality -> Slot -> Slot
-changeVitality hp slot = Slot (clamp (addIfAlive (vitality slot) hp)) (field slot)
+changeVitality hp slot = Slot (clampInt 0 65535
+                               (addIfAlive (vitality slot) hp)) (field slot)
 
 replaceVitalityIfDead :: Vitality -> Slot -> Slot
 replaceVitalityIfDead hp slot = if (vitality slot) > 0 then slot else Slot hp (field slot)

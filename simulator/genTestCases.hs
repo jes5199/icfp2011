@@ -15,6 +15,7 @@ import GameState
 import Simulator
 import MoveWriter(MoveWriter,execMoveWriterOrError)
 import qualified KillerOf255
+import Planner
 
 type TestCaseGenerator = StateT ([SlotNumber], [SlotNumber], Who, GameState) (Writer [TestCaseAtom])
 
@@ -124,8 +125,8 @@ testCycleCount wasteCycles = do
   trigger <- buildNewValue triggerValue
   rightApply trigger ZeroCard
     where waste 0 value = value
-          waste n value = ValueApplication (ValueApplication (ValueCard SCard) (waste (n-1) value))
-                                           (ValueCard IdentityCard)
+          waste n value = ValueApplication (ValueApplication valueS (waste (n-1) value))
+                          valueI
 
 getGameState :: TestCaseGenerator GameState
 getGameState = do
@@ -139,6 +140,28 @@ runMoveWriter moveWriter = do
   case execMoveWriterOrError gs moveWriter of
     Left msg -> assert ("runMoveWriter failed: " ++ msg) (const False)
     Right moves -> makeMoves moves
+
+testStrategy :: Strategy -> TestCaseGenerator ()
+testStrategy (drive, contractor) = do
+      gs <- getGameState
+      let desires = drive gs
+      case desires of
+        [] -> assert "Strategy has no desire to execute" (const False)
+        _ -> iterateTest desires
+      return ()
+    where iterateTest [] = return ()
+          iterateTest desires@(Desire _ goalConj : _) = do
+            gs <- getGameState
+            case contractor gs goalConj of
+              Left msg -> assert ("contractor failed: " ++ msg) (const False)
+              Right (_, moves) -> do
+                makeMoves moves
+                ensureOurMove
+                gs' <- getGameState
+                let desires' = drive gs'
+                (if length desires' >= length desires
+                 then assert ("Contractor made no progress.  Old desires: " ++ show desires ++ ", new desires: " ++ show desires') (const False)
+                 else iterateTest desires')
 
 testCases :: [(String, TestCaseGenerator ())]
 testCases = [
@@ -489,9 +512,7 @@ testCases = [
     assertOpponent "Opponent slot 255 killed" (\pers gs -> gsGetVitality pers gs 255 == 0 )
     runMoveWriter KillerOf255.goblinSappersAtLowEnd
     return () ),
- ("killerOf255", do
-    runMoveWriter KillerOf255.speedKillTheMadBomberCell
-    assertOpponent "Opponent slot 255 killed" (\pers gs -> gsGetVitality pers gs 255 == 0 ))
+ ("killerOf255", testStrategy KillerOf255.strategy)
  ]
 
 testCaseAtomsToMoves :: String -> [TestCaseAtom] -> [Move]

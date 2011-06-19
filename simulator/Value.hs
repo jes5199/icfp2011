@@ -1,7 +1,8 @@
-module Value (Value(..),test_Value,valueI,valueZero,valueSucc,valueDbl,valueGet,valuePut,valueS,valueK,valueInc,valueDec,valueAttack,valueHelp,valueCopy,valueRevive,valueZombie,clamp,makeNumVal) where
+module Value (Value(..),test_Value,valueI,valueZero,valueSucc,valueDbl,valueGet,valuePut,valueS,valueK,valueInc,valueDec,valueAttack,valueHelp,valueCopy,valueRevive,valueZombie,makeNumVal) where
 
 import Test.HUnit
 import Card
+import Util
 
 data Value = ValueCard Card
            | ValueNum Int
@@ -26,23 +27,22 @@ instance Show Value where
   show (ValueLambda s v) = "\\" ++ s ++ "." ++ show v
   show (ValueVariable s) = s
 
-clamp val = if val < 0 then 0 else (if val > 65535 then 65535 else val)
+makeNumVal :: Int -> Value
+makeNumVal val = ValueNum (clampInt 0 65535 val)
 
-makeNumVal val = ValueNum (clamp val)
-
-valueI  = ValueCard IdentityCard
-valueZero = ValueCard ZeroCard
-valueSucc = ValueCard SuccCard
-valueDbl = ValueCard DoubleCard
-valueGet = ValueCard GetCard
-valuePut = ValueCard PutCard
-valueS = ValueCard SCard
-valueK = ValueCard KCard
-valueInc = ValueCard IncCard
-valueDec = ValueCard DecCard
+valueI      = ValueCard IdentityCard
+valueZero   = ValueCard ZeroCard
+valueSucc   = ValueCard SuccCard
+valueDbl    = ValueCard DoubleCard
+valueGet    = ValueCard GetCard
+valuePut    = ValueCard PutCard
+valueS      = ValueCard SCard
+valueK      = ValueCard KCard
+valueInc    = ValueCard IncCard
+valueDec    = ValueCard DecCard
 valueAttack = ValueCard AttackCard
-valueHelp = ValueCard HelpCard
-valueCopy = ValueCard CopyCard
+valueHelp   = ValueCard HelpCard
+valueCopy   = ValueCard CopyCard
 valueRevive = ValueCard ReviveCard
 valueZombie = ValueCard ZombieCard
 

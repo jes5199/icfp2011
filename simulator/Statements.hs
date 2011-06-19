@@ -25,31 +25,32 @@ routine f = UnaryFunc f False
 toStatement :: UnaryFunc -> UnaryFunc
 toStatement f | isStatement f = f
               | otherwise = -- S (S (K put) f) put
-                            (UnaryFunc
-                             (ValueApplication
-                              (ValueApplication
-                               (ValueCard SCard)
-                               (ValueApplication (ValueApplication (ValueCard SCard)
-                                                                   (ValueApplication (ValueCard KCard)
-                                                                                     (ValueCard PutCard)))
-                                                 (funcValue f)))
-                              (ValueCard PutCard))
-                             True)
+                (UnaryFunc
+                 (ValueApplication
+                  (ValueApplication
+                   valueS
+                   (ValueApplication (ValueApplication valueS
+                                      (ValueApplication valueK
+                                       valuePut))
+                    (funcValue f)))
+                  valuePut)
+                 True)
 
 -- \x -> f(x); return g(x)
 semi :: UnaryFunc -> UnaryFunc -> UnaryFunc
 semi f g = -- S f g (assuming f returns I)
-           UnaryFunc (ValueApplication (ValueApplication (ValueCard SCard) (funcValue (toStatement f))) (funcValue g))
-                     (isStatement g)
+  UnaryFunc (ValueApplication (ValueApplication valueS
+                               (funcValue(toStatement f))) (funcValue g))
+  (isStatement g)
 
 -- Bind a UnaryFunc to a constant input argument, forming a new
 -- UnaryFunc that ignores its input.
 bind :: UnaryFunc -> Value -> UnaryFunc
 bind f value = -- S (K f) (K value)
-               UnaryFunc (ValueApplication
-                          (ValueApplication (ValueCard SCard) (ValueApplication (ValueCard KCard) (funcValue f)))
-                          (ValueApplication (ValueCard KCard) value))
-                         (isStatement f)
+  UnaryFunc (ValueApplication
+             (ValueApplication valueS (ValueApplication valueK (funcValue f)))
+             (ValueApplication valueK value))
+  (isStatement f)
 
 -- infLoop n stmt creates a statement that can be placed in slot n
 -- which executes stmt in an infinite loop.
@@ -83,17 +84,18 @@ zombieLoop f localSlotWithCodeForNextIteration = -- the local slot to fetch will
 -- \x -> f(g(x))
 compose :: UnaryFunc -> UnaryFunc -> UnaryFunc
 compose f g = -- S (K f) g
-              UnaryFunc (ValueApplication (ValueApplication (ValueCard SCard) (makeK (funcValue f))) (funcValue g))
-                        (isStatement f)
+  UnaryFunc (ValueApplication (ValueApplication valueS
+                               (makeK (funcValue f))) (funcValue g))
+  (isStatement f)
 
 -- quine n f creates a statement that can be placed in slot n which
 -- executes f but leaves the contents of slot n unchanged.
 quine :: UnaryFunc -> SlotNumber -> Value
 quine f n = -- S f (bind get n) (assuming f returns I)
-            ValueApplication (ValueApplication (ValueCard SCard) (funcValue (toStatement f)))
-                             (funcValue (bind get nValue))
+  ValueApplication (ValueApplication valueS (funcValue (toStatement f)))
+  (funcValue (bind get nValue))
     where nValue = translateValue (ValueNum n)
-          get = statement (ValueCard GetCard)
+          get = statement valueGet
 
 grapeshot :: Int -> SlotNumber -> Value
 grapeshot damage = forLoop $ statement (template "\\i -> attack i i damage" $ numericArgs [("damage", damage)] )

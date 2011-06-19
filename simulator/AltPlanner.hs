@@ -87,7 +87,7 @@ contractor2 _ goal = Left $ "Don't know how to achieve goal " ++ show goal
 planSlotContains :: GoalItem -> [(Move, GoalConj)]
 -- "I could make this if I had..."
 planSlotContains (SlotContains slot value)
-  | value == (ValueCard IdentityCard) = [( Move LeftApplication PutCard slot , GoalConj [] )] -- no prereq to empty a slot with put
+  | value == valueI = [( Move LeftApplication PutCard slot , GoalConj [] )] -- no prereq to empty a slot with put
   | isVine value = planVine slot value
 planSlotContains _ = [] -- "I don't see any way to do that."
 
@@ -101,7 +101,7 @@ planVine slot vine = planVine' vine
           planVine' (ValueApplication v w) = error "planVine: not a vine"
 
 inSlotGoal slot value = GoalConj [(SlotContains slot value )]
-cleanSlateGoal slot = inSlotGoal slot (ValueCard IdentityCard)
+cleanSlateGoal slot = inSlotGoal slot valueI
 
 planNum :: SlotNumber -> Int -> [(Move, GoalConj)]
 -- I could make a zero from an Identity

@@ -74,7 +74,7 @@ buildValue destSlot (ValueApplication f x)
                      let slotToUse = head availableSlots
                      put $ tail availableSlots
                      moves2 <- buildValue slotToUse x
-                     let moves3 = applyRightVine destSlot $ translateValue $ ValueApplication (ValueCard GetCard) (ValueNum slotToUse)
+                     let moves3 = applyRightVine destSlot $ translateValue $ ValueApplication valueGet (ValueNum slotToUse)
                      return $ moves1 ++ moves2 ++ moves3
 
 test_SimpleBuilder = [
@@ -113,9 +113,9 @@ test_SimpleBuilder = [
         Move RightApplication GetCard 10, Move LeftApplication KCard 10, Move LeftApplication SCard 10,
         Move RightApplication SuccCard 10, Move RightApplication ZeroCard 10])
   ]
-    where zero = ValueCard ZeroCard
-          succ = ValueCard SuccCard
-          dbl = ValueCard DoubleCard
-          k = ValueCard KCard
-          s = ValueCard SCard
-          get = ValueCard GetCard
+    where zero = valueZero
+          succ = valueSucc
+          dbl = valueDbl
+          k = valueK
+          s = valueS
+          get = valueGet
