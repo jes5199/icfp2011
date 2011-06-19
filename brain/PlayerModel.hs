@@ -68,9 +68,9 @@ chooseGoal brain game_state =
 --
 planSteps :: Goal -> GameState -> [Move]
 planSteps (TakeSpecificAction m) _ = [m]
-planSteps other game_state =
+planSteps goal game_state =
   shortestSequence [
-    planStepsBlindly other game_state
+    planStepsBlindly goal game_state
     ]
 
 shortestSequence :: [[a]] -> [a]
@@ -79,5 +79,3 @@ shortestSequence xs = minimumBy (\x y -> compare (length x) (length y)) xs
 -- Blindly do the whole thing ignoring state
 planStepsBlindly :: Goal -> GameState -> [Move]
 planStepsBlindly (BuildValue loc val) game_state = fst $ runState (buildValue loc val) [1..255]
-
-
