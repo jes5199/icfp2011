@@ -8,3 +8,6 @@ braindriver: *.hs
 
 genTestCases: *.hs
 	ghc -i../simulator --make -O3 genTestCases
+
+clean:
+	rm -f *.hi *.o *~ braintester braindriver genTestCases
