@@ -20,7 +20,7 @@ data GoalItem = SlotContains SlotNumber Value
 -- A desire is a GoalConj paired with a ranking.  Larger numbers are
 -- more desirable.
 data Desire = Desire Double GoalConj
-    deriving Eq
+    deriving (Eq, Show)
 
 instance Ord Desire where
     compare (Desire x _) (Desire y _) = compare x y

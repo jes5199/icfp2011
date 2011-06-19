@@ -74,12 +74,21 @@ planStepsBlindly (BuildValue loc val) game_state = fst $ runState (buildValue lo
 
 getInterrupts :: PlayerModel -> GameState -> [Move]
 getInterrupts (ExternalPlayer) _ = []
-getInterrupts (PurePlayer _) gameState =
-  if getSlotVitality gameState 0 == 0
-  then case findMe gameState (ValueNum 0) of
-         Nothing  -> [ Move RightApplication ZeroCard 199 ]
-         Just x   -> [ Move LeftApplication ReviveCard x, Move RightApplication ZeroCard x ]
-  else []
+getInterrupts (PurePlayer _) gameState = restoreZero $ restoreOne $ []
+  where restoreZero next = if getSlotVitality gameState 0 == 0
+                              then case findMe gameState (ValueNum 0) of
+                                     Nothing  -> [ Move RightApplication ZeroCard 199 ]
+                                     Just x   -> [ Move LeftApplication ReviveCard x, Move RightApplication ZeroCard x ]
+                              else next
+        restoreOne  next = if getSlotVitality gameState 1 == 0
+                              then case findMe gameState (ValueNum 1) of
+                                     Nothing  -> repairOneIn198 $ getSlotValue gameState 198
+                                     Just x   -> [ Move LeftApplication ReviveCard x, Move RightApplication ZeroCard x ]
+                              else next
+        repairOneIn198 v
+          | v == (ValueNum 0)             = [ Move LeftApplication  SuccCard 198 ]
+          | v == (ValueCard IdentityCard) = [ Move RightApplication ZeroCard 198 ]
+          | otherwise                     = [ Move LeftApplication  PutCard  198 ]
 
 getSlotVitality gs = gsGetVitality ( gsMyFriend gs ) gs
 getSlotValue gs = gsGetField ( gsMyFriend gs ) gs
