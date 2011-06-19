@@ -2,7 +2,6 @@ module KillerOf255 where
 
 import GameState
 import Planner
-import Move
 import Card
 import Parser
 import MoveWriter
@@ -13,11 +12,11 @@ drive _ = []
 
 contractor gs goal
     = do GoalConj [OpponentSlotDead 255] <- return goal
-         moves <- speedKillTheMadBomberCell gs
+         moves <- execMoveWriter gs speedKillTheMadBomberCell
          return (FiniteCost (length moves), moves)
 
-speedKillTheMadBomberCell :: GameState -> Maybe [Move]
-speedKillTheMadBomberCell gs = execMoveWriter gs $
+speedKillTheMadBomberCell :: MoveWriter ()
+speedKillTheMadBomberCell =
     do assertConstructionCost 29
        assertSlotsUsed [128, 129]
 
