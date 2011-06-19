@@ -2,6 +2,7 @@ module Statements where
 
 import Value
 import Card
+import Slots
 import Translator
 import Move
 

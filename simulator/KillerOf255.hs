@@ -7,18 +7,34 @@ import Parser
 import MoveWriter
 import Statements
 
-drive :: Drive
-drive gs | gsGetVitality (gsMyEnemy gs) gs 255 > 0 = [Desire 100.0 (GoalConj [OpponentSlotDead 255])]
-drive _ = []
+makeStrategy condition desire implemetation = (drive, contractor)
+    where
+        drive gs | (condition gs) = desire
+        drive _ = []
+        contractor gs goal
+            = do GoalConj objective <- return goal
+                 case (implemetation objective) of
+                    Just moveWriter -> do
+                         moves <- execMoveWriterOrError gs moveWriter
+                         return (FiniteCost (length moves), moves)
+                    _ -> Left $ "I don't know how to handle " ++ show objective 
 
-contractor :: Contractor
-contractor gs goal
-    = do GoalConj [OpponentSlotDead 255] <- return goal
-         moves <- execMoveWriterOrError gs speedKillTheMadBomberCell
-         return (FiniteCost (length moves), moves)
+setUpTheBomb = makeStrategy
+    (\gs -> gsGetVitality (gsMyEnemy gs) gs 255 > 0)
+    ([Desire 100.0 (GoalConj [OpponentSlotDead 255])])
+    (\objective -> case objective of
+        [OpponentSlotDead 255] -> Just speedKillTheMadBomberCell
+        _ -> Nothing)
 
-strategy :: Strategy
-strategy = (drive, contractor)
+killSomeOfThem = makeStrategy
+    (\gs -> (gsGetVitality (gsMyEnemy gs) gs 255 == 0) && (all (\i -> gsGetVitality (gsMyEnemy gs) gs i >= 8192) [0..65]))
+    ([Desire 100.0 (GoalConj [OpponentSlotsDeadStartingAt 0])])
+    (\objective -> case objective of
+        [OpponentSlotsDeadStartingAt 0] -> Just goblinSappersAtLowEnd
+        _ -> Nothing)
+
+strategies :: [Strategy]
+strategies = [setUpTheBomb, killSomeOfThem]
 
 goblinSappersAtLowEnd :: MoveWriter ()
 goblinSappersAtLowEnd =

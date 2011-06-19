@@ -4,6 +4,7 @@ import SimpleBuilder
 import Translator
 import Value
 import Card
+import Slots
 import Move
 import Parser
 import System(getArgs)
@@ -143,6 +144,7 @@ runMoveWriter moveWriter = do
 
 testStrategy :: Strategy -> TestCaseGenerator ()
 testStrategy (drive, contractor) = do
+      ensureOurMove
       gs <- getGameState
       let desires = drive gs
       case desires of
@@ -151,6 +153,7 @@ testStrategy (drive, contractor) = do
       return ()
     where iterateTest [] = return ()
           iterateTest desires@(Desire _ goalConj : _) = do
+            ensureOurMove
             gs <- getGameState
             case contractor gs goalConj of
               Left msg -> assert ("contractor failed: " ++ msg) (const False)
@@ -512,7 +515,11 @@ testCases = [
     assertOpponent "Opponent slot 255 killed" (\pers gs -> gsGetVitality pers gs 255 == 0 )
     runMoveWriter KillerOf255.goblinSappersAtLowEnd
     return () ),
- ("killerOf255", testStrategy KillerOf255.strategy)
+ ("set_up_the_bomb", testStrategy KillerOf255.setUpTheBomb),
+ ("kill_some_of_them", do
+    runMoveWriter KillerOf255.speedKillTheMadBomberCell
+    assertOpponent "Opponent slot 255 killed" (\pers gs -> gsGetVitality pers gs 255 == 0 )
+    testStrategy KillerOf255.killSomeOfThem)
  ]
 
 testCaseAtomsToMoves :: String -> [TestCaseAtom] -> [Move]

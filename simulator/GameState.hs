@@ -1,64 +1,16 @@
-module GameState (GameState(..),Slots(..),Slot(..),initialState,Who(..),updateVitality,updateField,test_GameState,Vitality,initialSide,switchPlayer,alterFirstBoard,opponent,gsMyFriend,gsMyEnemy,GSPerspective,beginZombieApocolypse,quellZombieApocolypse,perspectiveFor,gsGetVitality,gsGetField,gsPayVitalityCost,gsApplyVitalityConsequence,gsSetField,gsSetVitalityOnDeadSlot,showGameStateNicely) where
+module GameState (Who(..), opponent,
+                  GameState(..), showGameStateNicely,
+                  initialState, switchPlayer,
+                  alterFirstBoard,gsMyFriend,gsMyEnemy,GSPerspective,beginZombieApocolypse,quellZombieApocolypse,perspectiveFor,gsGetVitality,gsGetField,gsPayVitalityCost,gsApplyVitalityConsequence,gsSetField,gsSetVitalityOnDeadSlot,
+                  test_GameState) where
 
 import Test.HUnit
 import Data.Array
 import Card
 import Value
+import Slots
 import Move
 import Util
-
-type Vitality = Int
-
-data Slot = Slot { vitality :: !Vitality, field :: !Value }
-          deriving (Eq)
-
-instance Show Slot where
-    show (Slot v f) = "{" ++ (show v) ++ "," ++ (show f) ++ "}"
-
-replaceVitality :: Vitality -> Slot -> Slot
-replaceVitality hp slot = Slot hp (field slot)
-
-addIfAlive current adj = if current <= 0 then current else current + adj
-
-changeVitality :: Vitality -> Slot -> Slot
-changeVitality hp slot = Slot (clampInt 0 65535
-                               (addIfAlive (vitality slot) hp)) (field slot)
-
-replaceVitalityIfDead :: Vitality -> Slot -> Slot
-replaceVitalityIfDead hp slot = if (vitality slot) > 0 then slot else Slot hp (field slot)
-
-replaceField :: Value -> Slot -> Slot
-replaceField value slot = Slot (vitality slot) value
-
-newtype Slots = Slots (Array Int Slot)
-    deriving Eq
-
-instance Show Slots where
-    show (Slots arr) = concatMap showSlotOnALine $ filter isInteresting $ assocs arr
-        where isInteresting (_, Slot 10000 (ValueCard IdentityCard)) = False
-              isInteresting _ = True
-              showSlotOnALine (n, slot) = (show n) ++ "=" ++ (show slot) ++ "\n"
-
-transformSlot :: (Slot -> Slot) -> SlotNumber -> Slots -> Slots
-transformSlot transformation idx (Slots slots) = Slots $ slots // [(idx, transformation (slots ! idx) )]
-
-updateVitality :: Vitality -> SlotNumber -> Slots -> Slots
-updateVitality hp idx slots = transformSlot (replaceVitality hp) idx slots
-
-changeVitalityInSlot :: Slots -> SlotNumber -> Vitality -> Slots
-changeVitalityInSlot slots idx adjustment = transformSlot (changeVitality adjustment) idx slots
-
-replaceVitalityOnDeadSlot :: Slots -> SlotNumber -> Vitality -> Slots
-replaceVitalityOnDeadSlot slots idx vitality = transformSlot (replaceVitalityIfDead vitality) idx slots
-
-updateField :: Value -> SlotNumber -> Slots -> Slots
-updateField value idx slots = transformSlot (replaceField value) idx slots
-
-extractVitality :: Slots -> SlotNumber -> Vitality
-extractVitality (Slots slots) idx = vitality (slots ! idx)
-
-extractField :: Slots -> SlotNumber -> Value
-extractField (Slots slots) idx = field (slots ! idx)
 
 data Who = FirstPlayer | SecondPlayer
          deriving (Eq, Show)
@@ -66,15 +18,26 @@ data Who = FirstPlayer | SecondPlayer
 opponent FirstPlayer = SecondPlayer
 opponent SecondPlayer = FirstPlayer
 
-data GameState = GameState { playerToMove :: Who, firstPlayerBoard :: Slots, secondPlayerBoard :: Slots, zombiesAreOut :: Bool }
+data GameState = GameState { playerToMove :: Who,
+                             firstPlayerBoard :: Slots,
+                             secondPlayerBoard :: Slots,
+                             zombiesAreOut :: Bool }
                deriving (Eq, Show)
 
 showGameStateNicely :: GameState -> String
-showGameStateNicely gs = unlines $
-                         [show (playerToMove gs) ++ " to move" ++ if zombiesAreOut gs then " (zombies)" else ""
-                         ,"First player board:\n" ++ show (firstPlayerBoard gs)
-                         ,"Second player board:\n" ++ show (secondPlayerBoard gs)
-                         ]
+showGameStateNicely gs =
+  unlines $
+  [ show (playerToMove gs) ++ " to move" ++
+    if zombiesAreOut gs then " (zombies)" else ""
+  , "First player board:\n" ++ show (firstPlayerBoard gs)
+  , "Second player board:\n" ++ show (secondPlayerBoard gs)
+  ]
+
+initialState :: GameState
+initialState = GameState FirstPlayer initialSide initialSide False
+
+switchPlayer :: GameState -> GameState
+switchPlayer state = state { playerToMove = opponent (playerToMove state) }
 
 -- This is a perspective on the board, as viewed by some player or zombie.
 -- "player1's view of player 2's board" means actor is FirstPlayer, viewer is SecondPlayer.
@@ -137,27 +100,10 @@ gsMyEnemy (GameState who p1 p2 zombies) =
 alterFirstBoard :: (Slots -> Slots) -> GameState -> GameState
 alterFirstBoard transform (GameState who firstBoard secondBoard zombies) = GameState who (transform firstBoard) secondBoard zombies
 
-switchPlayer :: GameState -> GameState
-switchPlayer (GameState FirstPlayer side1 side2 zombies) =
-  GameState SecondPlayer side1 side2 zombies
-switchPlayer (GameState SecondPlayer side1 side2 zombies) =
-  GameState FirstPlayer side1 side2 zombies
-
 beginZombieApocolypse (GameState who s1 s2 _) = GameState who s1 s2 True
 quellZombieApocolypse (GameState who s1 s2 _) = GameState who s1 s2 False
 
-initialState :: GameState
-initialState = GameState FirstPlayer initialSide initialSide False
-
-initialSide :: Slots
-initialSide = Slots $
-              array (0,255::Int) [(n,Slot 10000 (valueI)) |
-                                  n <- [0..255]]
-
 test_GameState = [
-    updateVitality 19 1 (Slots testSlots) ~?= Slots (testSlots // [(1, Slot 19 valueI)]),
-    updateField (ValueNum 5) 1 (Slots testSlots) ~?= Slots (testSlots // [(1, Slot 10000 (ValueNum 5))]),
-
     -- Begin tests to get the right perspectives
     gsMyFriend startingGame ~?= player1,
     gsMyFriend (switchPlayer startingGame) ~?= player2,
@@ -216,8 +162,6 @@ test_GameState = [
     startingGame = GameState FirstPlayer firstSide secondSide False
     zombieTime = GameState FirstPlayer firstSide secondSide True
     someDeath = GameState FirstPlayer deadCellSide deadCellSide True
-    testSlots = array (0,3::Int) [(n,Slot 10000 (valueI)) |
-                        n <- [0..3]]
     player1 = perspectiveFor FirstPlayer False
     player2 = perspectiveFor SecondPlayer False
     zombie1 = perspectiveFor FirstPlayer True

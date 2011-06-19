@@ -5,6 +5,7 @@ import Test.HUnit
 import GameState
 import Value
 import Card
+import Slots
 import MoveStep
 
 validSlot :: Int -> MoveStep ()
