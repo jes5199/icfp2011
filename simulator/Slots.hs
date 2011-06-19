@@ -71,12 +71,12 @@ updateVitality hp idx slots = transformSlot (slotReplaceVitality hp) idx slots
 updateField :: Value -> SlotNumber -> Slots -> Slots
 updateField value idx slots = transformSlot (slotReplaceField value) idx slots
 
-changeVitalityInSlot :: Slots -> SlotNumber -> Vitality -> Slots
-changeVitalityInSlot slots idx adjustment =
+changeVitalityInSlot :: SlotNumber -> Vitality -> Slots -> Slots
+changeVitalityInSlot idx adjustment slots =
   transformSlot (slotChangeVitality adjustment) idx slots
 
-replaceVitalityOnDeadSlot :: Slots -> SlotNumber -> Vitality -> Slots
-replaceVitalityOnDeadSlot slots idx vitality =
+replaceVitalityOnDeadSlot :: SlotNumber -> Vitality -> Slots -> Slots
+replaceVitalityOnDeadSlot idx vitality slots =
   transformSlot (slotReplaceVitalityIfDead vitality) idx slots
 
 test_Slots = [

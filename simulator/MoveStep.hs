@@ -113,13 +113,13 @@ liftPerspective p =
   ( \n -> do state <- getGameState
              return $ gsGetField p state n)
   ( \n v -> do state <- getGameState
-               putGameState $ gsPayVitalityCost p state n v)
+               putGameState $ gsPayVitalityCost n v p state)
   ( \n v -> do state <- getGameState
-               putGameState $ gsApplyVitalityConsequence p state n v)
+               putGameState $ gsApplyVitalityConsequence n v p state)
   ( \n a -> do state <- getGameState
-               putGameState $ gsSetField p state n a)
+               putGameState $ gsSetField n a p state)
   ( \n v -> do state <- getGameState
-               putGameState $ gsSetVitalityOnDeadSlot p state n v)
+               putGameState $ gsSetVitalityOnDeadSlot n v p state)
 
 myFriend :: MoveStep Perspective
 myFriend = do (state,_) <- get
