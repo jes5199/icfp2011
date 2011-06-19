@@ -1,4 +1,4 @@
-module Strategy(test_Strategy, buildValue, applyRightVine, isVine, isRightVine) where
+module SimpleBuilder(test_SimpleBuilder, buildValue, applyRightVine, isVine, isRightVine) where
 
 import Control.Monad.State
 import Test.HUnit ( (~?=) )
@@ -77,7 +77,7 @@ buildValue destSlot (ValueApplication f x)
                      let moves3 = applyRightVine destSlot $ translateValue $ ValueApplication (ValueCard GetCard) (ValueNum slotToUse)
                      return $ moves1 ++ moves2 ++ moves3
 
-test_Strategy = [
+test_SimpleBuilder = [
   isVine dbl ~?= True,
   isVine (ValueNum 1) ~?= True,
   isVine (ValueApplication succ zero) ~?= True,
