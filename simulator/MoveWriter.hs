@@ -37,7 +37,7 @@ move m = do
                           tell [m]
     (gs', Left msg) -> lift $ lift $ Left $ unlines $
                        ["Error occurred while executing " ++ show m
-                       ,"Game state was " ++ showGameStateNicely gs
+                       ,"Game state was " ++ show gs
                        ,"Error message: " ++ msg
                        ]
 

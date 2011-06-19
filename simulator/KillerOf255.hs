@@ -39,13 +39,22 @@ setUpTheBomb = makeStrategy
 
 killSomeOfThem = makeStrategy
     (allTrue ([(isDead his 255)] ++ (map (enoughHp his 8192) [0..2])))
-    ([Desire 100.0 (GoalConj [OpponentSlotsDeadStartingAt 0])])
+    [Desire 100.0 (GoalConj [OpponentSlotsDeadStartingAt 0])]
     (\objective -> case objective of
         [OpponentSlotsDeadStartingAt 0] -> Just goblinSappersAtLowEnd
         _ -> Nothing)
 
+doublePunchForce = 8160
+
+doublePunchStrategy = makeStrategy
+    (allTrue [(isAlive his 0), (enoughHp mine doublePunchForce 126), (enoughHp mine doublePunchForce 127)])
+    ([Desire 110.0 (GoalConj [OpponentSlotDead 0] )])
+    (\objective -> case objective of
+        [OpponentSlotDead 0] -> Just doublePunch
+        _ -> Nothing)
+
 strategies :: [Strategy]
-strategies = [setUpTheBomb, killSomeOfThem]
+strategies = [setUpTheBomb, killSomeOfThem, doublePunchStrategy]
 
 goblinSappersAtLowEnd :: MoveWriter ()
 goblinSappersAtLowEnd =
@@ -92,3 +101,50 @@ speedKillTheMadBomberCell =
        leftApply 129 AttackCard
        rightApply 129 ZeroCard
        rightApplyRV 129 (parse "get 0") -- should fire the gun. I don't want it to build something that will delay fire. I didn't say to bind it or make it lazy or anything.
+
+doublePunch :: MoveWriter ()
+doublePunch =
+  do rightApply 0 ZeroCard
+     leftApply  0 SuccCard
+     leftApply  0 DoubleCard
+     leftApply  0 SuccCard
+     leftApply  0 DoubleCard
+     leftApply  0 SuccCard
+     leftApply  0 DoubleCard
+     leftApply  0 SuccCard
+     leftApply  0 DoubleCard
+     leftApply  0 SuccCard
+     leftApply  0 DoubleCard
+     leftApply  0 SuccCard
+     leftApply  0 DoubleCard
+     rightApply 1 ZeroCard
+     leftApply 1 GetCard
+     leftApply 0 SuccCard
+     rightApply 2 ZeroCard
+     leftApply 2 GetCard
+     leftApply 1 AttackCard
+     leftApply 2 AttackCard
+     leftApply 1 KCard
+     leftApply 2 KCard
+     leftApply 1 SCard
+     leftApply 2 SCard
+     rightApply 1 GetCard
+     rightApply 2 GetCard
+     leftApply 0 DoubleCard
+     leftApply 0 SuccCard
+     rightApply 1 ZeroCard
+     rightApply 2 ZeroCard
+     leftApply 1 KCard
+     leftApply 2 KCard
+     leftApply 1 SCard
+     leftApply 2 SCard
+     rightApply 1 GetCard
+     rightApply 2 GetCard
+     leftApply 0 DoubleCard
+     leftApply 0 DoubleCard
+     leftApply 0 DoubleCard
+     leftApply 0 DoubleCard
+     leftApply 0 DoubleCard
+     rightApply 1 ZeroCard
+     rightApply 2 ZeroCard
+

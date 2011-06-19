@@ -14,7 +14,7 @@ import qualified KillerOf255
 main :: IO ()
 main = do
     [arg] <- getArgs
-    let our_brain   = makePlanner [AltPlanner.drive] [AltPlanner.contractor, AltPlanner.contractor2] KillerOf255.strategies
+    let our_brain   = makePlanner [] [AltPlanner.contractor, AltPlanner.contractor2] KillerOf255.strategies
     let their_brain = ExternalPlayer
     if (arg == "0")
        then play initialState [] our_brain   [] their_brain
@@ -44,7 +44,7 @@ play state   [] brain   other_plan other_brain = do
     play state new_plan brain other_plan other_brain
 
 play state   whole_plan brain   other_plan other_brain = do
-    let (move:rest_of_plan) = getInterrupts brain state ++ whole_plan
+    let (move:rest_of_plan) = (getInterrupts brain state whole_plan) ++ whole_plan
     case brain of
         (ExternalPlayer) -> do return ()
         _ -> do mapM_ putStrLn (printMove move)
