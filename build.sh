@@ -1,5 +1,7 @@
 ./test.sh
 
+rm -rf build
+
 mkdir -p build/src
 echo "#!/bin/bash" > build/install
 echo "true" >> build/install
