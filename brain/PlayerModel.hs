@@ -11,13 +11,13 @@ import Parser
 --
 -- Player Model
 --
--- A PlayerModel encapsulates collection functions that players use to make choices 
---     about their moves
+-- A PlayerModel encapsulates collection functions that players use
+-- to make choices about their moves
 data PlayerModel = PlayerModel { goalAgents :: [ GameState -> [Goal] ], priorityAgents :: [ Goal -> Int ] }
 
 
 
-data Goal = TakeSpecificAction Move 
+data Goal = TakeSpecificAction Move
      |      BuildValue SlotNumber Value
      |      BuildValueSomewhere Value
      |      ReviveCell SlotNumber
@@ -29,8 +29,8 @@ data Goal = TakeSpecificAction Move
 --
 
 -- Make a specfic thing at a specific location, unless it's already there
-gaMakeThisAt what targetCell game_state = 
-    let 
+gaMakeThisAt what targetCell game_state =
+    let
        structure = parse what
        structure' = translateValue structure
        current_contents = (gsGetField (gsMyFriend game_state)) game_state targetCell
@@ -38,8 +38,9 @@ gaMakeThisAt what targetCell game_state =
     if current_contents == structure || current_contents == structure' then []
     else [BuildValue targetCell structure']
 
--- TODO: read and parse the action they took and assume that doing that was their goal
---     (Note: this should be expressed as a "do this", not acomplish this) 
+-- TODO: read and parse the action they took and assume that doing that was
+-- their goal
+--     (Note: this should be expressed as a "do this", not acomplish this)
 gaExternal game_state = [TakeSpecificAction (Move LeftApplication IdentityCard 0)]
 
 gaReviveTheDead = undefined
