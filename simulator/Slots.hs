@@ -1,4 +1,5 @@
-module Slots (Vitality, Slot(..), SlotNumber, Slots(..),
+module Slots (Vitality, Slot, vitality, field,
+              SlotNumber, Slots(..),
               extractVitality, extractField,
               updateVitality, updateField,
               changeVitalityInSlot, replaceVitalityOnDeadSlot,
@@ -13,49 +14,59 @@ import Util
 type Vitality = Int
 
 data Slot = Slot { vitality :: !Vitality, field :: !Value }
-          deriving (Eq)
+          deriving Eq
 
 instance Show Slot where
     show (Slot v f) = "{" ++ (show v) ++ "," ++ (show f) ++ "}"
 
-replaceVitality :: Vitality -> Slot -> Slot
-replaceVitality hp slot = Slot hp (field slot)
+initialSlot = Slot { vitality = 10000, field = valueI }
 
-changeVitality :: Vitality -> Slot -> Slot
-changeVitality hp slot = Slot (clampInt 0 65535
-                               (addIfPositive (vitality slot) hp)) (field slot)
+slotReplaceVitality :: Vitality -> Slot -> Slot
+slotReplaceVitality hp slot = slot { vitality = hp }
 
-replaceVitalityIfDead :: Vitality -> Slot -> Slot
-replaceVitalityIfDead hp slot = if (vitality slot) > 0 then slot else Slot hp (field slot)
+slotReplaceField :: Value -> Slot -> Slot
+slotReplaceField value slot = slot { field = value }
 
-replaceField :: Value -> Slot -> Slot
-replaceField value slot = Slot (vitality slot) value
+slotChangeVitality :: Vitality -> Slot -> Slot
+slotChangeVitality hp slot = slotReplaceVitality
+                             (clampInt 0 65535
+                              (addIfPositive (vitality slot) hp))
+                             slot
+
+slotReplaceVitalityIfDead :: Vitality -> Slot -> Slot
+slotReplaceVitalityIfDead hp slot = if vitality slot > 0
+                                    then slot
+                                    else slotReplaceVitality hp slot
 
 type SlotNumber = Int
 
 newtype Slots = Slots (Array SlotNumber Slot)
-    deriving Eq
+              deriving Eq
 
 instance Show Slots where
-    show (Slots arr) = concatMap showSlotOnALine $ filter isInteresting $ assocs arr
-        where isInteresting (_, Slot 10000 (ValueCard IdentityCard)) = False
-              isInteresting _ = True
-              showSlotOnALine (n, slot) = (show n) ++ "=" ++ (show slot) ++ "\n"
+  show (Slots arr) = concatMap showSlotOnALine $
+                     filter isInteresting $
+                     assocs arr
+    where isInteresting = (/= initialSlot) . snd
+          showSlotOnALine (n, slot) = (show n) ++ "=" ++ (show slot) ++ "\n"
 
 transformSlot :: (Slot -> Slot) -> SlotNumber -> Slots -> Slots
-transformSlot transformation idx (Slots slots) = Slots $ slots // [(idx, transformation (slots ! idx) )]
+transformSlot transformation idx (Slots slots) =
+  Slots $ slots // [(idx, transformation (slots ! idx) )]
 
 updateVitality :: Vitality -> SlotNumber -> Slots -> Slots
-updateVitality hp idx slots = transformSlot (replaceVitality hp) idx slots
-
-changeVitalityInSlot :: Slots -> SlotNumber -> Vitality -> Slots
-changeVitalityInSlot slots idx adjustment = transformSlot (changeVitality adjustment) idx slots
-
-replaceVitalityOnDeadSlot :: Slots -> SlotNumber -> Vitality -> Slots
-replaceVitalityOnDeadSlot slots idx vitality = transformSlot (replaceVitalityIfDead vitality) idx slots
+updateVitality hp idx slots = transformSlot (slotReplaceVitality hp) idx slots
 
 updateField :: Value -> SlotNumber -> Slots -> Slots
-updateField value idx slots = transformSlot (replaceField value) idx slots
+updateField value idx slots = transformSlot (slotReplaceField value) idx slots
+
+changeVitalityInSlot :: Slots -> SlotNumber -> Vitality -> Slots
+changeVitalityInSlot slots idx adjustment =
+  transformSlot (slotChangeVitality adjustment) idx slots
+
+replaceVitalityOnDeadSlot :: Slots -> SlotNumber -> Vitality -> Slots
+replaceVitalityOnDeadSlot slots idx vitality =
+  transformSlot (slotReplaceVitalityIfDead vitality) idx slots
 
 extractVitality :: Slots -> SlotNumber -> Vitality
 extractVitality (Slots slots) idx = vitality (slots ! idx)
@@ -64,9 +75,7 @@ extractField :: Slots -> SlotNumber -> Value
 extractField (Slots slots) idx = field (slots ! idx)
 
 initialSide :: Slots
-initialSide = Slots $
-              array (0,255::Int) [(n,Slot 10000 (valueI)) |
-                                  n <- [0..255]]
+initialSide = Slots $ array (0,255) [(n,initialSlot) | n <- [0..255]]
 
 test_Slots = [
     updateVitality 19 1 (Slots testSlots) ~?= Slots (testSlots // [(1, Slot 19 valueI)]),
