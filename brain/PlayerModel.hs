@@ -13,7 +13,10 @@ import Parser
 --
 -- A PlayerModel encapsulates collection functions that players use
 -- to make choices about their moves
-data PlayerModel = ModeledPlayer { goalAgents :: [ GameState -> [Goal] ], priorityAgents :: [ Goal -> Int ] } | ExternalPlayer { }
+data PlayerModel =
+  ModeledPlayer { goalAgents :: [ GameState -> [Goal] ],
+                  priorityAgents :: [ Goal -> Int ] } |
+  ExternalPlayer { }
 
 
 
