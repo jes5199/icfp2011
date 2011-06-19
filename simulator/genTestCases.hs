@@ -12,6 +12,8 @@ import Data.List
 import Statements
 import GameState
 import Simulator
+import MoveWriter(MoveWriter,execMoveWriter)
+import qualified KillerOf255
 
 type TestCaseGenerator = StateT ([SlotNumber], [SlotNumber], Who) (Writer [TestCaseAtom])
 
@@ -103,6 +105,11 @@ testCycleCount wasteCycles = do
     where waste 0 value = value
           waste n value = ValueApplication (ValueApplication (ValueCard SCard) (waste (n-1) value))
                                            (ValueCard IdentityCard)
+
+runMoveWriter :: GameState -> MoveWriter () -> TestCaseGenerator ()
+runMoveWriter gs moveWriter = case execMoveWriter gs moveWriter of
+                                Nothing -> error "runMoveWriter failed"
+                                Just moves -> tellMoves moves
 
 testCases :: [(String, TestCaseGenerator ())]
 testCases = [
@@ -458,7 +465,10 @@ testCases = [
 --    assertProponent (\pers gs -> gsGetVitality pers gs 255 == 0)
     buildNewValueAt (goblinSapperBomb 8192 1) 1  -- I have an 8096 on cell 0. Perhpas hand-construct a bomb with copy 0 instead of damage #
     buildNewValueAt (loneZombie 0 1 0) 130
-    return () )
+    return () ),
+ ("killerOf255", do
+    runMoveWriter initialState KillerOf255.speedKillTheMadBomberCell
+    assertOpponent (\pers gs -> gsGetVitality pers gs 255 == 0 ))
  ]
 
 testCaseAtomsToMoves :: String -> [TestCaseAtom] -> [Move]
