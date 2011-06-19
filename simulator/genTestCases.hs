@@ -456,6 +456,11 @@ testCases = [
     buildNewValueAt (goblinSapperBomb 8192 1) 1  -- I have an 8192 on cell 0. Perhpas hand-construct a bomb with copy 0 instead of damage #
     buildNewValueAt (loneZombie 0 1 0) 130
     return () ),
+  ("zombie_sapper_to_low_registers", do
+    runMoveWriter initialState KillerOf255.speedKillTheMadBomberCell
+    assertOpponent (\pers gs -> gsGetVitality pers gs 255 == 0 )
+--    runMoveWriter initialState KillerOf255.goblinSappersAtLowEnd
+    return () ),
  ("killerOf255", do
     runMoveWriter initialState KillerOf255.speedKillTheMadBomberCell
     assertOpponent (\pers gs -> gsGetVitality pers gs 255 == 0 ))
