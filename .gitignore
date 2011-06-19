@@ -2,3 +2,5 @@ test_cases
 test_results
 build/
 build.tar.gz
+
+*.lkshs
