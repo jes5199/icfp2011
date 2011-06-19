@@ -13,19 +13,24 @@ import Strategy
 import PlayerModel(PlayerModel(PurePlayer))
 
 type Goal = [GoalItem]
-type GoalItem = (SlotNumber, Value)
+data GoalItem = BuildGoal SlotNumber Value
+              | TriggerGoal SlotNumber Card
 
 horizon = 100
 
+giSlot (BuildGoal slot val) = slot
+giSlot (TriggerGoal slot card) = slot
+
 -- decide what to do.
-thinkOfGoal :: GameState -> [(SlotNumber, Value)]
+thinkOfGoal :: GameState -> Goal
 --thinkOfGoal gs = [ (0, (ValueApplication (grapeshot 512 0) (ValueNum 0)) ) ]
 -- thinkOfGoal gs = [ (0, (grapeshot 512 0)) ]
-thinkOfGoal gs = [ (0, (ValueCard SCard) )]
+thinkOfGoal gs = [ (BuildGoal 0 (ValueCard SCard) )]
 
-naiveStepsToGoalItem :: (SlotNumber, Value) -> [Move]
-naiveStepsToGoalItem (destSlot, (ValueCard IdentityCard) ) = []
-naiveStepsToGoalItem (destSlot, thing) = fst $ runState (buildValue destSlot (translateValue thing)) [0..255]
+naiveStepsToGoalItem :: GoalItem -> [Move]
+naiveStepsToGoalItem (TriggerGoal _ _) = []
+naiveStepsToGoalItem (BuildGoal destSlot (ValueCard IdentityCard) ) = []
+naiveStepsToGoalItem (BuildGoal destSlot thing) = fst $ runState (buildValue destSlot (translateValue thing)) [0..255]
 
 --naiveStepsToGoal goal = concatMap naiveStepsToGoalItem goal -- TODO: avoid conflicts
 naiveStepsToGoal :: Goal -> [Move]
@@ -41,11 +46,11 @@ previousNaiveGoal goal = (last steps, gsToGoal prevGS)
 gsToGoal :: GameState -> Goal
 gsToGoal gs = map slotToGoalItem [0..255]
   -- this is really fucking naive, it assumes everything must be exact.
-  where slotToGoalItem num = (num, getSlotValue gs num)
+  where slotToGoalItem num = BuildGoal num (getSlotValue gs num)
 
 
 breadthFirstSearch :: Int -> GameState -> [Goal] -> Move
-breadthFirstSearch 0 _ _ = Move RightApplication ZeroCard 4
+breadthFirstSearch 0 _ _ = Move LeftApplication IdentityCard 42
 breadthFirstSearch limit gs goals = maybe deeper fst satisfiedGoal
   where choices = concatMap thingsThatCouldMakeThis goals
         -- if any choice's goal is satisfied, then we do the first move.
@@ -65,7 +70,8 @@ heuristicDistanceFromGoal gs goal = countFalses $ map (metGoalItem gs) goal
   where countFalses = foldl (\acc x -> acc + if x == False then 1 else 0 ) 0
 
 metGoalItem :: GameState -> GoalItem -> Bool
-metGoalItem gs (slot, value) = value == mySlotValue
+metGoalItem gs (TriggerGoal _ _) = False
+metGoalItem gs (BuildGoal slot value) = value == mySlotValue
   where mySlotValue = getSlotValue gs slot
 
 getSlotValue gs = gsGetField ( gsMyFriend gs ) gs
