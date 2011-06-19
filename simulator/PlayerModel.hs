@@ -75,24 +75,53 @@ planStepsBlindly (BuildValue loc val) game_state = fst $ runState (buildValue lo
 
 getInterrupts :: PlayerModel -> GameState -> [Move]
 getInterrupts (ExternalPlayer) _ = []
-getInterrupts (PurePlayer _) gameState = restoreZero $ restoreOne $ []
-  where restoreZero next = if getSlotVitality gameState 0 == 0
-                              then case findMe gameState (ValueNum 0) of
-                                     Nothing  -> [ Move RightApplication ZeroCard 199 ]
-                                     Just x   -> [ Move LeftApplication ReviveCard x, Move RightApplication ZeroCard x ]
-                              else next
-        restoreOne  next = if getSlotVitality gameState 1 == 0
-                              then case findMe gameState (ValueNum 1) of
-                                     Nothing  -> repairOneIn198 $ getSlotValue gameState 198
-                                     Just x   -> [ Move LeftApplication ReviveCard x, Move RightApplication ZeroCard x ]
-                              else next
+getInterrupts (PurePlayer _) 
+    gameState = reviveZero $
+                reviveOne $
+                grabOur 255 197 $
+                grabTheir 255 197 $
+                grabOur 254 196 $
+                grabTheir 254 196 $
+                []
+    where
+        reviveZero next =
+            if getSlotVitality gameState 0 == 0
+            then
+                case findMe gameState (ValueNum 0) of
+                Nothing  -> [ Move RightApplication ZeroCard 199 ]
+                Just x   -> [ Move LeftApplication ReviveCard x, Move RightApplication ZeroCard x ]
+            else next
+        reviveOne  next = 
+            if getSlotVitality gameState 1 == 0
+            then
+                case findMe gameState (ValueNum 1) of
+                Nothing  -> repairOneIn198 $ getSlotValue gameState 198
+                Just x   -> [ Move LeftApplication ReviveCard x, Move RightApplication ZeroCard x ]
+            else next
         repairOneIn198 v
           | v == (ValueNum 0)             = [ Move LeftApplication  SuccCard 198 ]
           | v == (ValueCard IdentityCard) = [ Move RightApplication ZeroCard 198 ]
           | otherwise                     = [ Move LeftApplication  PutCard  198 ]
+        grabOur val loc next =
+            if getSlotValue gameState 0 == (ValueNum val) && getSlotValue gameState loc /= (ValueNum val)
+            then 
+                case getSlotValue gameState loc of
+                ValueCard IdentityCard -> [ Move RightApplication ZeroCard loc ]
+                ValueNum 0             -> [ Move LeftApplication  GetCard  loc ]
+                _                      -> []
+            else next
+        grabTheir val loc next =
+            if getTheirSlotValue gameState 0 == (ValueNum val) && getSlotValue gameState loc /= (ValueNum val)
+            then 
+                case getSlotValue gameState loc of
+                ValueCard IdentityCard -> [ Move RightApplication ZeroCard loc ]
+                ValueNum 0             -> [ Move LeftApplication  CopyCard loc ]
+                _                      -> []
+            else []
 
 getSlotVitality gs = gsGetVitality ( gsMyFriend gs ) gs
 getSlotValue gs = gsGetField ( gsMyFriend gs ) gs
+getTheirSlotValue gs = gsGetField ( gsMyEnemy gs ) gs
 
 findMe :: GameState -> Value -> Maybe SlotNumber
 findMe gs value = find (\x -> getSlotValue gs x == value ) (findLivingCells gs)
