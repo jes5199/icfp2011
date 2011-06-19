@@ -1,7 +1,8 @@
 ./test.sh
 
 mkdir -p build/src
-touch build/install
+echo "#!/bin/bash" > build/install
+echo "true" >> build/install
 chmod a+x build/install
 
 cp brain/braindriver build/run
