@@ -51,8 +51,8 @@ type Contractor = GameState -> GoalConj -> Either String Bid
 -- contractor.
 type Strategy = (Drive, Contractor)
 
-makePlanner :: [Drive] -> [Contractor] -> PlayerModel
-makePlanner drives contractors = PurePlayer (decide drives contractors)
+makePlanner :: [Drive] -> [Contractor] -> [Strategy] -> PlayerModel
+makePlanner drives contractors strategies = PurePlayer (decide (drives ++ (map fst strategies)) (contractors ++ (map snd strategies)))
 
 -- The function you call to decide what to do
 decide :: [Drive] -> [Contractor] -> GameState -> [Move]

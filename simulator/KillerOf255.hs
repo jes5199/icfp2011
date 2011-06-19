@@ -13,12 +13,17 @@ drive _ = []
 
 contractor :: Contractor
 contractor gs goal
-    = do GoalConj [OpponentSlotDead 255] <- return goal
-         moves <- execMoveWriterOrError gs speedKillTheMadBomberCell
-         return (FiniteCost (length moves), moves)
+    = do GoalConj objective <- return goal
+         case objective of
+            [OpponentSlotDead 255] -> do
+                 moves <- execMoveWriterOrError gs speedKillTheMadBomberCell
+                 return (FiniteCost (length moves), moves)
+            _ -> Left $ "I don't know how to handle " ++ show objective 
 
-strategy :: Strategy
-strategy = (drive, contractor)
+setUpTheBomb = (drive, contractor)
+
+strategies :: [Strategy]
+strategies = [setUpTheBomb]
 
 goblinSappersAtLowEnd :: MoveWriter ()
 goblinSappersAtLowEnd =
