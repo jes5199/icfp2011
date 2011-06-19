@@ -8,3 +8,6 @@ braindriver: *.hs
 
 genTestCases: *.hs
 	ghc -i../simulator --make -O3 genTestCases
+
+playerOfGames: *.hs
+	ghc -i../simulator --make -O3 playerOfGames

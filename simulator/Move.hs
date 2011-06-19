@@ -1,4 +1,4 @@
-module Move (Application(..),Move(..),SlotNumber,printMoves,slotNumOfMove) where
+module Move (Application(..),Move(..),SlotNumber,printMoves,printMove,slotNumOfMove) where
 
 import Card
 
@@ -12,8 +12,9 @@ data Move = Move Application Card SlotNumber
 
 printMoves :: [Move] -> String
 printMoves ms = unlines $ foldr (++) [] $ map printMove ms
-    where printMove (Move LeftApplication card slotNum) = ["1", show card, show slotNum]
-          printMove (Move RightApplication card slotNum) = ["2", show slotNum, show card]
+
+printMove (Move LeftApplication card slotNum) = ["1", show card, show slotNum]
+printMove (Move RightApplication card slotNum) = ["2", show slotNum, show card]
 
 slotNumOfMove :: Move -> SlotNumber
 slotNumOfMove (Move _ _ slot) = slot
