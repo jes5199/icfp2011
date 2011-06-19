@@ -73,13 +73,11 @@ perspectiveFor = GSPerspective
 
 -- The current actor's friend. An actor is a player or a zombie master.
 gsMyFriend :: GameState -> GSPerspective
-gsMyFriend (GameState who p1 p2 zombies) =
-    perspectiveFor who zombies
+gsMyFriend gs = perspectiveFor (playerToMove gs) (zombiesAreOut gs)
 
 -- The current actor's enemy. An actor is a player or a zombie master.
 gsMyEnemy :: GameState -> GSPerspective
-gsMyEnemy (GameState who p1 p2 zombies) =
-    perspectiveFor (opponent who) zombies
+gsMyEnemy gs = perspectiveFor (opponent $ playerToMove gs) (zombiesAreOut gs)
 
 gsGetSlots :: GSPerspective -> GameState -> Slots
 gsGetSlots p
