@@ -342,15 +342,40 @@ testCases = [
             return ()),
  ("Z00", do buildNewValue (parse "zombie 0 0")
             return ()),
+ ("Z.dead", do buildNewValue (parse "attack 0 123 8000")
+               buildNewValue (parse "attack 1 123 8000")
+               buildNewValue (parse "zombie 123 I")
+               buildNewValue (parse "S")
+               return ()),
  -- END ZOMBIE TESTS
- ("grapeshot", do buildNewValueAt (grapeShot 8192 0) 0
+ ("grapeshot", do buildNewValueAt (grapeshot 8192 0) 0
                   rightApply 0 ZeroCard
                   assertProponent (\pers gs -> all (\i -> gsGetVitality pers gs i == 1808) [0..65])
                   assertOpponent (\pers gs -> all (\i -> gsGetVitality pers gs i == 2628) [190..255])),
  ("firingSquad", do buildNewValueAt (firingSquad 256 100 0) 0
                     rightApply 0 ZeroCard
                     assertProponent (\pers gs -> all (\i -> gsGetVitality pers gs i == 9744) [0..65])
-                    assertOpponent (\pers gs -> gsGetVitality pers gs 155 == 0 ))
+                    assertOpponent (\pers gs -> gsGetVitality pers gs 155 == 0 )),
+ ("heal", do buildNewValueAt (heal 52 8192 0) 0
+             rightApply 0 ZeroCard
+             assertProponent (\pers gs -> gsGetVitality pers gs 52 == 65535 )
+             ),
+ ("spreadLove", do --buildNewValueAt (heal 0 8192 0) 0
+                   --rightApply 0 ZeroCard
+                   -- buildNewValueAt (spreadLove 49152 0) 0
+                   buildNewValueAt (spreadLove 900 0) 0
+                   rightApply 0 ZeroCard
+                   assertProponent (\pers gs -> gsGetVitality pers gs  0 ==  9100 )
+                   assertProponent (\pers gs -> all (\i -> gsGetVitality pers gs i == 10090) [1..65])
+                   assertProponent (\pers gs -> gsGetVitality pers gs 66 == 10990 )
+                   ),
+ ("cureLightWounds", do --buildNewValueAt (heal 0 8192 0) 0
+                     --rightApply 0 ZeroCard
+                     -- buildNewValueAt (spreadLove 49152 0) 0
+                     buildNewValueAt (cureLightWounds 999 0) 0
+                     rightApply 0 ZeroCard
+                     assertProponent (\pers gs -> all (\i -> gsGetVitality pers gs i == 10099) [0..65])
+                     )
  ]
 
 testCaseAtomsToMoves :: String -> [TestCaseAtom] -> [Move]
