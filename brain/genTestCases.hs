@@ -347,6 +347,21 @@ testCases = [
                buildNewValue (parse "zombie 123 I")
                buildNewValue (parse "S")
                return ()),
+ ("Z.something", do buildNewValue (parse "attack 0 123 8000")
+                    buildNewValue (parse "attack 1 123 8000")
+                    buildNewValue (parse "zombie 123 (S S K S S K)")
+                    buildNewValue (parse "S")
+                    return ()),
+ ("Z.inc", do buildNewValue (parse "attack 0 123 8000")
+              buildNewValue (parse "attack 1 123 8000")
+              buildNewValue (parse "zombie 123 (S(K(inc))(K(5)))")
+              buildNewValue (parse "S S")
+              return ()),
+ ("Z.dec", do buildNewValue (parse "attack 0 123 8000")
+              buildNewValue (parse "attack 1 123 8000")
+              buildNewValue (parse "zombie 123 (S(K(dec))(K(5)))")
+              buildNewValue (parse "S S")
+              return ()),
  -- END ZOMBIE TESTS
  ("grapeshot", do buildNewValueAt (grapeshot 8192 0) 0
                   rightApply 0 ZeroCard
@@ -359,7 +374,43 @@ testCases = [
  ("heal", do buildNewValueAt (heal 52 8192 0) 0
              rightApply 0 ZeroCard
              assertProponent (\pers gs -> gsGetVitality pers gs 52 == 65535 )
-             )
+             ),
+ ("spreadLove", do --buildNewValueAt (heal 0 8192 0) 0
+                   --rightApply 0 ZeroCard
+                   -- buildNewValueAt (spreadLove 49152 0) 0
+                   buildNewValueAt (spreadLove 900 0) 0
+                   rightApply 0 ZeroCard
+                   assertProponent (\pers gs -> gsGetVitality pers gs  0 ==  9100 )
+                   assertProponent (\pers gs -> all (\i -> gsGetVitality pers gs i == 10090) [1..65])
+                   assertProponent (\pers gs -> gsGetVitality pers gs 66 == 10990 )
+                   ),
+ ("cureLightWounds", do --buildNewValueAt (heal 0 8192 0) 0
+                     --rightApply 0 ZeroCard
+                     -- buildNewValueAt (spreadLove 49152 0) 0
+                     buildNewValueAt (cureLightWounds 999 0) 0
+                     rightApply 0 ZeroCard
+                     assertProponent (\pers gs -> all (\i -> gsGetVitality pers gs i == 10099) [0..65])
+                     ),
+ ("fastKill", do buildNewValueAt (fastKill 1 2 1) 0
+                 return ()
+                 -- assertProponent (\pers gs -> all (\i -> gsGetVitality pers gs i == 10099) [0..65])
+                 ),
+ ("massRaiseDead", do buildNewValueAt (fastKill 1 2 154) 0
+                      buildNewValueAt (fastKill 3 4 153) 10
+                      buildNewValueAt (fastKill 5 6 152) 20
+                      switchPlayers
+                      buildNewValueAt (massRaiseDead 0) 0
+                      rightApply 0 ZeroCard
+                      return ()
+                      ),
+ ("massResurrection", do buildNewValueAt (fastKill 1 2 244) 0
+                         buildNewValueAt (fastKill 3 4 243) 10
+                         buildNewValueAt (fastKill 5 6 242) 20
+                         switchPlayers
+                         buildNewValueAt (massResurrection 8192 0) 0
+                         rightApply 0 ZeroCard
+                         return ()
+                         )
  ]
 
 testCaseAtomsToMoves :: String -> [TestCaseAtom] -> [Move]
@@ -372,7 +423,7 @@ testCaseAtomsToMoves testName = testCaseAtomsToMoves' initialState
               | f gs = testCaseAtomsToMoves' gs rest
               | otherwise = error ("Assertion failure in test " ++ testName)
           nullMove = Move LeftApplication IdentityCard 0
-          updateGs move gs = switchPlayer $ fst $ simulate gs move -- TODO: zombies
+          updateGs move gs = switchPlayer $ fst $ simulateTurn (fst $ simulateZombies gs) move
 
 outputTestCase :: String -> TestCaseGenerator () -> IO ()
 outputTestCase testName testCase = do

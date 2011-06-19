@@ -27,7 +27,7 @@ play state   [] brain   other_plan other_brain = do
 play state   (move:rest_of_plan) brain   other_plan other_brain = do 
     putStr $ show $ firstPlayerBoard state
     putStr (printMoves [move])
-    let (state', err) = simulate state move
+    let (state', err) = simulateTurn (fst $ simulateZombies state) move
     -- switch players and recurse with the player's roles reversed
     let new_state = switchPlayer state'
     play new_state   other_plan other_brain   rest_of_plan brain
