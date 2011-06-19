@@ -86,3 +86,25 @@ nextMove gs = myMove
 altPlanner :: PlayerModel
 altPlanner = PurePlayer ((\x->[x]) . nextMove)
 
+planBuildGoal :: GoalItem -> [(Move, Goal)]
+-- "I could make this if I had..."
+planBuildGoal (BuildGoal slot value)
+  | value == (ValueCard IdentityCard) = [( Move LeftApplication PutCard slot , [] )] -- no prereq to empty a slot with put
+  | isVine value = planVine slot value
+
+planBuildGoal _ = [] -- "I don't see any way to do that."
+
+
+-- like buildVine, but only to depth 1
+planVine :: SlotNumber -> Value -> [(Move, Goal)]
+planVine slot vine = planVine' vine
+    where planVine' (ValueCard c) = [(Move RightApplication c slot, cleanSlateGoal)]
+          planVine' (ValueNum v) = planNum v
+          planVine' (ValueApplication (ValueCard c) v) = [((Move LeftApplication c slot), inSlotGoal v)]
+        --planVine' (ValueApplication v (ValueCard c)) = planVine' v . (Move RightApplication c slot :)
+        --planVine' (ValueApplication v w) = error "planVine: not a vine"
+          inSlotGoal value = [(BuildGoal slot value )]
+          cleanSlateGoal = inSlotGoal (ValueCard IdentityCard)
+
+-- I could make an N if I had N-1, or exactly N/2
+planNum v = undefined
