@@ -65,6 +65,9 @@ switchPlayers = do
   (p1Slots, p2Slots, who) <- get
   put (p1Slots, p2Slots, opponent who)
 
+rightVineBuild :: Int -> Value -> TestCaseGenerator ()
+rightVineBuild slotNum value = tellMoves $ applyRightVine slotNum value
+
 buildNewValue :: Value -> TestCaseGenerator SlotNumber
 buildNewValue value = do
   who <- getProponent
@@ -87,6 +90,9 @@ buildNewValueAt value destSlot = do
 
 rightApply :: SlotNumber -> Card -> TestCaseGenerator ()
 rightApply slot card = tellMoves [Move RightApplication card slot]
+
+leftApply :: SlotNumber -> Card -> TestCaseGenerator ()
+leftApply slot card = tellMoves [Move LeftApplication card slot]
 
 testCycleCount :: Int -> TestCaseGenerator ()
 testCycleCount wasteCycles = do
@@ -420,7 +426,23 @@ testCases = [
                          buildNewValueAt (massResurrection 8192 0) 0
                          rightApply 0 ZeroCard
                          return ()
-                         )
+                         ),
+ ("optimized_slot_killer", do
+    buildNewValueAt (ValueNum 32) 0
+    buildNewValueAt (parse "get 0") 2
+    leftApply 0 DoubleCard
+    buildNewValueAt (parse "get 0") 3
+    sequence_ (replicate 6 (leftApply 0 DoubleCard))
+    buildNewValueAt (parse "get 0") 1
+    leftApply 0 DoubleCard
+    leftApply 2 AttackCard
+    rightApply 2 ZeroCard
+    rightVineBuild 2 (parse "get 1")
+    leftApply 3 AttackCard
+    rightApply 3 ZeroCard
+    rightVineBuild 3 (parse "get 0")
+    return ()
+ )
  ]
 
 testCaseAtomsToMoves :: String -> [TestCaseAtom] -> [Move]
