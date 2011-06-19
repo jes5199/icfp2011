@@ -347,6 +347,31 @@ testCases = [
                buildNewValue (parse "zombie 123 I")
                buildNewValue (parse "S")
                return ()),
+ ("Z.something", do buildNewValue (parse "attack 0 123 8000")
+                    buildNewValue (parse "attack 1 123 8000")
+                    buildNewValue (parse "zombie 123 (S S K S S K)")
+                    buildNewValue (parse "S")
+                    return ()),
+ ("Z.inc", do buildNewValue (parse "attack 0 123 8000")
+              buildNewValue (parse "attack 1 123 8000")
+              buildNewValue (parse "zombie 123 (S(K(inc))(K(5)))")
+              buildNewValue (parse "S S")
+              return ()),
+ ("Z.dec", do buildNewValue (parse "attack 0 123 8000")
+              buildNewValue (parse "attack 1 123 8000")
+              buildNewValue (parse "zombie 123 (S(K(dec))(K(5)))")
+              buildNewValue (parse "S S")
+              return ()),
+ ("Z.attack", do buildNewValue (parse "attack 0 123 8000")
+                 buildNewValue (parse "attack 1 123 8000")
+                 buildNewValue (parse "zombie 123 (S(K(attack 34 56))(K(1234)))")
+                 buildNewValue (parse "S S")
+                 return ()),
+ ("Z.help", do buildNewValue (parse "attack 0 123 8000")
+               buildNewValue (parse "attack 1 123 8000")
+               buildNewValue (parse "zombie 123 (S(K(help 99 222))(K(4321)))")
+               buildNewValue (parse "S S")
+               return ()),
  -- END ZOMBIE TESTS
  ("grapeshot", do buildNewValueAt (grapeshot 8192 0) 0
                   rightApply 0 ZeroCard

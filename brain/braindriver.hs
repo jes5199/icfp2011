@@ -20,8 +20,12 @@ main = do
 --
 play :: GameState ->   [Move] -> PlayerModel ->   [Move] -> PlayerModel -> IO ()
 play state   [] brain   other_plan other_brain = do
-    play state (planSteps (chooseGoal brain state ) state) brain other_plan other_brain
+    let goal = chooseGoal brain state
+    print goal
+    play state (planSteps goal state) brain other_plan other_brain
+    -- play state (planSteps (chooseGoal brain state ) state) brain other_plan other_brain
 play state   (move:rest_of_plan) brain   other_plan other_brain = do 
+    putStr $ show $ firstPlayerBoard state
     putStr (printMoves [move])
     let (state', err) = simulateTurn (fst $ simulateZombies state) move
     -- switch players and recurse with the player's roles reversed
