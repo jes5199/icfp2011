@@ -79,7 +79,7 @@ runZombieSlot state slot =
                            postZombieState
           applyMsg = "applying zombie slot " ++ show slot ++ "={-1," ++ show (fromRight $ snd $ runMove (getProponentField slot) state) ++ "} to I"
       in case message of
-        Left x -> (finalState,[x,applyMsg])
+        Left x -> (finalState, ["Exception: "++ x, applyMsg])
         _ -> (finalState,[applyMsg])
     _ -> (state, [])
 
