@@ -1,13 +1,13 @@
 all: braintester braindriver genTestCases
 
-braintester: *.hs ../simulator/*.hs
+braintester: *.hs
 	ghc -i../simulator --make -O3 braintester
 
-braindriver: *.hs ../simulator/*.hs
+braindriver: *.hs
 	ghc -i../simulator --make -O3 braindriver
 
-genTestCases: *.hs ../simulator/*.hs
+genTestCases: *.hs
 	ghc -i../simulator --make -O3 genTestCases
 
-clean:
-	rm -f *.hi *.o *~ braintester braindriver genTestCases
+playerOfGames: *.hs
+	ghc -i../simulator --make -O3 playerOfGames
