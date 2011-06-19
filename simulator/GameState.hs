@@ -59,20 +59,31 @@ gsGetVitality pers = extractVitality . gsGetSlots pers
 gsGetField :: GSPerspective -> GameState -> SlotNumber -> Value
 gsGetField pers = extractField . gsGetSlots pers
 
+gsTransformSlots :: GSPerspective -> GameState ->
+                    (Slots -> Slots) -> GameState
+gsTransformSlots p gs f = gsSetSlots p gs (f $ gsGetSlots p gs)
+
 gsSetField :: GSPerspective -> GameState -> SlotNumber -> Value -> GameState
 gsSetField pers game idx value =
-  gsSetSlots pers game (updateField value idx (gsGetSlots pers game))
+  gsTransformSlots pers game (updateField value idx)
 
-gsPayVitalityCost :: GSPerspective -> GameState -> SlotNumber -> Vitality -> GameState
+gsPayVitalityCost :: GSPerspective -> GameState -> SlotNumber ->
+                     Vitality -> GameState
 gsPayVitalityCost pers game idx cost =
-  gsSetSlots pers game (changeVitalityInSlot idx (-cost) (gsGetSlots pers game))
+  gsTransformSlots pers game (changeVitalityInSlot idx (-cost))
 
-gsApplyVitalityConsequence :: GSPerspective -> GameState -> SlotNumber -> Vitality -> GameState
-gsApplyVitalityConsequence pers game idx deltaHp
-    = gsSetSlots pers game (changeVitalityInSlot idx (if zombieApocolypse pers then (-deltaHp) else deltaHp) (gsGetSlots pers game))
+gsApplyVitalityConsequence :: GSPerspective -> GameState -> SlotNumber ->
+                              Vitality -> GameState
+gsApplyVitalityConsequence pers game idx deltaHp =
+  gsTransformSlots pers game
+  (changeVitalityInSlot idx (if zombieApocolypse pers
+                             then (-deltaHp)
+                             else deltaHp))
 
-gsSetVitalityOnDeadSlot :: GSPerspective -> GameState -> SlotNumber -> Vitality -> GameState
-gsSetVitalityOnDeadSlot pers game idx hp = gsSetSlots pers game (replaceVitalityOnDeadSlot idx hp (gsGetSlots pers game))
+gsSetVitalityOnDeadSlot :: GSPerspective -> GameState -> SlotNumber ->
+                           Vitality -> GameState
+gsSetVitalityOnDeadSlot pers game idx hp =
+  gsTransformSlots pers game (replaceVitalityOnDeadSlot idx hp)
 
 instance Show GSPerspective where
     show pers = if zombieApocolypse pers
