@@ -6,19 +6,26 @@ import Card
 import Parser
 import MoveWriter
 import Statements
+import Control.Monad
+import Slots
 
-makeStrategy :: (GameState -> Bool) -> [Desire] -> ([GoalItem] -> Maybe (MoveWriter () )) -> Strategy
-makeStrategy condition desire implemetation = (drive, contractor)
+makeVariableStrategy :: Drive -> ([GoalItem] -> GameState -> Maybe (MoveWriter ())) -> Strategy
+makeVariableStrategy drive implementation = (drive, contractor)
     where
-        drive gs | (condition gs) = desire
-        drive _ = []
         contractor gs goal
             = do GoalConj objective <- return goal
-                 case (implemetation objective) of
+                 case (implementation objective gs) of
                     Just moveWriter -> do
                          moves <- execMoveWriterOrError gs moveWriter
                          return (FiniteCost (length moves), moves)
                     _ -> Left $ "I don't know how to handle " ++ show objective
+
+makeStrategy :: (GameState -> Bool) -> [Desire] -> ([GoalItem] -> Maybe (MoveWriter ())) -> Strategy
+makeStrategy condition desire implementation = makeVariableStrategy drive implementation'
+    where
+        drive gs | (condition gs) = desire
+        drive _ = []
+        implementation' objective gs = implementation objective
 
 isAlive perspective slotNum = \gs -> gsGetVitality (perspective gs) gs slotNum > 0
 isDead perspective slotNum = \gs -> gsGetVitality (perspective gs) gs slotNum == 0
@@ -55,7 +62,28 @@ doublePunchStrategy = makeStrategy
         _ -> Nothing)
 
 strategies :: [Strategy]
-strategies = [setUpTheBomb, killSomeOfThem, doublePunchStrategy]
+strategies = [setUpTheBomb, killSomeOfThem, doublePunchStrategy, healerStrategy]
+
+healerStrategy = makeVariableStrategy
+    (\gs -> goalsFor gs [0..8] 65535 ++ goalsFor gs [9..255] 10000)
+    (\objective gs -> case objective of
+                     [ProponentSlotHealedBy slot amount] -> Just $ healer slot amount
+                     _ -> Nothing)
+    where goalsFor gs slots targetHealth = do
+            slot <- slots
+            let health = gsGetVitality (gsMyFriend gs) gs slot
+            guard (health < targetHealth && health > 0)
+            let urgency = 200.0 * toFloating (targetHealth - health) / toFloating targetHealth
+            return $ Desire urgency (GoalConj [ProponentSlotHealedBy slot (powTwoBelow health)])
+          toFloating = fromInteger . toInteger
+          powTwoBelow 0 = 0
+          powTwoBelow 1 = 1
+          powTwoBelow n = 2 * (powTwoBelow (n `div` 2))
+
+healer :: SlotNumber -> Int -> MoveWriter ()
+healer target amount = do
+  assureSlotContains 8 (heal target amount 8)
+  rightApply 8 ZeroCard
 
 goblinSappersAtLowEnd :: MoveWriter ()
 goblinSappersAtLowEnd =

@@ -16,6 +16,7 @@ newtype GoalConj = GoalConj [GoalItem]
 data GoalItem = SlotContains SlotNumber Value
               | OpponentSlotDead SlotNumber -- slot number from opponent pov
               | OpponentSlotsDeadStartingAt SlotNumber -- slot number from opponent pov
+              | ProponentSlotHealedBy SlotNumber Int
     deriving (Eq, Show)
 
 -- A desire is a GoalConj paired with a ranking.  Larger numbers are

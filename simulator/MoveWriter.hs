@@ -33,13 +33,15 @@ move :: Move -> MoveWriter ()
 move m = do
   gs <- get
   case simulateTurn gs m of
-    (gs', Right ()) -> do put gs'
-                          tell [m]
-    (gs', Left msg) -> lift $ lift $ Left $ unlines $
-                       ["Error occurred while executing " ++ show m
-                       ,"Game state was " ++ show gs
-                       ,"Error message: " ++ msg
-                       ]
+    (gs', Left msg)
+        | msg /= "AppLimitExceeded" -- This one's ok
+            -> lift $ lift $ Left $ unlines $
+               ["Error occurred while executing " ++ show m
+               ,"Game state was " ++ show gs
+               ,"Error message: " ++ msg
+               ]
+    (gs', _) -> do put gs'
+                   tell [m]
 
 moves :: [Move] -> MoveWriter()
 moves = mapM_ move
