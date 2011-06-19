@@ -81,7 +81,7 @@ data GSPerspective = GSPerspective
                        zombieApocolypse :: Bool }
 
 instance Eq GSPerspective where
-    (==) lhs rhs = (viewer lhs) == (viewer rhs) && (zombieApocolypse lhs) == (zombieApocolypse rhs) 
+    (==) lhs rhs = (viewer lhs) == (viewer rhs) && (zombieApocolypse lhs) == (zombieApocolypse rhs)
 
 instance Show GSPerspective where
     show (GSPerspective _ _ _ _ _ who zombies) = if zombies then "zombies are swarming " ++ (show who) else (show who) ++ " is acting"
