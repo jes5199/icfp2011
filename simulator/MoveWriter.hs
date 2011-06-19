@@ -10,11 +10,17 @@ import SimpleBuilder
 import Simulator
 import Value
 import Translator
+import Data.List
 
-type MoveWriter = StateT GameState (WriterT [Move] Maybe)
+type MoveWriter = StateT GameState (WriterT [Move] (Either String))
 
 execMoveWriter :: GameState -> MoveWriter () -> Maybe [Move]
-execMoveWriter gs moveWriter = execWriterT (evalStateT moveWriter gs)
+execMoveWriter gs moveWriter = case execMoveWriterOrError gs moveWriter of
+                                 Left _ -> Nothing
+                                 Right moves -> Just moves
+
+execMoveWriterOrError :: GameState -> MoveWriter () -> Either String [Move]
+execMoveWriterOrError gs moveWriter = execWriterT (evalStateT moveWriter gs)
 
 assertConstructionCost _ = return ()
 assertSlotsUsed _ = return ()
@@ -25,9 +31,14 @@ assertSlotsUsed _ = return ()
 move :: Move -> MoveWriter ()
 move m = do
   gs <- get
-  (gs', Right ()) <- return (simulateTurn gs m)
-  put gs'
-  tell [m]
+  case simulateTurn gs m of
+    (gs', Right ()) -> do put gs'
+                          tell [m]
+    (gs', Left msg) -> lift $ lift $ Left $ unlines $
+                       ["Error occurred while executing " ++ show m
+                       ,"Game state was " ++ showGameStateNicely gs
+                       ,"Error message: " ++ msg
+                       ]
 
 moves :: [Move] -> MoveWriter()
 moves = mapM_ move
@@ -35,10 +46,15 @@ moves = mapM_ move
 leftApply slotNum card = move $ Move LeftApplication card slotNum
 rightApply slotNum card = move $ Move RightApplication card slotNum
 rightApplyRV slotNum value = moves $ applyRightVine slotNum value
-achieveGoal destSlot value = moves $ toDo
+
+assureSlotContains :: SlotNumber -> Value -> MoveWriter ()
+assureSlotContains destSlot value = do
+  forM_ slotsUsed makeIdentity
+  moves toDo
     where
         availSlots = filter (/= destSlot) [2..8]
-        (toDo, _) = runState (buildValue destSlot (translateValue value)) availSlots
+        (toDo, slotsLeft) = runState (buildValue destSlot (translateValue value)) availSlots
+        slotsUsed = availSlots \\ slotsLeft
 
 getSlot dest 0 = do
   makeIdentity dest

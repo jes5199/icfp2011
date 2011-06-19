@@ -1,4 +1,4 @@
-module GameState (GameState(..),Slots(..),Slot(..),initialState,Who(..),updateVitality,updateField,test_GameState,Vitality,initialSide,switchPlayer,alterFirstBoard,opponent,gsMyFriend,gsMyEnemy,GSPerspective,beginZombieApocolypse,quellZombieApocolypse,perspectiveFor,gsGetVitality,gsGetField,gsPayVitalityCost,gsApplyVitalityConsequence,gsSetField,gsSetVitalityOnDeadSlot) where
+module GameState (GameState(..),Slots(..),Slot(..),initialState,Who(..),updateVitality,updateField,test_GameState,Vitality,initialSide,switchPlayer,alterFirstBoard,opponent,gsMyFriend,gsMyEnemy,GSPerspective,beginZombieApocolypse,quellZombieApocolypse,perspectiveFor,gsGetVitality,gsGetField,gsPayVitalityCost,gsApplyVitalityConsequence,gsSetField,gsSetVitalityOnDeadSlot,showGameStateNicely) where
 
 import Test.HUnit
 import Data.Array
@@ -68,6 +68,13 @@ opponent SecondPlayer = FirstPlayer
 
 data GameState = GameState { playerToMove :: Who, firstPlayerBoard :: Slots, secondPlayerBoard :: Slots, zombiesAreOut :: Bool }
                deriving (Eq, Show)
+
+showGameStateNicely :: GameState -> String
+showGameStateNicely gs = unlines $
+                         [show (playerToMove gs) ++ " to move" ++ if zombiesAreOut gs then " (zombies)" else ""
+                         ,"First player board:\n" ++ show (firstPlayerBoard gs)
+                         ,"Second player board:\n" ++ show (secondPlayerBoard gs)
+                         ]
 
 -- This is a perspective on the board, as viewed by some player or zombie.
 -- "player1's view of player 2's board" means actor is FirstPlayer, viewer is SecondPlayer.
