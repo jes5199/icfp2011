@@ -1,6 +1,7 @@
 module KillerOf255 where
 
 import Control.Monad.Writer.Strict
+import Control.Monad.State
 
 import GameState
 import Planner
@@ -13,10 +14,15 @@ drive :: Drive
 drive gs | gsGetVitality (gsMyEnemy gs) gs 255 > 0 = [Desire 100.0 (GoalConj [OpponentSlotDead 255])]
 drive _ = []
 
-contractor gs (GoalConj [OpponentSlotDead 255]) = Just (FiniteCost (length speedKillTheMadBomberCell), speedKillTheMadBomberCell)
-contractor _ _ = Nothing
+contractor gs goal
+    = do GoalConj [OpponentSlotDead 255] <- return goal
+         moves <- speedKillTheMadBomberCell gs
+         return (FiniteCost (length moves), moves)
 
-type MoveWriter = Writer [Move]
+type MoveWriter = StateT GameState (WriterT [Move] Maybe)
+
+execMoveWriter :: GameState -> MoveWriter () -> Maybe [Move]
+execMoveWriter gs moveWriter = execWriterT (evalStateT moveWriter gs)
 
 assertConstructionCost _ = return ()
 assertSlotsUsed _ = return ()
@@ -25,12 +31,12 @@ leftApply slotNum card = tell [Move LeftApplication card slotNum]
 rightApply slotNum card = tell [Move RightApplication card slotNum]
 rightApplyRV slotNum value = tell $ applyRightVine slotNum value
 
-get dest 0 = do
+getSlot dest 0 = do
   rightApply dest ZeroCard
   leftApply dest GetCard
 
-speedKillTheMadBomberCell :: [Move]
-speedKillTheMadBomberCell = execWriter $
+speedKillTheMadBomberCell :: GameState -> Maybe [Move]
+speedKillTheMadBomberCell gs = execMoveWriter gs $
     do assertConstructionCost 29
        assertSlotsUsed [128, 129]
 
@@ -43,12 +49,12 @@ speedKillTheMadBomberCell = execWriter $
        leftApply 0 DoubleCard
        leftApply 0 DoubleCard
 
-       get 128 0 -- get from 0 to 128 (clear to identity first if necessary)
+       getSlot 128 0 -- get from 0 to 128 (clear to identity first if necessary)
 
        --continueNumber 0 8 -- double the 4
        leftApply 0 DoubleCard
 
-       get 129 0 -- get from 0 to 129 (clear to identity first if necessary)
+       getSlot 129 0 -- get from 0 to 129 (clear to identity first if necessary)
 
        --continueNumber 0 4096
        leftApply 0 DoubleCard
