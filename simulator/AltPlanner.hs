@@ -15,17 +15,15 @@ import PlayerModel(PlayerModel(PurePlayer))
 type Goal = [GoalItem]
 data GoalItem = BuildGoal SlotNumber Value
               | TriggerGoal SlotNumber Card
+              | AnywhereGoal Value
 
 horizon = 100
-
-giSlot (BuildGoal slot val) = slot
-giSlot (TriggerGoal slot card) = slot
 
 -- decide what to do.
 thinkOfGoal :: GameState -> Goal
 --thinkOfGoal gs = [ (0, (ValueApplication (grapeshot 512 0) (ValueNum 0)) ) ]
 -- thinkOfGoal gs = [ (0, (grapeshot 512 0)) ]
-thinkOfGoal gs = [ (BuildGoal 0 (ValueCard SCard) )]
+thinkOfGoal gs = [ (BuildGoal 0 (ValueNum 255) )]
 
 naiveStepsToGoalItem :: GoalItem -> [Move]
 naiveStepsToGoalItem (TriggerGoal _ _) = []
@@ -59,7 +57,7 @@ breadthFirstSearch limit gs goals = maybe deeper fst satisfiedGoal
         deeper = breadthFirstSearch (limit - 1) gs $ map snd choices
 
 thingsThatCouldMakeThis :: Goal -> [(Move, Goal)]
-thingsThatCouldMakeThis goal = [(previousNaiveGoal goal)]
+thingsThatCouldMakeThis goal = concatMap planBuildGoal goal
 
 metGoal :: GameState -> Goal -> Bool
 metGoal gs goal = all (metGoalItem gs) goal
@@ -80,7 +78,8 @@ nextMove :: GameState -> Move
 nextMove gs = myMove
   where goal = thinkOfGoal gs
         myMove = if metGoal gs goal
-                 then Move LeftApplication IdentityCard 0 -- we've reached enlightenment.
+                 then Move RightApplication ZeroCard 0 -- full speed ahead.
+                 -- then Move LeftApplication IdentityCard 0 -- we've reached enlightenment.
                  else breadthFirstSearch horizon gs [goal]
 
 altPlanner :: PlayerModel
@@ -91,9 +90,20 @@ planBuildGoal :: GoalItem -> [(Move, Goal)]
 planBuildGoal (BuildGoal slot value)
   | value == (ValueCard IdentityCard) = [( Move LeftApplication PutCard slot , [] )] -- no prereq to empty a slot with put
   | isVine value = planVine slot value
+-- planBuildGoal (BuildGoal slot (ValueApplication f x))
+-- | isRightVine x = planVine slot
+--  | isRightVine x = do moves1 <- buildValue destSlot f
+--                       let moves2 = applyRightVine destSlot x
+--                       return $ moves1 ++ moves2
+--  | otherwise = do moves1 <- buildValue destSlot f
+--                   availableSlots <- get
+--                   let slotToUse = head availableSlots
+--                   put $ tail availableSlots
+--                   moves2 <- buildValue slotToUse x
+--                   let moves3 = applyRightVine destSlot $ translateValue $ ValueApplication (ValueCard GetCard) (ValueNum slotToUse)
+--                   return $ moves1 ++ moves2 ++ moves3
 
 planBuildGoal _ = [] -- "I don't see any way to do that."
-
 
 -- like buildVine, but only to depth 1
 planVine :: SlotNumber -> Value -> [(Move, Goal)]
@@ -113,6 +123,8 @@ planNum slot 0 = [(Move RightApplication ZeroCard slot, cleanSlateGoal slot)]
 -- I could make an N if I had N-1, or exactly N/2
 planNum slot n = if n `mod` 2 == 0 then [ dbl, succ ] else [ succ ]
   where dbl  = (Move LeftApplication DoubleCard slot, inSlotGoal slot (ValueNum $ n `div` 2) )
-        succ = (Move LeftApplication IncCard    slot, inSlotGoal slot (ValueNum $ n - 1) )
+        succ = (Move LeftApplication SuccCard    slot, inSlotGoal slot (ValueNum $ n - 1) )
 -- TODO: I could make an N by getting it from elsewhere on the board
 -- TODO: I could make an N by copying it from the opponent's board
+
+
