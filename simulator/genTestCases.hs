@@ -16,27 +16,31 @@ import Simulator
 import MoveWriter(MoveWriter,execMoveWriter)
 import qualified KillerOf255
 
-type TestCaseGenerator = StateT ([SlotNumber], [SlotNumber], Who) (Writer [TestCaseAtom])
+type TestCaseGenerator = StateT ([SlotNumber], [SlotNumber], Who, GameState) (Writer [TestCaseAtom])
 
-data TestCaseAtom = TestCaseMove Who Move
-                  | TestCaseAssertion (GameState -> Bool)
+data TestCaseAtom = TestCaseMove Move
+                  | TestCaseAssertionFailure GameState String
 
-assert :: (GameState -> Bool) -> TestCaseGenerator ()
-assert f = tell [TestCaseAssertion f]
+assert :: String -> (GameState -> Bool) -> TestCaseGenerator ()
+assert msg f = do
+  (_, _, _, gs) <- get
+  case f gs of
+    True -> return ()
+    False -> tell [TestCaseAssertionFailure gs msg]
 
-assertProponent :: (GSPerspective -> GameState -> Bool) -> TestCaseGenerator ()
-assertProponent f = do
+assertProponent :: String -> (GSPerspective -> GameState -> Bool) -> TestCaseGenerator ()
+assertProponent msg f = do
   who <- getProponent
-  assert (f (perspectiveFor who False))
+  assert msg (f (perspectiveFor who False))
 
-assertOpponent :: (GSPerspective -> GameState -> Bool) -> TestCaseGenerator ()
-assertOpponent f = do
+assertOpponent :: String -> (GSPerspective -> GameState -> Bool) -> TestCaseGenerator ()
+assertOpponent msg f = do
   who <- getProponent
-  assert (f (perspectiveFor (opponent who) False))
+  assert msg (f (perspectiveFor (opponent who) False))
 
 getProponent :: TestCaseGenerator Who
 getProponent = do
-  (_, _, who) <- get
+  (_, _, who, _) <- get
   return who
 
 getPerspective :: TestCaseGenerator GSPerspective
@@ -46,37 +50,53 @@ getPerspective = do
 
 getProponentAvailSlots :: TestCaseGenerator [SlotNumber]
 getProponentAvailSlots = do
-  (p1Slots, p2Slots, who) <- get
+  (p1Slots, p2Slots, who, _) <- get
   case who of
     FirstPlayer -> return p1Slots
     SecondPlayer -> return p2Slots
 
 putProponentAvailSlots :: [SlotNumber] -> TestCaseGenerator ()
 putProponentAvailSlots newSlots = do
-  (p1Slots, p2Slots, who) <- get
+  (p1Slots, p2Slots, who, gs) <- get
   case who of
-    FirstPlayer -> put (newSlots, p2Slots, who)
-    SecondPlayer -> put (p1Slots, newSlots, who)
+    FirstPlayer -> put (newSlots, p2Slots, who, gs)
+    SecondPlayer -> put (p1Slots, newSlots, who, gs)
 
-tellMoves :: [Move] -> TestCaseGenerator ()
-tellMoves moves = do
-  who <- getProponent
-  tell [TestCaseMove who move | move <- moves]
+tellMove :: Move -> TestCaseGenerator ()
+tellMove move = do
+  tell [TestCaseMove move]
+  (p1Slots, p2Slots, who, gs) <- get
+  put (p1Slots, p2Slots, who, simulate gs move)
+
+ensureOurMove :: TestCaseGenerator ()
+ensureOurMove = do
+  (_, _, who, gs) <- get
+  (if who == playerToMove gs
+   then return ()
+   else tellMove nullMove)
+
+makeMove :: Move -> TestCaseGenerator ()
+makeMove move = do
+  ensureOurMove
+  tellMove move
+
+makeMoves :: [Move] -> TestCaseGenerator ()
+makeMoves = mapM_ makeMove
 
 switchPlayers :: TestCaseGenerator ()
 switchPlayers = do
-  (p1Slots, p2Slots, who) <- get
-  put (p1Slots, p2Slots, opponent who)
+  (p1Slots, p2Slots, who, gs) <- get
+  put (p1Slots, p2Slots, opponent who, gs)
 
 rightVineBuild :: Int -> Value -> TestCaseGenerator ()
-rightVineBuild slotNum value = tellMoves $ applyRightVine slotNum value
+rightVineBuild slotNum value = makeMoves $ applyRightVine slotNum value
 
 buildNewValue :: Value -> TestCaseGenerator SlotNumber
 buildNewValue value = do
   who <- getProponent
   (destSlot : availSlots) <- getProponentAvailSlots
   let (moves, availSlots') = runState (buildValue destSlot (translateValue value)) availSlots
-  tellMoves moves
+  makeMoves moves
   putProponentAvailSlots availSlots'
   return destSlot
 
@@ -87,15 +107,15 @@ buildNewValueAt value destSlot = do
     False -> error "Slot not available"
     True -> do let availSlots = filter (/= destSlot) slots
                    (moves, availSlots') = runState (buildValue destSlot (translateValue value)) availSlots
-               tellMoves moves
+               makeMoves moves
                putProponentAvailSlots availSlots'
                return destSlot
 
 rightApply :: SlotNumber -> Card -> TestCaseGenerator ()
-rightApply slot card = tellMoves [Move RightApplication card slot]
+rightApply slot card = makeMoves [Move RightApplication card slot]
 
 leftApply :: SlotNumber -> Card -> TestCaseGenerator ()
-leftApply slot card = tellMoves [Move LeftApplication card slot]
+leftApply slot card = makeMoves [Move LeftApplication card slot]
 
 testCycleCount :: Int -> TestCaseGenerator ()
 testCycleCount wasteCycles = do
@@ -110,7 +130,7 @@ testCycleCount wasteCycles = do
 runMoveWriter :: GameState -> MoveWriter () -> TestCaseGenerator ()
 runMoveWriter gs moveWriter = case execMoveWriter gs moveWriter of
                                 Nothing -> error "runMoveWriter failed"
-                                Just moves -> tellMoves moves
+                                Just moves -> makeMoves moves
 
 testCases :: [(String, TestCaseGenerator ())]
 testCases = [
@@ -330,14 +350,14 @@ testCases = [
                   buildNewValue (parse "attack 0 155 9000")
                   buildNewValue (parse "attack 1 155 9000")
                   who <- getProponent
-                  assert (\gs -> gsGetVitality (perspectiveFor (opponent who) False) gs 100 == 0)
+                  assert "opponent slot 100 dead" (\gs -> gsGetVitality (perspectiveFor (opponent who) False) gs 100 == 0)
                   buildNewValueAt (parse "copy 100") 245
-                  assert (\gs -> gsGetField (perspectiveFor who False) gs 245 == parse "S")
+                  assert "slot copied" (\gs -> gsGetField (perspectiveFor who False) gs 245 == parse "S")
                   return ()),
  ("copy_non_identity", do buildNewValueAt (parse "K") 0
                           switchPlayers
                           buildNewValue (parse "copy 0")
-                          assertProponent (\pers gs -> gsGetField pers gs 0 == parse "K")
+                          assertProponent "slot copied" (\pers gs -> gsGetField pers gs 0 == parse "K")
                           return ()),
  ("lazy", do loc <- buildNewValue (parse "lazy (inc 0)")
              rightApply loc ZombieCard),
@@ -389,31 +409,31 @@ testCases = [
  -- END ZOMBIE TESTS
  ("grapeshot", do buildNewValueAt (grapeshot 8192 0) 0
                   rightApply 0 ZeroCard
-                  assertProponent (\pers gs -> all (\i -> gsGetVitality pers gs i == 1808) [0..65])
-                  assertOpponent (\pers gs -> all (\i -> gsGetVitality pers gs i == 2628) [190..255])),
+                  assertProponent "collateral damage" (\pers gs -> all (\i -> gsGetVitality pers gs i == 1808) [0..65])
+                  assertOpponent "inflicted damage" (\pers gs -> all (\i -> gsGetVitality pers gs i == 2628) [190..255])),
  ("firingSquad", do buildNewValueAt (firingSquad 256 100 0) 0
                     rightApply 0 ZeroCard
-                    assertProponent (\pers gs -> all (\i -> gsGetVitality pers gs i == 9744) [0..65])
-                    assertOpponent (\pers gs -> gsGetVitality pers gs 155 == 0 )),
+                    assertProponent "collateral damage" (\pers gs -> all (\i -> gsGetVitality pers gs i == 9744) [0..65])
+                    assertOpponent "inflicted damage" (\pers gs -> gsGetVitality pers gs 155 == 0 )),
  ("heal", do buildNewValueAt (heal 52 8192 0) 0
              rightApply 0 ZeroCard
-             assertProponent (\pers gs -> gsGetVitality pers gs 52 == 65535 )
+             assertProponent "slot healed" (\pers gs -> gsGetVitality pers gs 52 == 65535 )
              ),
  ("spreadLove", do --buildNewValueAt (heal 0 8192 0) 0
                    --rightApply 0 ZeroCard
                    -- buildNewValueAt (spreadLove 49152 0) 0
                    buildNewValueAt (spreadLove 900 0) 0
                    rightApply 0 ZeroCard
-                   assertProponent (\pers gs -> gsGetVitality pers gs  0 ==  9100 )
-                   assertProponent (\pers gs -> all (\i -> gsGetVitality pers gs i == 10090) [1..65])
-                   assertProponent (\pers gs -> gsGetVitality pers gs 66 == 10990 )
+                   assertProponent "collateral damage" (\pers gs -> gsGetVitality pers gs  0 ==  9100 )
+                   assertProponent "small heals" (\pers gs -> all (\i -> gsGetVitality pers gs i == 10090) [1..65])
+                   assertProponent "large heal" (\pers gs -> gsGetVitality pers gs 66 == 10990 )
                    ),
  ("cureLightWounds", do --buildNewValueAt (heal 0 8192 0) 0
                      --rightApply 0 ZeroCard
                      -- buildNewValueAt (spreadLove 49152 0) 0
                      buildNewValueAt (cureLightWounds 999 0) 0
                      rightApply 0 ZeroCard
-                     assertProponent (\pers gs -> all (\i -> gsGetVitality pers gs i == 10099) [0..65])
+                     assertProponent "heals" (\pers gs -> all (\i -> gsGetVitality pers gs i == 10099) [0..65])
                      ),
  ("fastKill", do buildNewValueAt (fastKill 1 2 1) 0
                  return ()
@@ -448,11 +468,11 @@ testCases = [
     leftApply 129 AttackCard            -- slot[3] = attack slot[3] 0 (get 0)  (executes attack 64 0 8192)
     rightApply 129 ZeroCard
     rightVineBuild 129 (parse "get 0")
-    assertOpponent (\pers gs -> gsGetVitality pers gs 255 == 0 )
+    assertOpponent "Opponent slot 255 killed" (\pers gs -> gsGetVitality pers gs 255 == 0 )
     return () ),
   ("zombie_lone_gunman", do
     runMoveWriter initialState KillerOf255.speedKillTheMadBomberCell
-    assertOpponent (\pers gs -> gsGetVitality pers gs 255 == 0 )
+    assertOpponent "Opponent slot 255 killed" (\pers gs -> gsGetVitality pers gs 255 == 0 )
     buildNewValueAt (goblinSapperBomb 8192 1) 1  -- I have an 8192 on cell 0. Perhpas hand-construct a bomb with copy 0 instead of damage #
     buildNewValueAt (loneZombie 0 1 0) 130
     return () ),
@@ -463,25 +483,28 @@ testCases = [
     return () ),
  ("killerOf255", do
     runMoveWriter initialState KillerOf255.speedKillTheMadBomberCell
-    assertOpponent (\pers gs -> gsGetVitality pers gs 255 == 0 ))
+    assertOpponent "Opponent slot 255 killed" (\pers gs -> gsGetVitality pers gs 255 == 0 ))
  ]
 
 testCaseAtomsToMoves :: String -> [TestCaseAtom] -> [Move]
-testCaseAtomsToMoves testName = testCaseAtomsToMoves' initialState
-    where testCaseAtomsToMoves' gs [] = [nullMove, nullMove]
-          testCaseAtomsToMoves' gs all@(TestCaseMove who' move : rest)
-              | playerToMove gs == who' = (move : testCaseAtomsToMoves' (updateGs move gs) rest)
-              | otherwise = (nullMove : testCaseAtomsToMoves' (updateGs nullMove gs) all)
-          testCaseAtomsToMoves' gs (TestCaseAssertion f : rest)
-              | f gs = testCaseAtomsToMoves' gs rest
-              | otherwise = error ("Assertion failure in test " ++ testName)
-          nullMove = Move LeftApplication IdentityCard 0
-          updateGs move gs = switchPlayer $ fst $ simulateTurn (fst $ simulateZombies gs) move
+testCaseAtomsToMoves testName = testCaseAtomsToMoves'
+    where testCaseAtomsToMoves' [] = [nullMove, nullMove]
+          testCaseAtomsToMoves' all@(TestCaseMove move : rest) = move : testCaseAtomsToMoves' rest
+          testCaseAtomsToMoves' (TestCaseAssertionFailure gs msg : _)
+              = error $ unlines $
+                ["Assertion failure in test " ++ testName
+                ,"Game state is: " ++ show (playerToMove gs) ++ " to move"
+                ,"First player board:\n" ++ show (firstPlayerBoard gs)
+                ,"Second player board:\n" ++ show (secondPlayerBoard gs)
+                ,"Assertion message: " ++ msg
+                ]
+
+nullMove = Move LeftApplication IdentityCard 0
 
 outputTestCase :: String -> TestCaseGenerator () -> IO ()
 outputTestCase testName testCase = do
   [directory] <- getArgs
-  let testCaseAtoms = execWriter (evalStateT testCase ([0..255], [0..255], FirstPlayer))
+  let testCaseAtoms = execWriter (evalStateT testCase ([0..255], [0..255], FirstPlayer, initialState))
       fileContents = printMoves $ testCaseAtomsToMoves testName testCaseAtoms
   writeFile (directory ++ "/" ++ testName) fileContents
 
