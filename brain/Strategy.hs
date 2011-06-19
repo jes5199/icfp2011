@@ -18,11 +18,7 @@ translateValue card = case card of
                         (ValueApplication f x) -> expandMacro (ValueApplication (translateValue f) (translateValue x))
                         (ValueLambda x v) -> expandMacro (ValueLambda x (translateValue v))
                         (ValueVariable x) -> ValueVariable x
-    where expandMacro (ValueNum 0) = ValueCard ZeroCard
-          expandMacro (ValueNum i)
-              | i < 0 = error "negative ValueNum"
-              | i `mod` 2 == 1 = ValueApplication (ValueCard SuccCard) (expandMacro (ValueNum (i-1)))
-              | otherwise = ValueApplication (ValueCard DoubleCard) (expandMacro (ValueNum (i `div` 2)))
+    where expandMacro (ValueNum i) = translateNum (ValueNum i)
           expandMacro (ValueLambda varName (ValueVariable x)) | varName == x = ValueCard IdentityCard
           expandMacro (ValueLambda varName value) | not (value `includes` varName) = makeK value
           expandMacro (ValueLambda varName (ValueApplication f (ValueVariable x)))
@@ -43,7 +39,12 @@ translateValue card = case card of
 -- Eventually translateValue will only translate things other than
 -- numbers, and translateNum will only translate numbers.  For now
 -- they do the same thing.
-translateNum = translateValue
+translateNum (ValueNum 0) = ValueCard ZeroCard
+translateNum (ValueNum i)
+    | i < 0 = error "negative ValueNum"
+    | i `mod` 2 == 1 = ValueApplication (ValueCard SuccCard) (translateNum (ValueNum (i-1)))
+    | otherwise = ValueApplication (ValueCard DoubleCard) (translateNum (ValueNum (i `div` 2)))
+translateNum _ = error "Not a number"
 
 -- (makeK v) is like (K v) but it transforms (K I) into put.
 makeK (ValueCard IdentityCard) = ValueCard PutCard
