@@ -6,35 +6,44 @@ import Value
 import Card
 import Move
 import GameState
---import Simulator
 import Parser
---import System(getArgs)
 
 --
 -- Player Model
 --
 -- A PlayerModel encapsulates collection functions that players use to make choices 
 --     about their moves
-data PlayerModel = PlayerModel { goalAgents :: [ GameState -> Goal ], priorityAgents :: [ Goal -> Int ] }
+data PlayerModel = PlayerModel { goalAgents :: [ GameState -> [Goal] ], priorityAgents :: [ Goal -> Int ] }
 
 
 
 data Goal = TakeSpecificAction Move 
      |      BuildValue SlotNumber Value
+     |      BuildValueSomewhere Value
      |      ReviveCell SlotNumber
      |      AttackCell SlotNumber
+  deriving Show
 
 --
 -- Goal Agents
 --
 
--- Make a specfic thing, ignoring game state
-gaMakeThisAt what targetCell game_state = BuildValue targetCell (translateValue (parse what))
+-- Make a specfic thing at a specific location, unless it's already there
+gaMakeThisAt what targetCell game_state = 
+    let 
+       structure = parse what
+       structure' = translateValue structure
+       current_contents = (gsGetField (gsMyFriend game_state)) game_state targetCell
+    in
+    if current_contents == structure || current_contents == structure' then []
+    else [BuildValue targetCell structure']
 
 -- TODO: read and parse the action they took and assume that doing that was their goal
 --     (Note: this should be expressed as a "do this", not acomplish this) 
-gaExternal game_state = TakeSpecificAction (Move LeftApplication IdentityCard 0)
+gaExternal game_state = [TakeSpecificAction (Move LeftApplication IdentityCard 0)]
 
+gaReviveTheDead = undefined
+gaHealTheWounded = undefined
 
 
 --
@@ -42,7 +51,7 @@ gaExternal game_state = TakeSpecificAction (Move LeftApplication IdentityCard 0)
 --      For now, use "first thing on the list"
 --
 chooseGoal brain game_state =
-    let goals = ($game_state) `map` (goalAgents brain)
+    let goals = concat (($game_state) `map` (goalAgents brain))
     in head goals
 
 --
