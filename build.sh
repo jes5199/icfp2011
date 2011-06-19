@@ -1,3 +1,4 @@
+set -e
 ./test.sh
 
 rm -rf build
@@ -7,7 +8,7 @@ echo "#!/bin/bash" > build/install
 echo "true" >> build/install
 chmod a+x build/install
 
-cp brain/braindriver build/run
+cp simulator/braindriver build/run
 
 src_dirs="simulator"
 
