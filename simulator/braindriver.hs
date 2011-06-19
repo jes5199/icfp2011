@@ -14,7 +14,7 @@ import qualified KillerOf255
 main :: IO ()
 main = do
     [arg] <- getArgs
-    let our_brain   = makePlanner [AltPlanner.drive] [AltPlanner.contractor, AltPlanner.contractor2] KillerOf255.strategies
+    let our_brain   = makePlanner [] [AltPlanner.contractor, AltPlanner.contractor2] KillerOf255.strategies
     let their_brain = ExternalPlayer
     if (arg == "0")
        then play initialState [] our_brain   [] their_brain
