@@ -20,18 +20,23 @@ horizon = 100
 -- decide what to do.
 thinkOfGoal :: GameState -> [(SlotNumber, Value)]
 --thinkOfGoal gs = [ (0, (ValueApplication (grapeshot 512 0) (ValueNum 0)) ) ]
-thinkOfGoal gs = [ (0, (grapeshot 512 0)) ]
--- thinkOfGoal gs = [ (0, (ValueCard SCard) )]
+-- thinkOfGoal gs = [ (0, (grapeshot 512 0)) ]
+thinkOfGoal gs = [ (0, (ValueCard SCard) )]
 
 naiveStepsToGoalItem :: (SlotNumber, Value) -> [Move]
+naiveStepsToGoalItem (destSlot, (ValueCard IdentityCard) ) = []
 naiveStepsToGoalItem (destSlot, thing) = fst $ runState (buildValue destSlot (translateValue thing)) [0..255]
 
-naiveStepsToGoal goal = concatMap naiveStepsToGoalItem goal -- TODO: avoid conflicts
+--naiveStepsToGoal goal = concatMap naiveStepsToGoalItem goal -- TODO: avoid conflicts
+naiveStepsToGoal :: Goal -> [Move]
+naiveStepsToGoal goal = naiveStepsToGoalItem $ head goal
 
 previousNaiveGoal goal = (last steps, gsToGoal prevGS)
-  where prevGS = foldl (\gs move -> fst $ simulateTurn gs move) initialState (allButLast steps)
+  where prevGS = if (length steps) > 1
+                 then foldl (\gs move -> fst $ simulateTurn gs move) initialState (allButLast 1 steps)
+                 else initialState
         steps = naiveStepsToGoal goal
-        allButLast list = (inits list !! (length list - 1))
+        allButLast n list = (inits list !! (length list - n))
 
 gsToGoal :: GameState -> Goal
 gsToGoal gs = map slotToGoalItem [0..255]
@@ -69,7 +74,7 @@ nextMove :: GameState -> Move
 nextMove gs = myMove
   where goal = thinkOfGoal gs
         myMove = if metGoal gs goal
-                 then Move RightApplication ZeroCard 0 -- we've reached enlightenment.
+                 then Move LeftApplication IdentityCard 0 -- we've reached enlightenment.
                  else breadthFirstSearch horizon gs [goal]
 
 altPlanner :: PlayerModel
