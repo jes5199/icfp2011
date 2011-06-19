@@ -67,4 +67,4 @@ test_Value = [
  (ValueVariable "x" == ValueVariable "y") ~?= False,
  (ValueVariable "x" == ValueLambda "x" valueI) ~?= False,
  (ValueApplication valueSucc valueZero == ValueApplication valueSucc valueZero) ~?= True
-  ] :: [Test]
+  ]
