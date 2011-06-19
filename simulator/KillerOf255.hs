@@ -23,6 +23,7 @@ makeStrategy condition desire implemetation = (drive, contractor)
 isAlive perspective slotNum = \gs -> gsGetVitality (perspective gs) gs slotNum > 0
 isDead perspective slotNum = \gs -> gsGetVitality (perspective gs) gs slotNum == 0
 enoughHp perspective minHp slotNum = \gs -> gsGetVitality (perspective gs) gs slotNum >= minHp
+hpBelow perspective maxHp slotNum = \gs -> gsGetVitality (perspective gs) gs slotNum < maxHp
 
 mine = gsMyFriend
 his = gsMyEnemy
