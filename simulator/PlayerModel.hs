@@ -76,35 +76,40 @@ planStepsBlindly (BuildValue loc val) game_state = fst $ runState (buildValue lo
 getInterrupts :: PlayerModel -> GameState -> [Move] -> [Move]
 getInterrupts (ExternalPlayer) _ _ = []
 getInterrupts (PurePlayer _) gameState plan =
-    revive 0 199 $
-    revive 1 198 $
-    revive 255 197 $
-    revive 254 196 $
-    revive_target_of_next_move $
-    lazily_revive_others $
-    grabOur 255 197 $
-    grabTheir 255 197 $
-    grabOur 254 196 $
-    grabTheir 254 196 $
-    []
+    case temp_bases of
+    temp_base:_ -> 
+        revive 0                   (temp_base+9) $
+        revive 1                   (temp_base+8) $
+        revive 255                 (temp_base+7) $
+        revive 254                 (temp_base+6) $
+        revive_target_of_next_move (temp_base+0) $
+        lazily_revive_others       (temp_base+1) $
+        grabOur   255 		   (temp_base+7) $
+        grabTheir 255              (temp_base+7) $
+        grabOur   254              (temp_base+6) $
+        grabTheir 254              (temp_base+6) $
+        []
+    _ -> []
     where
+        temp_bases = all_ten_alive `filter` [190,200,210,220,230,240,250,260,270,280,290]
+        all_ten_alive b = length ((\i -> getSlotVitality gameState (b+i) > 0 ) `filter` [0..9]) == 10
         revive slot temp next = 
             if getSlotVitality gameState slot <= 0
             then
                 case findMe gameState (ValueNum slot) of
-                Nothing  -> buildNum slot temp (getSlotValue gameState slot) next
+                Nothing  -> buildNum slot temp (getSlotValue gameState temp) next
                 Just x   -> [ Move LeftApplication ReviveCard x] ++
-                  if x `elem` [190..199] then [] else buildVine x (ValueNum slot)
+                  if x `elem` [190..299] then [] else buildVine x (ValueNum slot)
             else next
-        revive_target_of_next_move next =
+        revive_target_of_next_move temp next =
             case plan of
-            (Move _ _ slot):_ -> revive slot 190 next
+            (Move _ _ slot):_ -> revive slot temp next
             _                 -> next
-        lazily_revive_others next =
+        lazily_revive_others temp next =
             case plan of
             (Move _ SCard _):_ ->
                 case (\s -> getSlotVitality gameState s <= 0) `filter` [2..253] of
-                slot:more ->  revive slot 191 next
+                slot:more ->  revive slot temp next
                 []        ->  next
             _                  -> next
         buildNum n slot cur next
