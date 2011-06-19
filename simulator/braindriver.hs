@@ -44,7 +44,7 @@ play state   [] brain   other_plan other_brain = do
     play state new_plan brain other_plan other_brain
 
 play state   whole_plan brain   other_plan other_brain = do
-    let (move:rest_of_plan) = getInterrupts brain state ++ whole_plan
+    let (move:rest_of_plan) = (getInterrupts brain state whole_plan) ++ whole_plan
     case brain of
         (ExternalPlayer) -> do return ()
         _ -> do mapM_ putStrLn (printMove move)

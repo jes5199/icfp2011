@@ -1,4 +1,4 @@
-module SimpleBuilder(test_SimpleBuilder, buildValue, applyRightVine, isVine, isRightVine) where
+module SimpleBuilder(test_SimpleBuilder, buildValue, buildVine, applyRightVine, isVine, isRightVine) where
 
 import Control.Monad.State
 import Test.HUnit ( (~?=) )
