@@ -100,9 +100,9 @@ planVine :: SlotNumber -> Value -> [(Move, Goal)]
 planVine slot vine = planVine' vine
     where planVine' (ValueCard c) = [(Move RightApplication c slot, cleanSlateGoal)]
           planVine' (ValueNum v) = planNum v
-          planVine' (ValueApplication (ValueCard c) v) = [((Move LeftApplication c slot), inSlotGoal v)]
-        --planVine' (ValueApplication v (ValueCard c)) = planVine' v . (Move RightApplication c slot :)
-        --planVine' (ValueApplication v w) = error "planVine: not a vine"
+          planVine' (ValueApplication (ValueCard c) v) = [(Move LeftApplication c slot  , inSlotGoal v)]
+          planVine' (ValueApplication v (ValueCard c)) = [(Move RightApplication c slot , inSlotGoal v)]
+          planVine' (ValueApplication v w) = error "planVine: not a vine"
           inSlotGoal value = [(BuildGoal slot value )]
           cleanSlateGoal = inSlotGoal (ValueCard IdentityCard)
 
