@@ -116,8 +116,7 @@ doK x y = return x
 doInc :: Value -> MoveStep Value
 doInc (ValueNum i) = do validSlot i
                         p <- myFriend
-                        h <- heal 1
-                        modifyVitality p i h
+                        applyVitalityConsequence p i 1
                         return valueI
 doInc (ValueCard ZeroCard) = doInc (ValueNum 0)
 doInc _ = throwError nanMsg
@@ -125,8 +124,7 @@ doInc _ = throwError nanMsg
 doDec :: Value -> MoveStep Value
 doDec (ValueNum i) = do validSlot i
                         p <- myEnemy
-                        d <- damage 1
-                        modifyVitality p (255-i) d
+                        applyVitalityConsequence p (255-i) (-1)
                         return valueI
 doDec (ValueCard ZeroCard) = doDec (ValueNum 0)
 doDec _ = throwError nanMsg
@@ -139,15 +137,14 @@ doAttack (ValueNum i) arg2 (ValueNum n) =
      v <- getVitality f i
      if v < n
        then throwError attackRangeN
-       else do fd <- damage n
-               modifyVitality f i fd
+       else do payVitalityCost f i n
                j <- case arg2 of
                  ValueNum jj -> return jj
                  ValueCard ZeroCard -> return 0
                  _ -> throwError attackNANj
                validSlot j
-               ed <- damage $ (n*9) `div` 10
-               modifyVitality e (255-j) ed
+               let ed = (n*9) `div` 10
+               applyVitalityConsequence e (255-j) (-ed)
                return $ valueI
 doAttack (ValueCard ZeroCard) b c = doAttack (ValueNum 0) b c
 doAttack a b (ValueCard ZeroCard) = doAttack a b (ValueNum 0)
@@ -163,15 +160,14 @@ doHelp (ValueNum i) arg2 (ValueNum n) =
      v <- getVitality p i
      if v < n
        then throwError helpRangeN
-       else do d <- damage n
-               modifyVitality p i d
+       else do payVitalityCost p i n
                j <- case arg2 of
                  ValueNum jj -> return jj
                  ValueCard ZeroCard -> return 0
                  _ -> throwError helpNANj
                validSlot j
-               h <- heal $ (n*11) `div` 10
-               modifyVitality p j h
+               let h = (n*11) `div` 10
+               applyVitalityConsequence p j h
                return $ valueI
 doHelp (ValueCard ZeroCard) b c = doHelp (ValueNum 0) b c
 doHelp a b (ValueCard ZeroCard) = doHelp a b (ValueNum 0)

@@ -1,4 +1,4 @@
-module GameState (GameState(..),Slots(..),Slot(..),initialState,Who(..),updateVitality,updateField,test_GameState,Vitality,initialSide,switchPlayer,alterFirstBoard,opponent,gsMyFriend,gsMyEnemy,gsDamage,gsHeal,GSPerspective(..),beginZombieApocolypse,quellZombieApocolypse,perspectiveFor) where
+module GameState (GameState(..),Slots(..),Slot(..),initialState,Who(..),updateVitality,updateField,test_GameState,Vitality,initialSide,switchPlayer,alterFirstBoard,opponent,gsMyFriend,gsMyEnemy,GSPerspective,beginZombieApocolypse,quellZombieApocolypse,perspectiveFor,gsGetVitality,gsGetField,gsPayVitalityCost,gsApplyVitalityConsequence,gsSetField,gsSetVitalityOnDeadSlot) where
 
 import Test.HUnit
 import Data.Array
@@ -68,51 +68,52 @@ data GameState = GameState { playerToMove :: Who, firstPlayerBoard :: Slots, sec
                deriving (Eq, Show)
 
 -- This is a perspective on the board, as viewed by some player or zombie.
-data GSPerspective = GSPerspective
-                     { gsGetVitality :: (GameState -> SlotNumber -> Vitality),
-                       gsGetField :: (GameState -> SlotNumber -> Value),
-                       gsModifyVitality :: (GameState -> SlotNumber ->
-                                          Vitality -> GameState),
-                       gsSetField :: (GameState -> SlotNumber ->
-                                    Value -> GameState),
-                       gsSetVitalityOnDeadSlot :: (GameState -> SlotNumber ->
-                                                 Vitality -> GameState),
-                       viewer :: Who,
-                       zombieApocolypse :: Bool }
+-- "player1's view of player 2's board" means actor is FirstPlayer, viewer is SecondPlayer.
+data GSPerspective = GSPerspective { viewer :: Who, zombieApocolypse :: Bool }
+    deriving Eq
 
-instance Eq GSPerspective where
-    (==) lhs rhs = (viewer lhs) == (viewer rhs) && (zombieApocolypse lhs) == (zombieApocolypse rhs) 
+gsGetBoard :: Who -> GameState -> Slots
+gsGetBoard FirstPlayer = firstPlayerBoard
+gsGetBoard SecondPlayer = secondPlayerBoard
+
+gsGetVitality :: GSPerspective -> GameState -> SlotNumber -> Vitality
+gsGetVitality pers = extractVitality . gsGetBoard (viewer pers)
+
+gsGetField :: GSPerspective -> GameState -> SlotNumber -> Value
+gsGetField pers = extractField . gsGetBoard (viewer pers)
+
+gsSetBoard :: Who -> GameState -> Slots -> GameState
+gsSetBoard FirstPlayer = replaceFirstBoard
+gsSetBoard SecondPlayer = replaceSecondBoard
+
+gsSetField :: GSPerspective -> GameState -> SlotNumber -> Value -> GameState
+gsSetField pers game idx value = gsSetBoard who game (updateField value idx (gsGetBoard who game))
+    where who = viewer pers
+
+gsPayVitalityCost :: GSPerspective -> GameState -> SlotNumber -> Vitality -> GameState
+gsPayVitalityCost pers game idx cost = gsSetBoard who game (changeVitalityInSlot (gsGetBoard who game) idx (-cost))
+    where who = viewer pers
+
+gsApplyVitalityConsequence :: GSPerspective -> GameState -> SlotNumber -> Vitality -> GameState
+gsApplyVitalityConsequence pers game idx deltaHp
+    = gsSetBoard who game (changeVitalityInSlot (gsGetBoard who game) idx (if zombieApocolypse pers then (-deltaHp) else deltaHp))
+    where who = viewer pers
+
+gsSetVitalityOnDeadSlot :: GSPerspective -> GameState -> SlotNumber -> Vitality -> GameState
+gsSetVitalityOnDeadSlot pers game idx hp = gsSetBoard who game (replaceVitalityOnDeadSlot (gsGetBoard who game) idx hp)
+    where who = viewer pers
 
 instance Show GSPerspective where
-    show (GSPerspective _ _ _ _ _ who zombies) = if zombies then "zombies are swarming " ++ (show who) else (show who) ++ " is acting"
-
-makeGSPerspective fieldBoard vitalityBoard replaceFieldBoard replaceVitalityBoard who zombies = GSPerspective
-    (extractVitality . vitalityBoard)
-    (extractField . fieldBoard)
-    (\game -> \idx -> \adjustment -> replaceVitalityBoard game (changeVitalityInSlot (vitalityBoard game) idx adjustment))
-    (\game -> \idx -> \value -> replaceFieldBoard game (updateField value idx (fieldBoard game)))
-    (\game -> \idx -> \vitality -> replaceFieldBoard game (replaceVitalityOnDeadSlot (fieldBoard game) idx vitality)) -- The effects that target dead cells always target the same side as for field operations, not like other vitality-impacting operations.
-    who
-    zombies
+    show pers = if zombieApocolypse pers
+                then "zombies are swarming " ++ show (viewer pers)
+                else show (viewer pers) ++ " is acting"
 
 replaceFirstBoard (GameState who _ p2 zombies) newSlots = GameState who newSlots p2 zombies
 replaceSecondBoard (GameState who p1 _ zombies) newSlots = GameState who p1 newSlots zombies
 
-firstPersonView zombies = makeGSPerspective
-    firstPlayerBoard (if zombies then secondPlayerBoard else firstPlayerBoard)
-    replaceFirstBoard (if zombies then replaceSecondBoard else replaceFirstBoard)
-    FirstPlayer zombies
-secondPersonView zombies = makeGSPerspective
-    secondPlayerBoard (if zombies then firstPlayerBoard else secondPlayerBoard)
-    replaceSecondBoard (if zombies then replaceFirstBoard else replaceSecondBoard)
-    SecondPlayer zombies
-
 -- The perspective of a particular player.
-perspectiveFor :: Who -> (Bool-> GSPerspective)
-perspectiveFor who =
-    case who of
-        FirstPlayer  -> firstPersonView
-        SecondPlayer -> secondPersonView
+perspectiveFor :: Who -> Bool-> GSPerspective
+perspectiveFor = GSPerspective
 
 -- The current actor's friend. An actor is a player or a zombie master.
 gsMyFriend :: GameState -> GSPerspective
@@ -123,14 +124,6 @@ gsMyFriend (GameState who p1 p2 zombies) =
 gsMyEnemy :: GameState -> GSPerspective
 gsMyEnemy (GameState who p1 p2 zombies) =
     perspectiveFor (opponent who) zombies
-
-gsDamage :: Int -> GameState -> Int
-gsDamage val (GameState _ _ _ zombies) =
-    if zombies then val else (- val)
-
-gsHeal :: Int -> GameState -> Int
-gsHeal val (GameState _ _ _ zombies) =
-    if zombies then (- val) else val
 
 alterFirstBoard :: (Slots -> Slots) -> GameState -> GameState
 alterFirstBoard transform (GameState who firstBoard secondBoard zombies) = GameState who (transform firstBoard) secondBoard zombies
@@ -172,19 +165,25 @@ test_GameState = [
     gsGetVitality player2 startingGame 3 ~?= 12000,
     gsGetField player1 startingGame 0 ~?= valueHelp,
     gsGetField player2 startingGame 0 ~?= valueAttack,
-    
-    gsGetVitality zombie1 zombieTime 3 ~?= 12000,
-    gsGetVitality zombie2 zombieTime 3 ~?= 8000,
+
+    gsGetVitality zombie1 zombieTime 3 ~?= 8000,
+    gsGetVitality zombie2 zombieTime 3 ~?= 12000,
     gsGetField zombie1 zombieTime 0 ~?= valueHelp,
     gsGetField zombie2 zombieTime 0 ~?= valueAttack,
-    
-    gsGetVitality player1 (gsModifyVitality player1 startingGame 3 (-100)) 3 ~?= 7900,
-    gsGetVitality player2 (gsModifyVitality player2 startingGame 3 100) 3 ~?= 12100,
+
+    gsGetVitality player1 (gsPayVitalityCost player1 startingGame 3 100) 3 ~?= 7900,
+    gsGetVitality player2 (gsPayVitalityCost player2 startingGame 3 100) 3 ~?= 11900,
+    gsGetVitality player1 (gsPayVitalityCost zombie1 zombieTime 3 100) 3 ~?= 7900,
+    gsGetVitality player2 (gsPayVitalityCost zombie2 zombieTime 3 100) 3 ~?= 11900,
+
+    gsGetVitality player1 (gsApplyVitalityConsequence player1 startingGame 3 (-100)) 3 ~?= 7900,
+    gsGetVitality player2 (gsApplyVitalityConsequence player2 startingGame 3 100) 3 ~?= 12100,
+    gsGetVitality player1 (gsApplyVitalityConsequence zombie1 zombieTime 3 (-100)) 3 ~?= 8100,
+    gsGetVitality player2 (gsApplyVitalityConsequence zombie2 zombieTime 3 100) 3 ~?= 11900,
+
     gsGetField player1 (gsSetField player1 startingGame 0 valueZombie) 0 ~?= valueZombie,
     gsGetField player2 (gsSetField player2 startingGame 0 valueRevive) 0 ~?= valueRevive,
-    
-    gsGetVitality player2 (gsModifyVitality zombie1 zombieTime 3 (-100)) 3 ~?= 11900,
-    gsGetVitality player1 (gsModifyVitality zombie2 zombieTime 3 100) 3 ~?= 8100,
+
     gsGetField player1 (gsSetField zombie1 zombieTime 0 valueZombie) 0 ~?= valueZombie,
     gsGetField player2 (gsSetField zombie2 zombieTime 0 valueRevive) 0 ~?= valueRevive,
 
@@ -195,17 +194,11 @@ test_GameState = [
     -- End tests of perspective behaviors
 
     -- Begin boundary check tests
-    gsGetVitality player1 (gsModifyVitality player1 startingGame 3 (-10000)) 3 ~?= 0,
-    gsGetVitality player1 (gsModifyVitality player1 startingGame 3 70000) 3 ~?= 65535,
+    gsGetVitality player1 (gsApplyVitalityConsequence player1 startingGame 3 (-10000)) 3 ~?= 0,
+    gsGetVitality player1 (gsApplyVitalityConsequence player1 startingGame 3 70000) 3 ~?= 65535,
     gsGetVitality player1 (gsSetVitalityOnDeadSlot player1 startingGame 3 1) 3 ~?= 8000,
-    gsGetVitality player1 (gsModifyVitality player1 someDeath 3 5000) 3 ~?= 0,
+    gsGetVitality player1 (gsApplyVitalityConsequence player1 someDeath 3 5000) 3 ~?= 0
     -- End boundary check tests
-
-    gsDamage 33 startingGame ~?= -33,
-    gsDamage 66 zombieTime ~?= 66,
-
-    gsHeal 33 startingGame ~?= 33,
-    gsHeal 66 zombieTime ~?= -66
     ]
   where
     firstSide = updateField valueHelp 0 (updateVitality 8000 3 initialSide)
@@ -217,7 +210,7 @@ test_GameState = [
     testSlots = array (0,3::Int) [(n,Slot 10000 (cardToValue IdentityCard)) |
                         n <- [0..3]]
     idValue = cardToValue IdentityCard
-    player1 = firstPersonView False
-    player2 = secondPersonView False
-    zombie1 = firstPersonView True
-    zombie2 = secondPersonView True
+    player1 = perspectiveFor FirstPlayer False
+    player2 = perspectiveFor SecondPlayer False
+    zombie1 = perspectiveFor FirstPlayer True
+    zombie2 = perspectiveFor SecondPlayer True
