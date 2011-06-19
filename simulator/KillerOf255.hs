@@ -72,7 +72,7 @@ strategies :: [Strategy]
 strategies = [setUpTheBomb, clearTheBeaches, screwUpTheirRegisters, doublePunchStrategy, healerStrategy]
 
 healerStrategy = makeVariableStrategy
-    (\gs -> goalsFor gs [0..8] 65535 ++ goalsFor gs [9..255] 10000)
+    (\gs -> goalsFor gs [0..8] 10000 ++ goalsFor gs [9..255] 10000)
     (\objective gs -> case objective of
                      [ProponentSlotHealedBy slot amount] -> Just $ healer slot amount
                      _ -> Nothing)

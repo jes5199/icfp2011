@@ -528,7 +528,9 @@ testCases = [
  ("healer", do
     runMoveWriter (KillerOf255.healer 5 8192)
     assertProponent "healed 5" (\pers gs -> gsGetVitality pers gs 5 == 65535)),
- ("healerStrategy", testStrategy KillerOf255.healerStrategy)
+ ("healerStrategy", do 
+    runMoveWriter KillerOf255.doublePunch
+    testStrategy KillerOf255.healerStrategy)
  ]
 
 testCaseAtomsToMoves :: String -> [TestCaseAtom] -> [Move]
