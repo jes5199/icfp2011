@@ -124,8 +124,8 @@ testCycleCount wasteCycles = do
   trigger <- buildNewValue triggerValue
   rightApply trigger ZeroCard
     where waste 0 value = value
-          waste n value = ValueApplication (ValueApplication (ValueCard SCard) (waste (n-1) value))
-                                           (ValueCard IdentityCard)
+          waste n value = ValueApplication (ValueApplication valueS (waste (n-1) value))
+                          valueI
 
 getGameState :: TestCaseGenerator GameState
 getGameState = do

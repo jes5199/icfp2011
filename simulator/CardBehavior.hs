@@ -102,7 +102,7 @@ doGet _ = throwError nanMsg
 getFromDead = "tried to get from a dead cell"
 
 doPut :: Value -> MoveStep Value
-doPut _ = return $ ValueCard IdentityCard
+doPut _ = return valueI
 
 doS :: Value -> Value -> Value -> MoveStep Value
 doS f g x = do h <- apply f x
@@ -290,7 +290,7 @@ test_CardBehavior = [
     (alterFirstBoard (updateVitality 0 0) initialState, Right valueI),
   runMove (doInc (ValueNum 0)) (alterFirstBoard (updateVitality 65535 0) initialState) ~?=
     (alterFirstBoard (updateVitality 65535 0) initialState, Right valueI),
-  runMove (doInc (ValueCard ZeroCard)) initialState ~?=
+  runMove (doInc (valueZero)) initialState ~?=
     (alterFirstBoard (updateVitality 10001 0) initialState, Right valueI)
   ]
   where
