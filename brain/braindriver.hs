@@ -6,6 +6,7 @@ import GameState
 import Simulator
 import PlayerModel
 import System(getArgs)
+import System.IO (hFlush,stdout)
 
 main :: IO ()
 main = do
@@ -43,6 +44,7 @@ play state   (move:rest_of_plan) brain   other_plan other_brain = do
     case brain of
         (ModeledPlayer _ _) -> do mapM_ putStrLn (printMove move)
         (ExternalPlayer) -> do return ()
+    hFlush stdout
     let new_state = simulate state move
     play new_state   other_plan other_brain   rest_of_plan brain
 
