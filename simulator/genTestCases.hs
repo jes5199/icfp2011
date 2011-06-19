@@ -524,7 +524,11 @@ testCases = [
     runMoveWriter KillerOf255.doublePunch
     assertProponent "spent 4080 from 126" (\pers gs -> gsGetVitality pers gs 126 == (10000 - KillerOf255.doublePunchForce) )
     assertProponent "spent 4080 from 127" (\pers gs -> gsGetVitality pers gs 127 == (10000 - KillerOf255.doublePunchForce) )
-    assertOpponent "slot 0 is dead" (\pers gs -> gsGetVitality pers gs 0 == 0 ))
+    assertOpponent "slot 0 is dead" (\pers gs -> gsGetVitality pers gs 0 == 0 )),
+ ("healer", do
+    runMoveWriter (KillerOf255.healer 5 8192)
+    assertProponent "healed 5" (\pers gs -> gsGetVitality pers gs 5 == 65535)),
+ ("healerStrategy", testStrategy KillerOf255.healerStrategy)
  ]
 
 testCaseAtomsToMoves :: String -> [TestCaseAtom] -> [Move]

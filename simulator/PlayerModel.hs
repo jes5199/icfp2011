@@ -81,6 +81,7 @@ getInterrupts (PurePlayer _) gameState plan =
     revive 255 197 $
     revive 254 196 $
     revive_target_of_next_move $
+    lazily_revive_others $
     grabOur 255 197 $
     grabTheir 255 197 $
     grabOur 254 196 $
@@ -88,22 +89,32 @@ getInterrupts (PurePlayer _) gameState plan =
     []
     where
         revive slot temp next = 
-            if getSlotVitality gameState slot == 0
+            if getSlotVitality gameState slot <= 0
             then
                 case findMe gameState (ValueNum slot) of
                 Nothing  -> buildNum slot temp (getSlotValue gameState slot) next
-                Just x   -> [ Move LeftApplication ReviveCard x] ++ buildVine x (ValueNum slot)
+                Just x   -> [ Move LeftApplication ReviveCard x] ++
+                  if x `elem` [190..199] then [] else buildVine x (ValueNum slot)
             else next
         revive_target_of_next_move next =
             case plan of
             (Move _ _ slot):_ -> revive slot 190 next
             _                 -> next
+        lazily_revive_others next =
+            case plan of
+            (Move _ SCard _):_ ->
+                case (\s -> getSlotVitality gameState s <= 0) `filter` [2..253] of
+                slot:more ->  revive slot 191 next
+                []        ->  next
+            _                  -> next
         buildNum n slot cur next
           | cur == (ValueNum n)                       = next -- Soft failure we were asked to build something that was already there
           | n == 0 && cur == (ValueCard IdentityCard) = [ Move RightApplication ZeroCard   slot ]
           | n == 0                                    = [ Move LeftApplication  PutCard    slot ]
-          | cur == (ValueNum (n-1))                   = [ Move LeftApplication  SuccCard   slot ]
           | cur == (ValueNum (n `div` 2))             = [ Move LeftApplication  DoubleCard slot ]
+          | cur == (ValueNum (n-1))                   = [ Move LeftApplication  SuccCard   slot ]
+          | cur == (ValueNum (n-2))                   = [ Move LeftApplication  SuccCard   slot ]
+          | cur == (ValueNum (n-3))                   = [ Move LeftApplication  SuccCard   slot ]
           | otherwise                                 = buildNum (n `div` 2) slot cur next
         grabOur val loc next =
             if getSlotValue gameState 0 == (ValueNum val) && getSlotValue gameState loc /= (ValueNum val)
