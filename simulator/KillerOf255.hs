@@ -6,52 +6,101 @@ import Card
 import Parser
 import MoveWriter
 import Statements
+import Control.Monad
+import Slots
 
-makeStrategy condition desire implemetation = (drive, contractor)
+makeVariableStrategy :: Drive -> ([GoalItem] -> GameState -> Maybe (MoveWriter ())) -> Strategy
+makeVariableStrategy drive implementation = (drive, contractor)
     where
-        drive gs | (condition gs) = desire
-        drive _ = []
         contractor gs goal
             = do GoalConj objective <- return goal
-                 case (implemetation objective) of
+                 case (implementation objective gs) of
                     Just moveWriter -> do
                          moves <- execMoveWriterOrError gs moveWriter
                          return (FiniteCost (length moves), moves)
                     _ -> Left $ "I don't know how to handle " ++ show objective
 
+makeStrategy :: (GameState -> Bool) -> [Desire] -> ([GoalItem] -> Maybe (MoveWriter ())) -> Strategy
+makeStrategy condition desire implementation = makeVariableStrategy drive implementation'
+    where
+        drive gs | (condition gs) = desire
+        drive _ = []
+        implementation' objective gs = implementation objective
+
+isAlive perspective slotNum = \gs -> gsGetVitality (perspective gs) gs slotNum > 0
+isDead perspective slotNum = \gs -> gsGetVitality (perspective gs) gs slotNum == 0
+enoughHp perspective minHp slotNum = \gs -> gsGetVitality (perspective gs) gs slotNum >= minHp
+hpBelow perspective maxHp slotNum = \gs -> gsGetVitality (perspective gs) gs slotNum < maxHp
+
+mine = gsMyFriend
+his = gsMyEnemy
+
+allTrue :: [GameState -> Bool] -> GameState -> Bool
+allTrue conditions gs = all (\f -> f gs) conditions
+
 setUpTheBomb = makeStrategy
-    (\gs -> gsGetVitality (gsMyEnemy gs) gs 255 > 0)
-    ([Desire 100.0 (GoalConj [OpponentSlotDead 255])])
+    (allTrue [(isAlive his 255), (enoughHp mine 4096 4), (enoughHp mine 8192 8)])
+    [Desire 100.0 (GoalConj [OpponentSlotDead 255])]
     (\objective -> case objective of
         [OpponentSlotDead 255] -> Just speedKillTheMadBomberCell
         _ -> Nothing)
 
-killSomeOfThem = makeStrategy
-    (\gs -> (gsGetVitality (gsMyEnemy gs) gs 255 == 0) && (all (\i -> gsGetVitality (gsMyEnemy gs) gs i >= 8192) [0]))
-    ([Desire 120.0 (GoalConj [OpponentSlotsDeadStartingAt 0])])
+clearTheBeaches = makeStrategy
+    (allTrue ([(isDead his 255)] ++ (map (enoughHp his 8192) [128..130])))
+    [Desire 150.0 (GoalConj [OpponentSlotsDeadStartingAt 128])]
     (\objective -> case objective of
-        [OpponentSlotsDeadStartingAt 0] -> Just goblinSappersAtLowEnd
+        [OpponentSlotsDeadStartingAt startPos] -> Just (goblinSappers startPos)
+        _ -> Nothing)
+
+screwUpTheirRegisters = makeStrategy
+    (allTrue ([(isDead his 255)] ++ (map (enoughHp his 8192) [0..2])))
+    [Desire 100.0 (GoalConj [OpponentSlotsDeadStartingAt 0])]
+    (\objective -> case objective of
+        [OpponentSlotsDeadStartingAt startPos] -> Just (goblinSappers startPos)
         _ -> Nothing)
 
 doublePunchForce = 8160
 
 doublePunchStrategy = makeStrategy
-    (\gs -> (isEnemyAliveAt gs 0) && (isMyHealthGreaterThan gs 126 doublePunchForce) && (isMyHealthGreaterThan gs 127 doublePunchForce) )
+    (allTrue [(isAlive his 0), (enoughHp mine doublePunchForce 126), (enoughHp mine doublePunchForce 127)])
     ([Desire 110.0 (GoalConj [OpponentSlotDead 0] )])
     (\objective -> case objective of
         [OpponentSlotDead 0] -> Just doublePunch
         _ -> Nothing)
 
-isEnemyAliveAt gs slotNum = (gsGetVitality (gsMyEnemy gs) gs slotNum > 0)
-isMyHealthGreaterThan gs slotNum value = (gsGetVitality (gsMyFriend gs) gs slotNum > value)
-
 strategies :: [Strategy]
-strategies = [setUpTheBomb, killSomeOfThem, doublePunchStrategy]
+strategies = [setUpTheBomb, clearTheBeaches, screwUpTheirRegisters, doublePunchStrategy, healerStrategy]
+
+healerStrategy = makeVariableStrategy
+    (\gs -> goalsFor gs [0..8] 65535 ++ goalsFor gs [9..255] 10000)
+    (\objective gs -> case objective of
+                     [ProponentSlotHealedBy slot amount] -> Just $ healer slot amount
+                     _ -> Nothing)
+    where goalsFor gs slots targetHealth = do
+            slot <- slots
+            let health = gsGetVitality (gsMyFriend gs) gs slot
+            guard (health < targetHealth && health > 0)
+            let urgency = 200.0 * toFloating (targetHealth - health) / toFloating targetHealth
+            return $ Desire urgency (GoalConj [ProponentSlotHealedBy slot (powTwoBelow health)])
+          toFloating = fromInteger . toInteger
+          powTwoBelow 0 = 0
+          powTwoBelow 1 = 1
+          powTwoBelow n = 2 * (powTwoBelow (n `div` 2))
+
+healer :: SlotNumber -> Int -> MoveWriter ()
+healer target amount = do
+  assureSlotContains 8 (heal target amount 8)
+  rightApply 8 ZeroCard
 
 goblinSappersAtLowEnd :: MoveWriter ()
 goblinSappersAtLowEnd =
     do assureSlotContains 1 (goblinSapperBomb 8192 1)
        assureSlotContains 130 (loneZombie 0 1 0)
+
+goblinSappers :: SlotNumber -> MoveWriter ()
+goblinSappers startingIndex =
+    do assureSlotContains 1 (goblinSapperBomb 8192 1)
+       assureSlotContains 130 (loneZombie startingIndex 1 0)
 
 speedKillTheMadBomberCell :: MoveWriter ()
 speedKillTheMadBomberCell =

@@ -510,22 +510,25 @@ testCases = [
     buildNewValueAt (goblinSapperBomb 8192 1) 1  -- I have an 8192 on cell 0. Perhpas hand-construct a bomb with copy 0 instead of damage #
     buildNewValueAt (loneZombie 0 1 0) 130
     return () ),
-  ("zombie_sapper_to_low_registers", do
-    runMoveWriter KillerOf255.speedKillTheMadBomberCell
-    assertOpponent "Opponent slot 255 killed" (\pers gs -> gsGetVitality pers gs 255 == 0 )
-    runMoveWriter KillerOf255.goblinSappersAtLowEnd
-    return () ),
  ("set_up_the_bomb", testStrategy KillerOf255.setUpTheBomb),
- ("kill_some_of_them", do
+ ("deny_low_registers", do
     runMoveWriter KillerOf255.speedKillTheMadBomberCell
     assertOpponent "Opponent slot 255 killed" (\pers gs -> gsGetVitality pers gs 255 == 0 )
-    testStrategy KillerOf255.killSomeOfThem),
+    testStrategy KillerOf255.screwUpTheirRegisters),
+ ("prepare_for_d_day", do
+    runMoveWriter KillerOf255.speedKillTheMadBomberCell
+    assertOpponent "Opponent slot 255 killed" (\pers gs -> gsGetVitality pers gs 255 == 0 )
+    testStrategy KillerOf255.clearTheBeaches),
  ("doublePunchStrategy", testStrategy KillerOf255.doublePunchStrategy),
  ("doublePunch", do
     runMoveWriter KillerOf255.doublePunch
     assertProponent "spent 4080 from 126" (\pers gs -> gsGetVitality pers gs 126 == (10000 - KillerOf255.doublePunchForce) )
     assertProponent "spent 4080 from 127" (\pers gs -> gsGetVitality pers gs 127 == (10000 - KillerOf255.doublePunchForce) )
-    assertOpponent "slot 0 is dead" (\pers gs -> gsGetVitality pers gs 0 == 0 ))
+    assertOpponent "slot 0 is dead" (\pers gs -> gsGetVitality pers gs 0 == 0 )),
+ ("healer", do
+    runMoveWriter (KillerOf255.healer 5 8192)
+    assertProponent "healed 5" (\pers gs -> gsGetVitality pers gs 5 == 65535)),
+ ("healerStrategy", testStrategy KillerOf255.healerStrategy)
  ]
 
 testCaseAtomsToMoves :: String -> [TestCaseAtom] -> [Move]
