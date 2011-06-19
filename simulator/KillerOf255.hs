@@ -7,6 +7,7 @@ import Parser
 import MoveWriter
 import Statements
 
+makeStrategy :: (GameState -> Bool) -> [Desire] -> ([GoalItem] -> Maybe (MoveWriter () )) -> Strategy
 makeStrategy condition desire implemetation = (drive, contractor)
     where
         drive gs | (condition gs) = desire
@@ -17,17 +18,27 @@ makeStrategy condition desire implemetation = (drive, contractor)
                     Just moveWriter -> do
                          moves <- execMoveWriterOrError gs moveWriter
                          return (FiniteCost (length moves), moves)
-                    _ -> Left $ "I don't know how to handle " ++ show objective 
+                    _ -> Left $ "I don't know how to handle " ++ show objective
+
+isAlive perspective slotNum = \gs -> gsGetVitality (perspective gs) gs slotNum > 0
+isDead perspective slotNum = \gs -> gsGetVitality (perspective gs) gs slotNum == 0
+enoughHp perspective minHp slotNum = \gs -> gsGetVitality (perspective gs) gs slotNum >= minHp
+
+mine = gsMyFriend
+his = gsMyEnemy
+
+allTrue :: [GameState -> Bool] -> GameState -> Bool
+allTrue conditions gs = all (\f -> f gs) conditions
 
 setUpTheBomb = makeStrategy
-    (\gs -> gsGetVitality (gsMyEnemy gs) gs 255 > 0)
-    ([Desire 100.0 (GoalConj [OpponentSlotDead 255])])
+    (allTrue [(isAlive his 255), (enoughHp mine 4096 4), (enoughHp mine 8192 8)])
+    [Desire 100.0 (GoalConj [OpponentSlotDead 255])]
     (\objective -> case objective of
         [OpponentSlotDead 255] -> Just speedKillTheMadBomberCell
         _ -> Nothing)
 
 killSomeOfThem = makeStrategy
-    (\gs -> (gsGetVitality (gsMyEnemy gs) gs 255 == 0) && (all (\i -> gsGetVitality (gsMyEnemy gs) gs i >= 8192) [0..65]))
+    (allTrue ([(isDead his 255)] ++ (map (enoughHp mine 8192) [0..16])))
     ([Desire 100.0 (GoalConj [OpponentSlotsDeadStartingAt 0])])
     (\objective -> case objective of
         [OpponentSlotsDeadStartingAt 0] -> Just goblinSappersAtLowEnd
