@@ -49,15 +49,9 @@ gsGetSlots p
   | viewer p == SecondPlayer = secondPlayerSlots
 
 gsSetSlots :: GSPerspective -> GameState -> Slots -> GameState
-gsSetSlots p
-  | viewer p == FirstPlayer  = replaceFirstSlots
-  | viewer p == SecondPlayer = replaceSecondSlots
-
-replaceFirstSlots :: GameState -> Slots -> GameState
-replaceFirstSlots gs newSlots = gs { firstPlayerSlots = newSlots }
-
-replaceSecondSlots :: GameState -> Slots -> GameState
-replaceSecondSlots gs newSlots = gs { secondPlayerSlots = newSlots }
+gsSetSlots p gs s
+  | viewer p == FirstPlayer  = gs { firstPlayerSlots  = s }
+  | viewer p == SecondPlayer = gs { secondPlayerSlots = s }
 
 gsGetVitality :: GSPerspective -> GameState -> SlotNumber -> Vitality
 gsGetVitality pers = extractVitality . gsGetSlots pers
@@ -66,17 +60,19 @@ gsGetField :: GSPerspective -> GameState -> SlotNumber -> Value
 gsGetField pers = extractField . gsGetSlots pers
 
 gsSetField :: GSPerspective -> GameState -> SlotNumber -> Value -> GameState
-gsSetField pers game idx value = gsSetSlots pers game (updateField value idx (gsGetSlots pers game))
+gsSetField pers game idx value =
+  gsSetSlots pers game (updateField value idx (gsGetSlots pers game))
 
 gsPayVitalityCost :: GSPerspective -> GameState -> SlotNumber -> Vitality -> GameState
-gsPayVitalityCost pers game idx cost = gsSetSlots pers game (changeVitalityInSlot (gsGetSlots pers game) idx (-cost))
+gsPayVitalityCost pers game idx cost =
+  gsSetSlots pers game (changeVitalityInSlot idx (-cost) (gsGetSlots pers game))
 
 gsApplyVitalityConsequence :: GSPerspective -> GameState -> SlotNumber -> Vitality -> GameState
 gsApplyVitalityConsequence pers game idx deltaHp
-    = gsSetSlots pers game (changeVitalityInSlot (gsGetSlots pers game) idx (if zombieApocolypse pers then (-deltaHp) else deltaHp))
+    = gsSetSlots pers game (changeVitalityInSlot idx (if zombieApocolypse pers then (-deltaHp) else deltaHp) (gsGetSlots pers game))
 
 gsSetVitalityOnDeadSlot :: GSPerspective -> GameState -> SlotNumber -> Vitality -> GameState
-gsSetVitalityOnDeadSlot pers game idx hp = gsSetSlots pers game (replaceVitalityOnDeadSlot (gsGetSlots pers game) idx hp)
+gsSetVitalityOnDeadSlot pers game idx hp = gsSetSlots pers game (replaceVitalityOnDeadSlot idx hp (gsGetSlots pers game))
 
 instance Show GSPerspective where
     show pers = if zombieApocolypse pers
