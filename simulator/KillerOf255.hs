@@ -2,7 +2,8 @@ module KillerOf255 where
 
 import Control.Monad.Writer.Strict(WriterT, execWriterT)
 import qualified Control.Monad.Writer.Strict as Writer -- So that we don't accidentally call tell
-import Control.Monad.State
+import Control.Monad.State(StateT, evalStateT)
+import qualified Control.Monad.State as State -- So that we don't accidentally call get/put
 
 import GameState
 import Planner
@@ -11,6 +12,7 @@ import Card
 import Parser
 import Strategy
 import Simulator
+import Value
 
 drive :: Drive
 drive gs | gsGetVitality (gsMyEnemy gs) gs 255 > 0 = [Desire 100.0 (GoalConj [OpponentSlotDead 255])]
@@ -34,9 +36,9 @@ assertSlotsUsed _ = return ()
 -- state but hopefully it will be good enough to make plans from.
 move :: Move -> MoveWriter ()
 move m = do
-  gs <- get
+  gs <- State.get
   (gs', Right ()) <- return (simulateTurn gs m)
-  put gs'
+  State.put gs'
   Writer.tell [m]
 
 moves :: [Move] -> MoveWriter()
@@ -47,16 +49,25 @@ rightApply slotNum card = move $ Move RightApplication card slotNum
 rightApplyRV slotNum value = moves $ applyRightVine slotNum value
 
 getSlot dest 0 = do
+  makeIdentity dest
   rightApply dest ZeroCard
   leftApply dest GetCard
+
+getGameState :: MoveWriter GameState
+getGameState = State.get
+
+makeIdentity slotNum = do
+  gs <- getGameState
+  case gsGetField (gsMyFriend gs) gs slotNum of
+    ValueCard IdentityCard -> return ()
+    _ -> leftApply slotNum PutCard
 
 speedKillTheMadBomberCell :: GameState -> Maybe [Move]
 speedKillTheMadBomberCell gs = execMoveWriter gs $
     do assertConstructionCost 29
        assertSlotsUsed [128, 129]
 
-       -- TODO: don't do this if unnecessary
-       leftApply 0 PutCard
+       makeIdentity 0
 
        --buildNumber 0 4 -- build 4 in 0
        rightApply 0 ZeroCard
