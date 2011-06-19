@@ -11,10 +11,15 @@ import Simulator
 import Value
 import Translator
 
-type MoveWriter = StateT GameState (WriterT [Move] Maybe)
+type MoveWriter = StateT GameState (WriterT [Move] (Either String))
 
 execMoveWriter :: GameState -> MoveWriter () -> Maybe [Move]
-execMoveWriter gs moveWriter = execWriterT (evalStateT moveWriter gs)
+execMoveWriter gs moveWriter = case execMoveWriterOrError gs moveWriter of
+                                 Left _ -> Nothing
+                                 Right moves -> Just moves
+
+execMoveWriterOrError :: GameState -> MoveWriter () -> Either String [Move]
+execMoveWriterOrError gs moveWriter = execWriterT (evalStateT moveWriter gs)
 
 assertConstructionCost _ = return ()
 assertSlotsUsed _ = return ()

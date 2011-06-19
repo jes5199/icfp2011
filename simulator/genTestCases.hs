@@ -13,7 +13,7 @@ import Data.List
 import Statements
 import GameState
 import Simulator
-import MoveWriter(MoveWriter,execMoveWriter)
+import MoveWriter(MoveWriter,execMoveWriterOrError)
 import qualified KillerOf255
 
 type TestCaseGenerator = StateT ([SlotNumber], [SlotNumber], Who, GameState) (Writer [TestCaseAtom])
@@ -135,9 +135,9 @@ getGameState = do
 runMoveWriter :: MoveWriter () -> TestCaseGenerator ()
 runMoveWriter moveWriter = do
   gs <- getGameState
-  case execMoveWriter gs moveWriter of
-    Nothing -> assert "runMoveWriter failed" (const False)
-    Just moves -> makeMoves moves
+  case execMoveWriterOrError gs moveWriter of
+    Left msg -> assert ("runMoveWriter failed: " ++ msg) (const False)
+    Right moves -> makeMoves moves
 
 testCases :: [(String, TestCaseGenerator ())]
 testCases = [
