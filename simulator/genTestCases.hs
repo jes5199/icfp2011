@@ -13,7 +13,7 @@ import Data.List
 import Statements
 import GameState
 import Simulator
-import MoveWriter(MoveWriter,execMoveWriter)
+import MoveWriter(MoveWriter,execMoveWriterOrError)
 import qualified KillerOf255
 
 type TestCaseGenerator = StateT ([SlotNumber], [SlotNumber], Who, GameState) (Writer [TestCaseAtom])
@@ -134,10 +134,11 @@ getGameState = do
 
 runMoveWriter :: MoveWriter () -> TestCaseGenerator ()
 runMoveWriter moveWriter = do
+  ensureOurMove
   gs <- getGameState
-  case execMoveWriter gs moveWriter of
-    Nothing -> assert "runMoveWriter failed" (const False)
-    Just moves -> makeMoves moves
+  case execMoveWriterOrError gs moveWriter of
+    Left msg -> assert ("runMoveWriter failed: " ++ msg) (const False)
+    Right moves -> makeMoves moves
 
 testCases :: [(String, TestCaseGenerator ())]
 testCases = [
@@ -486,7 +487,7 @@ testCases = [
   ("zombie_sapper_to_low_registers", do
     runMoveWriter KillerOf255.speedKillTheMadBomberCell
     assertOpponent "Opponent slot 255 killed" (\pers gs -> gsGetVitality pers gs 255 == 0 )
-    -- runMoveWriter KillerOf255.goblinSappersAtLowEnd
+    runMoveWriter KillerOf255.goblinSappersAtLowEnd
     return () ),
  ("killerOf255", do
     runMoveWriter KillerOf255.speedKillTheMadBomberCell
@@ -500,9 +501,7 @@ testCaseAtomsToMoves testName = testCaseAtomsToMoves'
           testCaseAtomsToMoves' (TestCaseAssertionFailure gs msg : _)
               = error $ unlines $
                 ["Assertion failure in test " ++ testName
-                ,"Game state is: " ++ show (playerToMove gs) ++ " to move"
-                ,"First player board:\n" ++ show (firstPlayerBoard gs)
-                ,"Second player board:\n" ++ show (secondPlayerBoard gs)
+                ,"Game state is: " ++ showGameStateNicely gs
                 ,"Assertion message: " ++ msg
                 ]
 
