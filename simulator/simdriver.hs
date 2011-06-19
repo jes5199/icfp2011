@@ -26,8 +26,8 @@ playPly playerNumber state =
        0 -> firstPlayerBoard state
        1 -> secondPlayerBoard state
      putStrLn "(slots {10000,I} are omitted)"
-     let (state', zerrs) = simulateZombies state
-     mapM_ putStrLn zerrs
+     let (state', zmsgs) = simulateZombies state
+     mapM_ putStrLn zmsgs
      putStrLn "(1) apply card to slot, or (2) apply slot to card?"
      applicationDir <- readInt
      move <- case applicationDir of

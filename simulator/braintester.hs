@@ -1,6 +1,9 @@
 import Test.HUnit
-import Strategy
+import SimpleBuilder
+import Translator
 
-tests = test [ "Strategy" ~: test_Strategy ]
+tests = test [ "SimpleBuilder" ~: test_SimpleBuilder
+             , "Translator" ~: test_Translator
+             ]
 
 main = runTestTT tests
