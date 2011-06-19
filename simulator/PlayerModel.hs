@@ -17,7 +17,7 @@ import Parser
 data PlayerModel = ModeledPlayer { goalAgents :: [ GameState -> [Goal] ],
                                    priorityAgents :: [ Goal -> Int ] }
                  | ExternalPlayer
-                 | PurePlayer (GameState -> Move)
+                 | PurePlayer (GameState -> [Move])
 
 
 
