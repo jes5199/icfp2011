@@ -11,9 +11,10 @@ drive :: Drive
 drive gs | gsGetVitality (gsMyEnemy gs) gs 255 > 0 = [Desire 100.0 (GoalConj [OpponentSlotDead 255])]
 drive _ = []
 
+contractor :: Contractor
 contractor gs goal
     = do GoalConj [OpponentSlotDead 255] <- return goal
-         moves <- execMoveWriter gs speedKillTheMadBomberCell
+         moves <- execMoveWriterOrError gs speedKillTheMadBomberCell
          return (FiniteCost (length moves), moves)
 
 strategy :: Strategy
