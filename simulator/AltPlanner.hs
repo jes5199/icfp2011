@@ -12,42 +12,24 @@ import Value
 import Strategy
 import PlayerModel(PlayerModel(PurePlayer))
 
-type Goal = [GoalItem]
+newtype GoalConj = GoalConj [GoalItem]
 data GoalItem = BuildGoal SlotNumber Value
-              | TriggerGoal SlotNumber Card
-              | AnywhereGoal Value
 
 horizon = 100
 
 -- decide what to do.
-thinkOfGoal :: GameState -> Goal
+thinkOfGoal :: GameState -> GoalConj
 --thinkOfGoal gs = [ (0, (ValueApplication (grapeshot 512 0) (ValueNum 0)) ) ]
 -- thinkOfGoal gs = [ (0, (grapeshot 512 0)) ]
-thinkOfGoal gs = [ (BuildGoal 0 (ValueNum 255) )]
+thinkOfGoal gs = GoalConj [ (BuildGoal 0 (ValueNum 255) )]
 
-naiveStepsToGoalItem :: GoalItem -> [Move]
-naiveStepsToGoalItem (TriggerGoal _ _) = []
-naiveStepsToGoalItem (BuildGoal destSlot (ValueCard IdentityCard) ) = []
-naiveStepsToGoalItem (BuildGoal destSlot thing) = fst $ runState (buildValue destSlot (translateValue thing)) [0..255]
-
---naiveStepsToGoal goal = concatMap naiveStepsToGoalItem goal -- TODO: avoid conflicts
-naiveStepsToGoal :: Goal -> [Move]
-naiveStepsToGoal goal = naiveStepsToGoalItem $ head goal
-
-previousNaiveGoal goal = (last steps, gsToGoal prevGS)
-  where prevGS = if (length steps) > 1
-                 then foldl (\gs move -> fst $ simulateTurn gs move) initialState (allButLast 1 steps)
-                 else initialState
-        steps = naiveStepsToGoal goal
-        allButLast n list = (inits list !! (length list - n))
-
-gsToGoal :: GameState -> Goal
-gsToGoal gs = map slotToGoalItem [0..255]
+gsToGoal :: GameState -> GoalConj
+gsToGoal gs = GoalConj $ map slotToGoalItem [0..255]
   -- this is really fucking naive, it assumes everything must be exact.
   where slotToGoalItem num = BuildGoal num (getSlotValue gs num)
 
 
-breadthFirstSearch :: Int -> GameState -> [Goal] -> Move
+breadthFirstSearch :: Int -> GameState -> [GoalConj] -> Move
 breadthFirstSearch 0 _ _ = Move LeftApplication IdentityCard 42
 breadthFirstSearch limit gs goals = maybe deeper fst satisfiedGoal
   where choices = concatMap thingsThatCouldMakeThis goals
@@ -56,19 +38,18 @@ breadthFirstSearch limit gs goals = maybe deeper fst satisfiedGoal
         -- otherwise, lets see if we can get any of those prereqs
         deeper = breadthFirstSearch (limit - 1) gs $ map snd choices
 
-thingsThatCouldMakeThis :: Goal -> [(Move, Goal)]
-thingsThatCouldMakeThis goal = concatMap planBuildGoal goal
+thingsThatCouldMakeThis :: GoalConj -> [(Move, GoalConj)]
+thingsThatCouldMakeThis (GoalConj goal) = concatMap planBuildGoal goal
 
-metGoal :: GameState -> Goal -> Bool
-metGoal gs goal = all (metGoalItem gs) goal
+metGoal :: GameState -> GoalConj -> Bool
+metGoal gs (GoalConj goal) = all (metGoalItem gs) goal
 
 -- Uh, maybe we'll need this, for pruning.
-heuristicDistanceFromGoal :: GameState -> Goal -> Int
-heuristicDistanceFromGoal gs goal = countFalses $ map (metGoalItem gs) goal
+heuristicDistanceFromGoal :: GameState -> GoalConj -> Int
+heuristicDistanceFromGoal gs (GoalConj goal) = countFalses $ map (metGoalItem gs) goal
   where countFalses = foldl (\acc x -> acc + if x == False then 1 else 0 ) 0
 
 metGoalItem :: GameState -> GoalItem -> Bool
-metGoalItem gs (TriggerGoal _ _) = False
 metGoalItem gs (BuildGoal slot value) = value == mySlotValue
   where mySlotValue = getSlotValue gs slot
 
@@ -85,10 +66,10 @@ nextMove gs = myMove
 altPlanner :: PlayerModel
 altPlanner = PurePlayer ((\x->[x]) . nextMove)
 
-planBuildGoal :: GoalItem -> [(Move, Goal)]
+planBuildGoal :: GoalItem -> [(Move, GoalConj)]
 -- "I could make this if I had..."
 planBuildGoal (BuildGoal slot value)
-  | value == (ValueCard IdentityCard) = [( Move LeftApplication PutCard slot , [] )] -- no prereq to empty a slot with put
+  | value == (ValueCard IdentityCard) = [( Move LeftApplication PutCard slot , GoalConj [] )] -- no prereq to empty a slot with put
   | isVine value = planVine slot value
 -- planBuildGoal (BuildGoal slot (ValueApplication f x))
 -- | isRightVine x = planVine slot
@@ -106,7 +87,7 @@ planBuildGoal (BuildGoal slot value)
 planBuildGoal _ = [] -- "I don't see any way to do that."
 
 -- like buildVine, but only to depth 1
-planVine :: SlotNumber -> Value -> [(Move, Goal)]
+planVine :: SlotNumber -> Value -> [(Move, GoalConj)]
 planVine slot vine = planVine' vine
     where planVine' (ValueCard c) = [(Move RightApplication c slot, cleanSlateGoal slot)]
           planVine' (ValueNum v) = planNum slot v
@@ -114,10 +95,10 @@ planVine slot vine = planVine' vine
           planVine' (ValueApplication v (ValueCard c)) = [(Move RightApplication c slot , inSlotGoal slot v)]
           planVine' (ValueApplication v w) = error "planVine: not a vine"
 
-inSlotGoal slot value = [(BuildGoal slot value )]
+inSlotGoal slot value = GoalConj [(BuildGoal slot value )]
 cleanSlateGoal slot = inSlotGoal slot (ValueCard IdentityCard)
 
-planNum :: SlotNumber -> Int -> [(Move, Goal)]
+planNum :: SlotNumber -> Int -> [(Move, GoalConj)]
 -- I could make a zero from an Identity
 planNum slot 0 = [(Move RightApplication ZeroCard slot, cleanSlateGoal slot)]
 -- I could make an N if I had N-1, or exactly N/2
