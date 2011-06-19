@@ -109,7 +109,7 @@ getInterrupts (PurePlayer _) gameState plan =
             case plan of
             (Move _ SCard _):_ ->
                 case (\s -> getSlotVitality gameState s <= 0) `filter` [2..253] of
-                slot:more ->  revive slot temp next
+                slot:more ->  if (length (show gameState)) `mod` 2 == 0 then (revive slot temp next) else next
                 []        ->  next
             _                  -> next
         buildNum n slot cur next
