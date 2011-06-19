@@ -8,7 +8,7 @@ import Move
 
 type Vitality = Int
 
-data Slot = Slot { vitality :: Vitality, field :: Value }
+data Slot = Slot { vitality :: !Vitality, field :: !Value }
           deriving (Eq)
 
 instance Show Slot where

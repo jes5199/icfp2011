@@ -8,11 +8,13 @@ import PlayerModel
 import System(getArgs)
 import System.IO (hFlush,stdout)
 import Planner
+import qualified AltPlanner
+import qualified KillerOf255
 
 main :: IO ()
 main = do
     [arg] <- getArgs
-    let our_brain   = PurePlayer $ decide [] [] -- ModeledPlayer [(gaMakeThisAt "6" 0),gaIForever] []
+    let our_brain   = makePlanner [AltPlanner.drive, KillerOf255.drive] [AltPlanner.contractor, AltPlanner.contractor2, KillerOf255.contractor] -- ModeledPlayer [(gaMakeThisAt "6" 0),gaIForever] []
     let their_brain = ExternalPlayer
     if (arg == "0")
        then play initialState [] our_brain   [] their_brain
@@ -27,7 +29,7 @@ play :: GameState ->   [Move] -> PlayerModel ->   [Move] -> PlayerModel -> IO ()
 play state   [] brain   other_plan other_brain = do
     new_plan <- case brain of
         (ModeledPlayer _ _) -> return (planSteps (chooseGoal brain state ) state)
-        (PurePlayer f) -> return [f state]
+        (PurePlayer f) -> return (f state)
         (ExternalPlayer) -> do
             applicationDir <- readInt
             move <- case applicationDir of
