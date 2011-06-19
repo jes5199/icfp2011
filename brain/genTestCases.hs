@@ -428,17 +428,17 @@ testCases = [
                          return ()
                          ),
  ("optimized_slot_killer", do
-    buildNewValueAt (ValueNum 32) 0
-    buildNewValueAt (parse "get 0") 2
-    leftApply 0 DoubleCard
-    buildNewValueAt (parse "get 0") 3
-    sequence_ (replicate 6 (leftApply 0 DoubleCard))
-    buildNewValueAt (parse "get 0") 1
-    leftApply 0 DoubleCard
-    leftApply 2 AttackCard
+    buildNewValueAt (ValueNum 32) 0  -- slot[0] = 32
+    buildNewValueAt (parse "get 0") 2 -- slot[2] = slot[0]  (32)
+    leftApply 0 DoubleCard            -- slot[0] *= 2  (64)
+    buildNewValueAt (parse "get 0") 3 -- slot[3] = slot[0] (64)
+    sequence_ (replicate 6 (leftApply 0 DoubleCard)) -- slot[0] *= 64 (4096)
+    buildNewValueAt (parse "get 0") 1 -- slot[1] = slot[0] (4096)
+    leftApply 0 DoubleCard            -- slot[0] *= 2 (8192)
+    leftApply 2 AttackCard            -- slot[2] = attack slot[2] 0 (get 1)  (executes attack 32 0 4096)
     rightApply 2 ZeroCard
     rightVineBuild 2 (parse "get 1")
-    leftApply 3 AttackCard
+    leftApply 3 AttackCard            -- slot[3] = attack slot[3] 0 (get 0)  (executes attack 64 0 8192)
     rightApply 3 ZeroCard
     rightVineBuild 3 (parse "get 0")
     return ()
