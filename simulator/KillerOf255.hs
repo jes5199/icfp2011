@@ -9,12 +9,19 @@ import Statements
 
 drive :: Drive
 drive gs | gsGetVitality (gsMyEnemy gs) gs 255 > 0 = [Desire 100.0 (GoalConj [OpponentSlotDead 255])]
+drive gs | gsGetVitality (gsMyEnemy gs) gs 255 == 0 = [Desire 100.0 (GoalConj [OpponentSlotsDeadStartingAt 0])]
 drive _ = []
 
 contractor gs goal
-    = do GoalConj [OpponentSlotDead 255] <- return goal
-         moves <- execMoveWriter gs speedKillTheMadBomberCell
-         return (FiniteCost (length moves), moves)
+    = do objective <- return goal
+         case objective of
+            GoalConj [OpponentSlotDead 255] -> do
+                 moves <- execMoveWriter gs speedKillTheMadBomberCell
+                 return (FiniteCost (length moves), moves)
+            GoalConj [OpponentSlotsDeadStartingAt 0] -> do
+                 moves <- execMoveWriter gs goblinSappersAtLowEnd
+                 return (FiniteCost (length moves), moves)
+            _ -> return (FiniteCost 0, [])
 
 strategy :: Strategy
 strategy = (drive, contractor)
