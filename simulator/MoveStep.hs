@@ -96,14 +96,14 @@ putOpponentField v n = transformOpponentSlots (updateField v n)
 putOpponentVitality :: Vitality -> SlotNumber -> MoveStep ()
 putOpponentVitality v n = transformOpponentSlots (updateVitality v n)
 
-data Perspective = Perspective
-                   { getVitality :: SlotNumber -> MoveStep Vitality,
-                     getField :: SlotNumber -> MoveStep Value,
-                     payVitalityCost :: SlotNumber -> Vitality -> MoveStep (),
-                     applyVitalityConsequence :: SlotNumber -> Vitality -> MoveStep (),
-                     setField :: SlotNumber -> Value -> MoveStep (),
-                     setVitalityOnDeadSlot :: SlotNumber -> Vitality ->
-                                              MoveStep () }
+data Perspective = Perspective {
+  getVitality :: SlotNumber -> MoveStep Vitality,
+  getField :: SlotNumber -> MoveStep Value,
+  payVitalityCost :: SlotNumber -> Vitality -> MoveStep (),
+  applyVitalityConsequence :: SlotNumber -> Vitality -> MoveStep (),
+  setField :: SlotNumber -> Value -> MoveStep (),
+  setVitalityOnDeadSlot :: SlotNumber -> Vitality -> MoveStep ()
+  }
 
 liftPerspective :: GSPerspective -> Perspective
 liftPerspective p =
@@ -130,10 +130,8 @@ myEnemy = do (state,_) <- get
              return $ liftPerspective $ gsMyEnemy state
 
 -- Executes the lambda function corresponding to a move, incorporates
--- side effects into the GameState, and stops execution if an error
+-- side effects into the GameState, and stops execution when an error
+-- occurs.
 runMove step state = (newState,result)
   where
     (result,(newState,appsUsed)) = runState (runErrorT step) (state,0)
-
-test_MoveStep = [
-  ] :: [Test]
