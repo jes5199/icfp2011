@@ -56,10 +56,11 @@ storeResult :: Value -> SlotNumber -> MoveStep ()
 storeResult v slot = transformProponentSlots (updateField v slot)
 
 runZombiePhase :: GameState -> (GameState, [String])
-runZombiePhase state = (\(x,y) -> (x,reverse y))
-                       (foldl (\(beforeThisZombie,previousErrors) zombieSlot ->
-                                let (afterThisZombie,newErrors) = runZombieSlot beforeThisZombie zombieSlot
-                                in (afterThisZombie,newErrors ++ previousErrors)) (state,[]) [0..255])
+runZombiePhase state =
+  (\(x,y) -> (x,reverse y))
+  (foldl (\(beforeThisZombie,previousErrors) zombieSlot ->
+           let (afterThisZombie,newErrors) = runZombieSlot beforeThisZombie zombieSlot
+           in (afterThisZombie,newErrors ++ previousErrors)) (state,[]) [0..255])
 
 lefts :: [Either a b] -> [a]
 lefts [] = []
@@ -71,13 +72,14 @@ fromRight (Right x) = x
 
 runZombieSlot :: GameState -> SlotNumber -> (GameState,[String])
 runZombieSlot state slot =
-  case runMove (getProponentVitality slot) state of
-    (_,Right (-1)) ->
-      let (postZombieState,message) =
-            runMove (thisMove $ Move RightApplication IdentityCard slot) state
-          (finalState,_) = runMove (putProponentVitality 0 slot >>
-                                    putProponentField valueI slot)
-                           postZombieState
+  let p = gsMyFriend state in
+  case gsGetVitality p state slot of
+    (-1) ->
+      let zombieMove = Move RightApplication IdentityCard slot
+          (postZombieState,message) = runMove (thisMove zombieMove) state
+          finalState = gsSetField              slot valueI p $
+                       gsSetVitalityOnDeadSlot slot 0      p $
+                       postZombieState
           applyMsg = "applying zombie slot " ++ show slot ++ "={-1," ++ show (fromRight $ snd $ runMove (getProponentField slot) state) ++ "} to I"
       in case message of
         Left x -> (finalState, ["Exception: "++ x, applyMsg])
