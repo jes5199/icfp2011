@@ -428,21 +428,37 @@ testCases = [
                          return ()
                          ),
  ("optimized_slot_killer", do
-    buildNewValueAt (ValueNum 32) 0  -- slot[0] = 32
-    buildNewValueAt (parse "get 0") 2 -- slot[2] = slot[0]  (32)
-    leftApply 0 DoubleCard            -- slot[0] *= 2  (64)
-    buildNewValueAt (parse "get 0") 3 -- slot[3] = slot[0] (64)
-    sequence_ (replicate 6 (leftApply 0 DoubleCard)) -- slot[0] *= 64 (4096)
-    buildNewValueAt (parse "get 0") 1 -- slot[1] = slot[0] (4096)
+    buildNewValueAt (ValueNum 4) 0  -- slot[0] = 4
+    buildNewValueAt (parse "get 0") 129 -- slot[2] = slot[0]  (4)
+    leftApply 0 DoubleCard            -- slot[0] *= 2  (8)
+    buildNewValueAt (parse "get 0") 128 -- slot[3] = slot[0] (8)
+    sequence_ (replicate 9 (leftApply 0 DoubleCard)) -- slot[0] *= 2^9 (4096)
+    leftApply 128 AttackCard            -- slot[2] = attack slot[2] 0 (get 1)  (executes attack 32 0 4096)
+    rightApply 128 ZeroCard
+    rightVineBuild 128 (parse "get 0")
     leftApply 0 DoubleCard            -- slot[0] *= 2 (8192)
-    leftApply 2 AttackCard            -- slot[2] = attack slot[2] 0 (get 1)  (executes attack 32 0 4096)
-    rightApply 2 ZeroCard
-    rightVineBuild 2 (parse "get 1")
-    leftApply 3 AttackCard            -- slot[3] = attack slot[3] 0 (get 0)  (executes attack 64 0 8192)
-    rightApply 3 ZeroCard
-    rightVineBuild 3 (parse "get 0")
-    return ()
- )
+    leftApply 129 AttackCard            -- slot[3] = attack slot[3] 0 (get 0)  (executes attack 64 0 8192)
+    rightApply 129 ZeroCard
+    rightVineBuild 129 (parse "get 0")
+--    assertProponent (\pers gs -> gsGetVitality pers gs 255 == 0)
+    return () ),
+  ("zombie_lone_gunman", do
+    buildNewValueAt (ValueNum 4) 0  -- slot[0] = 4
+    buildNewValueAt (parse "get 0") 128 -- slot[2] = slot[0]  (4)
+    leftApply 0 DoubleCard            -- slot[0] *= 2  (8)
+    buildNewValueAt (parse "get 0") 129 -- slot[3] = slot[0] (8)
+    sequence_ (replicate 9 (leftApply 0 DoubleCard)) -- slot[0] *= 2^9 (4096)
+    leftApply 128 AttackCard            -- slot[2] = attack slot[2] 0 (get 1)  (executes attack 32 0 4096)
+    rightApply 128 ZeroCard
+    rightVineBuild 128 (parse "get 0")
+    leftApply 0 DoubleCard            -- slot[0] *= 2 (8192)
+    leftApply 129 AttackCard            -- slot[3] = attack slot[3] 0 (get 0)  (executes attack 64 0 8192)
+    rightApply 129 ZeroCard
+    rightVineBuild 129 (parse "get 0")
+--    assertProponent (\pers gs -> gsGetVitality pers gs 255 == 0)
+    buildNewValueAt (goblinSapperBomb 8192 1) 1  -- I have an 8096 on cell 0. Perhpas hand-construct a bomb with copy 0 instead of damage #
+    buildNewValueAt (loneZombie 0 1 0) 130
+    return () )
  ]
 
 testCaseAtomsToMoves :: String -> [TestCaseAtom] -> [Move]
