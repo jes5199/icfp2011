@@ -28,9 +28,9 @@ gsToGoal gs = GoalConj $ map slotToGoalItem [0..255]
   where slotToGoalItem num = SlotContains num (getSlotValue gs num)
 
 
-breadthFirstSearch :: Int -> GameState -> [GoalConj] -> Move
-breadthFirstSearch 0 _ _ = Move LeftApplication IdentityCard 42
-breadthFirstSearch limit gs goals = maybe deeper fst satisfiedGoal
+breadthFirstSearch :: Int -> GameState -> [GoalConj] -> Maybe Move
+breadthFirstSearch 0 _ _ = Nothing
+breadthFirstSearch limit gs goals = maybe deeper (Just . fst) satisfiedGoal
   where choices = concatMap thingsThatCouldMakeThis goals
         -- if any choice's goal is satisfied, then we do the first move.
         satisfiedGoal = find ( metGoal gs . snd ) choices
@@ -54,16 +54,26 @@ metGoalItem gs (SlotContains slot value) = value == mySlotValue
 
 getSlotValue gs = gsGetField ( gsMyFriend gs ) gs
 
-nextMove :: GameState -> Move
-nextMove gs = myMove
-  where goal = thinkOfGoal gs
-        myMove = if metGoal gs goal
-                 then Move RightApplication ZeroCard 0 -- full speed ahead.
-                 -- then Move LeftApplication IdentityCard 0 -- we've reached enlightenment.
-                 else breadthFirstSearch horizon gs [goal]
+drive :: GameState -> [GoalConj]
+drive gs = if metGoal gs goal
+           then []
+           else [goal]
+    where goal = thinkOfGoal gs
 
-altPlanner :: PlayerModel
-altPlanner = PurePlayer ((\x->[x]) . nextMove)
+contractor :: GameState -> GoalConj -> Maybe [Move]
+contractor gs goal = do move <- breadthFirstSearch horizon gs [goal]
+                        return [move]
+
+--nextMove :: GameState -> Move
+--nextMove gs = myMove
+--  where goal = thinkOfGoal gs
+--        myMove = if metGoal gs goal
+--                 then Move RightApplication ZeroCard 0 -- full speed ahead.
+--                 -- then Move LeftApplication IdentityCard 0 -- we've reached enlightenment.
+--                 else breadthFirstSearch horizon gs [goal]
+
+--altPlanner :: PlayerModel
+--altPlanner = PurePlayer ((\x->[x]) . nextMove)
 
 planSlotContains :: GoalItem -> [(Move, GoalConj)]
 -- "I could make this if I had..."

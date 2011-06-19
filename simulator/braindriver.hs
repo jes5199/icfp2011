@@ -7,13 +7,13 @@ import Simulator
 import PlayerModel
 import System(getArgs)
 import System.IO (hFlush,stdout)
---import Planner
-import AltPlanner
+import Planner
+import qualified AltPlanner
 
 main :: IO ()
 main = do
     [arg] <- getArgs
-    let our_brain   = altPlanner -- makePlanner [] [] -- ModeledPlayer [(gaMakeThisAt "6" 0),gaIForever] []
+    let our_brain   = makePlanner [AltPlanner.drive] [AltPlanner.contractor] -- ModeledPlayer [(gaMakeThisAt "6" 0),gaIForever] []
     let their_brain = ExternalPlayer
     if (arg == "0")
        then play initialState [] our_brain   [] their_brain
