@@ -535,7 +535,7 @@ testCaseAtomsToMoves testName = testCaseAtomsToMoves'
           testCaseAtomsToMoves' (TestCaseAssertionFailure gs msg : _)
               = error $ unlines $
                 ["Assertion failure in test " ++ testName
-                ,"Game state is: " ++ showGameStateNicely gs
+                ,"Game state is: " ++ show gs
                 ,"Assertion message: " ++ msg
                 ]
 

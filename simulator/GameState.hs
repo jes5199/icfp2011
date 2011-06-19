@@ -1,6 +1,5 @@
 module GameState (Who(..), opponent,
-                  GameState(..), showGameStateNicely,
-                  initialState, switchPlayer,
+                  GameState(..), initialState, switchPlayer,
                   alterFirstBoard,gsMyFriend,gsMyEnemy,GSPerspective,beginZombieApocolypse,quellZombieApocolypse,perspectiveFor,gsGetVitality,gsGetField,gsPayVitalityCost,gsApplyVitalityConsequence,gsSetField,gsSetVitalityOnDeadSlot,
                   test_GameState) where
 
@@ -22,16 +21,13 @@ data GameState = GameState { playerToMove :: Who,
                              firstPlayerBoard :: Slots,
                              secondPlayerBoard :: Slots,
                              zombiesAreOut :: Bool }
-               deriving (Eq, Show)
+               deriving (Eq)
 
-showGameStateNicely :: GameState -> String
-showGameStateNicely gs =
-  unlines $
-  [ show (playerToMove gs) ++ " to move" ++
-    if zombiesAreOut gs then " (zombies)" else ""
-  , "First player board:\n" ++ show (firstPlayerBoard gs)
-  , "Second player board:\n" ++ show (secondPlayerBoard gs)
-  ]
+instance Show GameState where
+  show gs = show (playerToMove gs) ++ " to move" ++
+            (if zombiesAreOut gs then " (zombies)" else "") ++ "\n" ++
+            "First player board:\n" ++ show (firstPlayerBoard gs) ++
+            "Second player board:\n" ++ show (secondPlayerBoard gs)
 
 initialState :: GameState
 initialState = GameState FirstPlayer initialSide initialSide False
