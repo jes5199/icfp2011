@@ -123,7 +123,7 @@ loneZombie weaponInput mySlotWithWeapon target =
         get = statement valueCopy
 
 goblinSapperBomb :: Int -> SlotNumber -> Value
-goblinSapperBomb amount = zombieLoop $
+goblinSapperBomb amount = zombieForLoop $
   statement (template "\\i -> help i i amount" $ numericArgs [("amount", amount) ])
 
 -- Note: this doesn't qualify as a "spell" by the strict definition
@@ -142,6 +142,11 @@ massResurrection value = forLoop $
 
 forLoop :: UnaryFunc -> SlotNumber -> Value
 forLoop stuff = infLoop $
+                  semi stuff
+                  (routine (template "succ" []))
+
+zombieForLoop :: UnaryFunc -> SlotNumber -> Value
+zombieForLoop stuff = zombieLoop $
                   semi stuff
                   (routine (template "succ" []))
 

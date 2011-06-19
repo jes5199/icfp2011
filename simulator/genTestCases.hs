@@ -473,7 +473,7 @@ testCases = [
 
 testCaseAtomsToMoves :: String -> [TestCaseAtom] -> [Move]
 testCaseAtomsToMoves testName = testCaseAtomsToMoves' initialState
-    where testCaseAtomsToMoves' gs [] = [nullMove]
+    where testCaseAtomsToMoves' gs [] = [nullMove, nullMove]
           testCaseAtomsToMoves' gs all@(TestCaseMove who' move : rest)
               | playerToMove gs == who' = (move : testCaseAtomsToMoves' (updateGs move gs) rest)
               | otherwise = (nullMove : testCaseAtomsToMoves' (updateGs nullMove gs) all)

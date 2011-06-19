@@ -46,7 +46,7 @@ tryApply move leftArg rightArg = do
                                 then throwError "Dead slot application"
                                 else apply leftArg rightArg)
                (\e -> do storeResult
-                           (ValueCard IdentityCard)
+                           valueI
                            (slotNumOfMove move)
                          throwError e )
   storeResult newValue' (slotNumOfMove move)
@@ -56,9 +56,9 @@ storeResult v slot = transformProponentSlots (updateField v slot)
 
 runZombiePhase :: GameState -> (GameState, [String])
 runZombiePhase state = (\(x,y) -> (x,reverse y))
-                       (foldl (\(s,l) n ->
-                                let (s',r) = runZombieSlot s n
-                                in (s',r ++ l)) (state,[]) [0..255])
+                       (foldl (\(beforeThisZombie,previousErrors) zombieSlot ->
+                                let (afterThisZombie,newErrors) = runZombieSlot beforeThisZombie zombieSlot
+                                in (afterThisZombie,newErrors ++ previousErrors)) (state,[]) [0..255])
 
 lefts :: [Either a b] -> [a]
 lefts [] = []
