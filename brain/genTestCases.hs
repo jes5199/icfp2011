@@ -379,8 +379,15 @@ testCases = [
  ("fastKill", do buildNewValueAt (fastKill 1 2 1) 0
                  return ()
                  -- assertProponent (\pers gs -> all (\i -> gsGetVitality pers gs i == 10099) [0..65])
-                 )
-
+                 ),
+ ("massRaiseDead", do buildNewValueAt (fastKill 1 2 154) 0
+                      buildNewValueAt (fastKill 3 4 153) 10
+                      buildNewValueAt (fastKill 5 6 152) 20
+                      switchPlayers
+                      buildNewValueAt (massRaiseDead 100 0) 0
+                      rightApply 0 ZeroCard
+                      return ()
+                      )
  ]
 
 testCaseAtomsToMoves :: String -> [TestCaseAtom] -> [Move]
