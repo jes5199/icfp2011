@@ -117,8 +117,8 @@ cureLightWounds amount = forLoop $
   statement (template "\\i -> help i i amount" $ numericArgs [("amount", amount) ])
 
 loneZombie :: Int -> SlotNumber -> SlotNumber -> Value
-loneZombie weaponInput mySlotWithWeapon target =
-    template "zombie target weapon" $ [("target", (ValueNum target)), ("weapon", trigger)]
+loneZombie weaponInput mySlotWithWeapon zombieLocation =
+    template "zombie zombieLocation weapon" $ [("zombieLocation", (ValueNum zombieLocation)), ("weapon", trigger)]
     where
         trigger = ValueApplication (ValueApplication valueS (funcValue $ bind get nextSlot)) (ValueApplication valueK input)
         nextSlot = translateValue (ValueNum mySlotWithWeapon)

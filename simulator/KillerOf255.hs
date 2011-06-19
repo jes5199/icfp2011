@@ -6,6 +6,7 @@ import Card
 import Parser
 import MoveWriter
 import Statements
+import Slots
 
 makeStrategy :: (GameState -> Bool) -> [Desire] -> ([GoalItem] -> Maybe (MoveWriter () )) -> Strategy
 makeStrategy condition desire implemetation = (drive, contractor)
@@ -38,11 +39,18 @@ setUpTheBomb = makeStrategy
         [OpponentSlotDead 255] -> Just speedKillTheMadBomberCell
         _ -> Nothing)
 
-killSomeOfThem = makeStrategy
+clearTheBeaches = makeStrategy
+    (allTrue ([(isDead his 255)] ++ (map (enoughHp his 8192) [128..130])))
+    [Desire 150.0 (GoalConj [OpponentSlotsDeadStartingAt 128])]
+    (\objective -> case objective of
+        [OpponentSlotsDeadStartingAt startPos] -> Just (goblinSappers startPos)
+        _ -> Nothing)
+
+screwUpTheirRegisters = makeStrategy
     (allTrue ([(isDead his 255)] ++ (map (enoughHp his 8192) [0..2])))
     [Desire 100.0 (GoalConj [OpponentSlotsDeadStartingAt 0])]
     (\objective -> case objective of
-        [OpponentSlotsDeadStartingAt 0] -> Just goblinSappersAtLowEnd
+        [OpponentSlotsDeadStartingAt startPos] -> Just (goblinSappers startPos)
         _ -> Nothing)
 
 doublePunchForce = 8160
@@ -55,12 +63,17 @@ doublePunchStrategy = makeStrategy
         _ -> Nothing)
 
 strategies :: [Strategy]
-strategies = [setUpTheBomb, killSomeOfThem, doublePunchStrategy]
+strategies = [setUpTheBomb, clearTheBeaches, screwUpTheirRegisters, doublePunchStrategy]
 
 goblinSappersAtLowEnd :: MoveWriter ()
 goblinSappersAtLowEnd =
     do assureSlotContains 1 (goblinSapperBomb 8192 1)
        assureSlotContains 130 (loneZombie 0 1 0)
+
+goblinSappers :: SlotNumber -> MoveWriter ()
+goblinSappers startingIndex =
+    do assureSlotContains 1 (goblinSapperBomb 8192 1)
+       assureSlotContains 130 (loneZombie startingIndex 1 0)
 
 speedKillTheMadBomberCell :: MoveWriter ()
 speedKillTheMadBomberCell =
