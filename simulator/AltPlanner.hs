@@ -89,19 +89,6 @@ planSlotContains :: GoalItem -> [(Move, GoalConj)]
 planSlotContains (SlotContains slot value)
   | value == (ValueCard IdentityCard) = [( Move LeftApplication PutCard slot , GoalConj [] )] -- no prereq to empty a slot with put
   | isVine value = planVine slot value
--- planSlotContains (SlotContains slot (ValueApplication f x))
--- | isRightVine x = planVine slot
---  | isRightVine x = do moves1 <- buildValue destSlot f
---                       let moves2 = applyRightVine destSlot x
---                       return $ moves1 ++ moves2
---  | otherwise = do moves1 <- buildValue destSlot f
---                   availableSlots <- get
---                   let slotToUse = head availableSlots
---                   put $ tail availableSlots
---                   moves2 <- buildValue slotToUse x
---                   let moves3 = applyRightVine destSlot $ translateValue $ ValueApplication (ValueCard GetCard) (ValueNum slotToUse)
---                   return $ moves1 ++ moves2 ++ moves3
-
 planSlotContains _ = [] -- "I don't see any way to do that."
 
 -- like buildVine, but only to depth 1
