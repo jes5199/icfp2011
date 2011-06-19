@@ -4,6 +4,7 @@ import SimpleBuilder
 import Translator
 import Value
 import Card
+import Slots
 import Move
 import Parser
 import System(getArgs)

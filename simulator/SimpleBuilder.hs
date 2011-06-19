@@ -3,6 +3,7 @@ module SimpleBuilder(test_SimpleBuilder, buildValue, applyRightVine, isVine, isR
 import Control.Monad.State
 import Test.HUnit ( (~?=) )
 import Value
+import Slots
 import Move
 import Card
 --import Parser

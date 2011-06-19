@@ -1,11 +1,10 @@
-module Move (Application(..),Move(..),SlotNumber,printMoves,printMove,slotNumOfMove) where
+module Move (Application(..),Move(..),printMoves,printMove,slotNumOfMove) where
 
 import Card
+import Slots
 
 data Application = LeftApplication | RightApplication
                  deriving (Eq, Show, Ord)
-
-type SlotNumber = Int
 
 data Move = Move Application Card SlotNumber
           deriving (Eq, Show, Ord)
