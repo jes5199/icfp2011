@@ -21,8 +21,8 @@ strategy = (drive, contractor)
 
 goblinSappersAtLowEnd :: MoveWriter ()
 goblinSappersAtLowEnd =
-    do achieveGoal 1 (goblinSapperBomb 8192 1)
-       achieveGoal 130 (loneZombie 0 1 0)
+    do assureSlotContains 1 (goblinSapperBomb 8192 1)
+       assureSlotContains 130 (loneZombie 0 1 0)
 
 speedKillTheMadBomberCell :: MoveWriter ()
 speedKillTheMadBomberCell =

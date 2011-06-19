@@ -45,7 +45,9 @@ moves = mapM_ move
 leftApply slotNum card = move $ Move LeftApplication card slotNum
 rightApply slotNum card = move $ Move RightApplication card slotNum
 rightApplyRV slotNum value = moves $ applyRightVine slotNum value
-achieveGoal destSlot value = moves $ toDo
+
+assureSlotContains :: SlotNumber -> Value -> MoveWriter ()
+assureSlotContains destSlot value = moves $ toDo
     where
         availSlots = filter (/= destSlot) [2..8]
         (toDo, _) = runState (buildValue destSlot (translateValue value)) availSlots
