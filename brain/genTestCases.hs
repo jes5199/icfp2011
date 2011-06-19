@@ -399,10 +399,18 @@ testCases = [
                       buildNewValueAt (fastKill 3 4 153) 10
                       buildNewValueAt (fastKill 5 6 152) 20
                       switchPlayers
-                      buildNewValueAt (massRaiseDead 100 0) 0
+                      buildNewValueAt (massRaiseDead 0) 0
                       rightApply 0 ZeroCard
                       return ()
-                      )
+                      ),
+ ("massResurrection", do buildNewValueAt (fastKill 1 2 244) 0
+                         buildNewValueAt (fastKill 3 4 243) 10
+                         buildNewValueAt (fastKill 5 6 242) 20
+                         switchPlayers
+                         buildNewValueAt (massResurrection 8192 0) 0
+                         rightApply 0 ZeroCard
+                         return ()
+                         )
  ]
 
 testCaseAtomsToMoves :: String -> [TestCaseAtom] -> [Move]

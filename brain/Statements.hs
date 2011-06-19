@@ -106,9 +106,13 @@ fastKill friend1 friend2 enemy =
   funcValue $ semi (statement (template "attack friend enemy 4096" $ numericArgs [("friend", friend1), ("enemy", enemy) ]))
                    (statement (template "attack friend enemy 8192" $ numericArgs [("friend", friend2), ("enemy", enemy) ]))
 
-massRaiseDead:: SlotNumber -> SlotNumber -> Value
-massRaiseDead target = forLoop $
-  statement (template "\\i -> revive i" [] )
+massRaiseDead:: SlotNumber -> Value
+massRaiseDead = forLoop $ statement (template "\\i -> revive i" [] )
+
+massResurrection:: Int -> SlotNumber -> Value
+massResurrection value = forLoop $
+  semi ( statement (template "\\i -> revive (succ i)" [] ) )
+       ( statement (template "\\i -> help i (succ i) value" $ numericArgs [("value", value)] ) )
 
 forLoop :: UnaryFunc -> SlotNumber -> Value
 forLoop stuff = infLoop $
