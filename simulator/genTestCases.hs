@@ -448,11 +448,11 @@ testCases = [
     leftApply 129 AttackCard            -- slot[3] = attack slot[3] 0 (get 0)  (executes attack 64 0 8192)
     rightApply 129 ZeroCard
     rightVineBuild 129 (parse "get 0")
-    assertOpponent (\pers gs -> gsGetVitality pers gs 255 == 0 ))
+    assertOpponent (\pers gs -> gsGetVitality pers gs 255 == 0 )
     return () ),
   ("zombie_lone_gunman", do
     runMoveWriter initialState KillerOf255.speedKillTheMadBomberCell
-    assertOpponent (\pers gs -> gsGetVitality pers gs 255 == 0 ))
+    assertOpponent (\pers gs -> gsGetVitality pers gs 255 == 0 )
     buildNewValueAt (goblinSapperBomb 8192 1) 1  -- I have an 8192 on cell 0. Perhpas hand-construct a bomb with copy 0 instead of damage #
     buildNewValueAt (loneZombie 0 1 0) 130
     return () ),
