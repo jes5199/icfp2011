@@ -10,6 +10,7 @@ import SimpleBuilder
 import Simulator
 import Value
 import Translator
+import Data.List
 
 type MoveWriter = StateT GameState (WriterT [Move] (Either String))
 
@@ -47,10 +48,13 @@ rightApply slotNum card = move $ Move RightApplication card slotNum
 rightApplyRV slotNum value = moves $ applyRightVine slotNum value
 
 assureSlotContains :: SlotNumber -> Value -> MoveWriter ()
-assureSlotContains destSlot value = moves $ toDo
+assureSlotContains destSlot value = do
+  forM_ slotsUsed makeIdentity
+  moves toDo
     where
         availSlots = filter (/= destSlot) [2..8]
-        (toDo, _) = runState (buildValue destSlot (translateValue value)) availSlots
+        (toDo, slotsLeft) = runState (buildValue destSlot (translateValue value)) availSlots
+        slotsUsed = availSlots \\ slotsLeft
 
 getSlot dest 0 = do
   makeIdentity dest

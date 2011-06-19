@@ -487,7 +487,7 @@ testCases = [
   ("zombie_sapper_to_low_registers", do
     runMoveWriter KillerOf255.speedKillTheMadBomberCell
     assertOpponent "Opponent slot 255 killed" (\pers gs -> gsGetVitality pers gs 255 == 0 )
-    -- runMoveWriter KillerOf255.goblinSappersAtLowEnd
+    runMoveWriter KillerOf255.goblinSappersAtLowEnd
     return () ),
  ("killerOf255", do
     runMoveWriter KillerOf255.speedKillTheMadBomberCell
