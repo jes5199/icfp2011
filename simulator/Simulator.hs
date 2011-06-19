@@ -1,4 +1,4 @@
-module Simulator (simulateTurn,simulateZombies,test_Simulator) where
+module Simulator (simulate,simulateTurn,simulateZombies,test_Simulator) where
 
 import Data.Array
 import Control.Monad.Error
@@ -10,6 +10,12 @@ import Value
 import MoveStep
 import CardBehavior
 import Data.List (foldl')
+
+simulate :: GameState -> Move -> GameState
+simulate currentState move = doneState
+  where (zombiedState, _) = simulateZombies currentState
+        (playedState, _)  = simulateTurn zombiedState move
+        doneState = switchPlayer playedState
 
 simulateTurn :: GameState -> Move -> (GameState, Either String ())
 simulateTurn gameState move = runMove (thisMove move) gameState
