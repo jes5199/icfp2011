@@ -98,7 +98,8 @@ putOpponentVitality v n = transformOpponentSlots (updateVitality v n)
 data Perspective = Perspective
                    { getVitality :: SlotNumber -> MoveStep Vitality,
                      getField :: SlotNumber -> MoveStep Value,
-                     modifyVitality :: SlotNumber -> Vitality -> MoveStep (),
+                     payVitalityCost :: SlotNumber -> Vitality -> MoveStep (),
+                     applyVitalityConsequence :: SlotNumber -> Vitality -> MoveStep (),
                      setField :: SlotNumber -> Value -> MoveStep (),
                      setVitalityOnDeadSlot :: SlotNumber -> Vitality ->
                                               MoveStep () }
@@ -111,7 +112,9 @@ liftPerspective p =
   ( \n -> do state <- getGameState
              return $ gsGetField p state n)
   ( \n v -> do state <- getGameState
-               putGameState $ gsModifyVitality p state n v)
+               putGameState $ gsPayVitalityCost p state n v)
+  ( \n v -> do state <- getGameState
+               putGameState $ gsApplyVitalityConsequence p state n v)
   ( \n a -> do state <- getGameState
                putGameState $ gsSetField p state n a)
   ( \n v -> do state <- getGameState
@@ -124,14 +127,6 @@ myFriend = do (state,_) <- get
 myEnemy :: MoveStep Perspective
 myEnemy = do (state,_) <- get
              return $ liftPerspective $ gsMyEnemy state
-
-damage :: Int -> MoveStep Int
-damage val = do (state,_) <- get
-                return $ gsDamage val state
-
-heal :: Int -> MoveStep Int
-heal val = do (state,_) <- get
-              return $ gsHeal val state
 
 -- Executes the lambda function corresponding to a move, incorporates
 -- side effects into the GameState, and stops execution if an error
