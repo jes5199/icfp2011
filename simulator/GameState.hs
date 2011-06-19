@@ -1,4 +1,4 @@
-module GameState (GameState(..),Slots(..),Slot(..),initialState,Who(..),updateVitality,updateField,test_GameState,Vitality,initialSide,switchPlayer,alterFirstBoard,opponent,gsMyFriend,gsMyEnemy,GSPerspective,beginZombieApocolypse,quellZombieApocolypse,perspectiveFor,gsGetVitality,gsGetField,gsPayVitalityCost,gsApplyVitalityConsequence,gsSetField,gsSetVitalityOnDeadSlot) where
+module GameState (GameState(..),Slots(..),Slot(..),initialState,Who(..),updateVitality,updateField,test_GameState,Vitality,initialSide,switchPlayer,alterFirstBoard,opponent,gsMyFriend,gsMyEnemy,GSPerspective,beginZombieApocolypse,quellZombieApocolypse,perspectiveFor,gsGetVitality,gsGetField,gsPayVitalityCost,gsApplyVitalityConsequence,gsSetField,gsSetVitalityOnDeadSlot,showGameStateNicely) where
 
 import Test.HUnit
 import Data.Array
@@ -66,6 +66,13 @@ opponent SecondPlayer = FirstPlayer
 
 data GameState = GameState { playerToMove :: Who, firstPlayerBoard :: Slots, secondPlayerBoard :: Slots, zombiesAreOut :: Bool }
                deriving (Eq, Show)
+
+showGameStateNicely :: GameState -> String
+showGameStateNicely gs = unlines $
+                         [show (playerToMove gs) ++ " to move" ++ if zombiesAreOut gs then " (zombies)" else ""
+                         ,"First player board:\n" ++ show (firstPlayerBoard gs)
+                         ,"Second player board:\n" ++ show (secondPlayerBoard gs)
+                         ]
 
 -- This is a perspective on the board, as viewed by some player or zombie.
 -- "player1's view of player 2's board" means actor is FirstPlayer, viewer is SecondPlayer.
@@ -142,11 +149,11 @@ initialState = GameState FirstPlayer initialSide initialSide False
 
 initialSide :: Slots
 initialSide = Slots $
-              array (0,255::Int) [(n,Slot 10000 (cardToValue IdentityCard)) |
+              array (0,255::Int) [(n,Slot 10000 (valueI)) |
                                   n <- [0..255]]
 
 test_GameState = [
-    updateVitality 19 1 (Slots testSlots) ~?= Slots (testSlots // [(1, Slot 19 idValue)]),
+    updateVitality 19 1 (Slots testSlots) ~?= Slots (testSlots // [(1, Slot 19 valueI)]),
     updateField (ValueNum 5) 1 (Slots testSlots) ~?= Slots (testSlots // [(1, Slot 10000 (ValueNum 5))]),
 
     -- Begin tests to get the right perspectives
@@ -207,9 +214,8 @@ test_GameState = [
     startingGame = GameState FirstPlayer firstSide secondSide False
     zombieTime = GameState FirstPlayer firstSide secondSide True
     someDeath = GameState FirstPlayer deadCellSide deadCellSide True
-    testSlots = array (0,3::Int) [(n,Slot 10000 (cardToValue IdentityCard)) |
+    testSlots = array (0,3::Int) [(n,Slot 10000 (valueI)) |
                         n <- [0..3]]
-    idValue = cardToValue IdentityCard
     player1 = perspectiveFor FirstPlayer False
     player2 = perspectiveFor SecondPlayer False
     zombie1 = perspectiveFor FirstPlayer True

@@ -55,4 +55,34 @@ readCard "zombie" = ZombieCard
 readCard _ = error "BAD CARD NO COOKIE"
 
 test_Card = [
-  ] :: [Test]
+  readCard (show IdentityCard) ~?= IdentityCard,
+  readCard (show ZeroCard) ~?= ZeroCard,
+  readCard (show SuccCard) ~?= SuccCard,
+  readCard (show DoubleCard) ~?= DoubleCard,
+  readCard (show GetCard) ~?= GetCard,
+  readCard (show PutCard) ~?= PutCard,
+  readCard (show SCard) ~?= SCard,
+  readCard (show KCard) ~?= KCard,
+  readCard (show IncCard) ~?= IncCard,
+  readCard (show DecCard) ~?= DecCard,
+  readCard (show AttackCard) ~?= AttackCard,
+  readCard (show HelpCard) ~?= HelpCard,
+  readCard (show CopyCard) ~?= CopyCard,
+  readCard (show ReviveCard) ~?= ReviveCard,
+  readCard (show ZombieCard) ~?= ZombieCard,
+  show (readCard "I") ~?= "I",
+  show (readCard "zero") ~?= "zero",
+  show (readCard "succ") ~?= "succ",
+  show (readCard "dbl") ~?= "dbl",
+  show (readCard "get") ~?= "get",
+  show (readCard "put") ~?= "put",
+  show (readCard "S") ~?= "S",
+  show (readCard "K") ~?= "K",
+  show (readCard "inc") ~?= "inc",
+  show (readCard "dec") ~?= "dec",
+  show (readCard "attack") ~?= "attack",
+  show (readCard "help") ~?= "help",
+  show (readCard "copy") ~?= "copy",
+  show (readCard "revive") ~?= "revive",
+  show (readCard "zombie") ~?= "zombie"
+  ]

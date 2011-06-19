@@ -1,4 +1,4 @@
-module Value (Value(..),cardToValue,test_Value,valueI,valueZero,valueSucc,valueDbl,valueGet,valuePut,valueS,valueK,valueInc,valueDec,valueAttack,valueHelp,valueCopy,valueRevive,valueZombie,clamp,makeNumVal) where
+module Value (Value(..),test_Value,valueI,valueZero,valueSucc,valueDbl,valueGet,valuePut,valueS,valueK,valueInc,valueDec,valueAttack,valueHelp,valueCopy,valueRevive,valueZombie,clamp,makeNumVal) where
 
 import Test.HUnit
 import Card
@@ -10,14 +10,14 @@ data Value = ValueCard Card
            | ValueVariable String
 
 instance Eq Value where
-    ValueCard x == ValueCard y = x == y
-    ValueNum x == ValueNum y = x == y
-    ValueApplication f x == ValueApplication g y = f == g && x == y
-    ValueLambda x v == ValueLambda y w = x == y && v == w
-    ValueVariable x == ValueVariable y = x == y
-    ValueCard ZeroCard == ValueNum 0 = True
-    ValueNum 0 == ValueCard ZeroCard = True
-    _ == _ = False
+    ValueCard x          == ValueCard y           =  x == y
+    ValueNum x           == ValueNum y            =  x == y
+    ValueApplication f x == ValueApplication g y  =  f == g && x == y
+    ValueLambda x v      == ValueLambda y w       =  x == y && v == w
+    ValueVariable x      == ValueVariable y       =  x == y
+    ValueCard ZeroCard   == ValueNum 0            =  True
+    ValueNum 0           == ValueCard ZeroCard    =  True
+    _                    == _                     =  False
 
 instance Show Value where
   show (ValueCard c) = show c
@@ -25,9 +25,6 @@ instance Show Value where
   show (ValueApplication x y) = show x ++ "(" ++ show y ++ ")"
   show (ValueLambda s v) = "\\" ++ s ++ "." ++ show v
   show (ValueVariable s) = s
-
-cardToValue :: Card -> Value
-cardToValue = ValueCard
 
 clamp val = if val < 0 then 0 else (if val > 65535 then 65535 else val)
 

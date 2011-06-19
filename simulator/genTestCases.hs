@@ -13,7 +13,7 @@ import Data.List
 import Statements
 import GameState
 import Simulator
-import MoveWriter(MoveWriter,execMoveWriter)
+import MoveWriter(MoveWriter,execMoveWriterOrError)
 import qualified KillerOf255
 
 type TestCaseGenerator = StateT ([SlotNumber], [SlotNumber], Who, GameState) (Writer [TestCaseAtom])
@@ -127,10 +127,18 @@ testCycleCount wasteCycles = do
           waste n value = ValueApplication (ValueApplication (ValueCard SCard) (waste (n-1) value))
                                            (ValueCard IdentityCard)
 
-runMoveWriter :: GameState -> MoveWriter () -> TestCaseGenerator ()
-runMoveWriter gs moveWriter = case execMoveWriter gs moveWriter of
-                                Nothing -> error "runMoveWriter failed"
-                                Just moves -> makeMoves moves
+getGameState :: TestCaseGenerator GameState
+getGameState = do
+  (_, _, _, gs) <- get
+  return gs
+
+runMoveWriter :: MoveWriter () -> TestCaseGenerator ()
+runMoveWriter moveWriter = do
+  ensureOurMove
+  gs <- getGameState
+  case execMoveWriterOrError gs moveWriter of
+    Left msg -> assert ("runMoveWriter failed: " ++ msg) (const False)
+    Right moves -> makeMoves moves
 
 testCases :: [(String, TestCaseGenerator ())]
 testCases = [
@@ -471,18 +479,18 @@ testCases = [
     assertOpponent "Opponent slot 255 killed" (\pers gs -> gsGetVitality pers gs 255 == 0 )
     return () ),
   ("zombie_lone_gunman", do
-    runMoveWriter initialState KillerOf255.speedKillTheMadBomberCell
+    runMoveWriter KillerOf255.speedKillTheMadBomberCell
     assertOpponent "Opponent slot 255 killed" (\pers gs -> gsGetVitality pers gs 255 == 0 )
     buildNewValueAt (goblinSapperBomb 8192 1) 1  -- I have an 8192 on cell 0. Perhpas hand-construct a bomb with copy 0 instead of damage #
     buildNewValueAt (loneZombie 0 1 0) 130
     return () ),
   ("zombie_sapper_to_low_registers", do
-    runMoveWriter initialState KillerOf255.speedKillTheMadBomberCell
+    runMoveWriter KillerOf255.speedKillTheMadBomberCell
     assertOpponent "Opponent slot 255 killed" (\pers gs -> gsGetVitality pers gs 255 == 0 )
---    runMoveWriter initialState KillerOf255.goblinSappersAtLowEnd
+    runMoveWriter KillerOf255.goblinSappersAtLowEnd
     return () ),
  ("killerOf255", do
-    runMoveWriter initialState KillerOf255.speedKillTheMadBomberCell
+    runMoveWriter KillerOf255.speedKillTheMadBomberCell
     assertOpponent "Opponent slot 255 killed" (\pers gs -> gsGetVitality pers gs 255 == 0 ))
  ]
 
@@ -493,9 +501,7 @@ testCaseAtomsToMoves testName = testCaseAtomsToMoves'
           testCaseAtomsToMoves' (TestCaseAssertionFailure gs msg : _)
               = error $ unlines $
                 ["Assertion failure in test " ++ testName
-                ,"Game state is: " ++ show (playerToMove gs) ++ " to move"
-                ,"First player board:\n" ++ show (firstPlayerBoard gs)
-                ,"Second player board:\n" ++ show (secondPlayerBoard gs)
+                ,"Game state is: " ++ showGameStateNicely gs
                 ,"Assertion message: " ++ msg
                 ]
 

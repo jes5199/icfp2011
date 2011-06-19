@@ -10,11 +10,12 @@ import Data.List
 -- A GoalConj represents a set of gamestate characteristics we would
 -- like to all achieve simultaneously.
 newtype GoalConj = GoalConj [GoalItem]
-    deriving Eq
+    deriving (Eq, Show)
 
 data GoalItem = SlotContains SlotNumber Value
               | OpponentSlotDead SlotNumber -- slot number from opponent pov
-    deriving Eq
+              | OpponentSlotsDeadStartingAt SlotNumber -- slot number from opponent pov
+    deriving (Eq, Show)
 
 -- A desire is a GoalConj paired with a ranking.  Larger numbers are
 -- more desirable.
@@ -41,9 +42,9 @@ data Cost = FiniteCost Int
 type Bid = (Cost, [Move])
 
 -- A contractor is a function from GoalConj (and GameState) to either
--- a bid, or Nothing (if the contractor doesn't know how to make
--- progress on the goal).
-type Contractor = GameState -> GoalConj -> Maybe Bid
+-- an error message indicating why it can't make a bid on this goal,
+-- or a bid.
+type Contractor = GameState -> GoalConj -> Either String Bid
 
 -- A strategy is a convenient bundle containing a drive and a
 -- contractor.
@@ -58,7 +59,7 @@ decide drives contractors game =
     let bids =  do drive <- drives
                    Desire desirability goal <- drive game
                    contractor <- contractors
-                   Just bid <- return (contractor game goal)
+                   Right bid <- return (contractor game goal)
                    return (-desirability, bid)
                 ++ [(100.0, (InfiniteCost, [Move LeftApplication IdentityCard 0]))]
     in snd (snd (head (sort bids)))

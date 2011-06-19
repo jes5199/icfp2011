@@ -28,16 +28,16 @@ gsToGoal gs = GoalConj $ map slotToGoalItem [0..255]
   where slotToGoalItem num = SlotContains num (getSlotValue gs num)
 
 
-breadthFirstSearch :: GameState -> [GoalConj] -> Maybe Bid
+breadthFirstSearch :: GameState -> [GoalConj] -> Either String Bid
 breadthFirstSearch gs = breadthFirstSearch' 0
-  where breadthFirstSearch' depthSoFar _ | depthSoFar >= horizon = Nothing
+  where breadthFirstSearch' depthSoFar _ | depthSoFar >= horizon = Left $ "Breadth first search failed after " ++ show horizon ++ " iterations"
         breadthFirstSearch' depthSoFar goals = maybe deeper extractBidFromSuccessfulSearch satisfiedGoal
             where choices = concatMap thingsThatCouldMakeThis goals
                   -- if any choice's goal is satisfied, then we do the first move.
                   satisfiedGoal = find ( metGoal gs . snd ) choices
                   -- otherwise, lets see if we can get any of those prereqs
                   deeper = breadthFirstSearch' (depthSoFar + 1) $ map snd choices
-                  extractBidFromSuccessfulSearch (move, goal) = Just (FiniteCost depthSoFar, [move])
+                  extractBidFromSuccessfulSearch (move, goal) = Right (FiniteCost depthSoFar, [move])
 
 type WorkingBackwardsStep = (Move, GoalConj)
 
@@ -64,14 +64,14 @@ drive gs = if metGoal gs goal
            else [Desire 0.1 goal]
     where goal = thinkOfGoal gs
 
-contractor :: GameState -> GoalConj -> Maybe Bid
+contractor :: Contractor
 contractor gs goal = breadthFirstSearch gs [goal]
 
 contractor2 :: Contractor
-contractor2 gs (GoalConj [SlotContains slot value]) = Just $ (FiniteCost (length moves), moves)
+contractor2 gs (GoalConj [SlotContains slot value]) = Right $ (FiniteCost (length moves), moves)
     where moves = Move LeftApplication PutCard slot : fst (runState (buildValue slot value) tempSlots)
           tempSlots = [0..255] \\ [slot]
-contractor2 _ _ = Nothing
+contractor2 _ goal = Left $ "Don't know how to achieve goal " ++ show goal
 
 --nextMove :: GameState -> Move
 --nextMove gs = myMove
