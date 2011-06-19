@@ -3,12 +3,12 @@ module Move (Application(..),Move(..),SlotNumber,printMoves,printMove,slotNumOfM
 import Card
 
 data Application = LeftApplication | RightApplication
-                 deriving (Eq, Show)
+                 deriving (Eq, Show, Ord)
 
 type SlotNumber = Int
 
 data Move = Move Application Card SlotNumber
-          deriving (Eq, Show)
+          deriving (Eq, Show, Ord)
 
 printMoves :: [Move] -> String
 printMoves ms = unlines $ foldr (++) [] $ map printMove ms

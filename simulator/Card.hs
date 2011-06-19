@@ -17,7 +17,7 @@ data Card = IdentityCard |
 	    CopyCard     |
 	    ReviveCard   |
 	    ZombieCard
-          deriving (Eq)
+          deriving (Eq, Ord)
 
 instance Show Card where
   show IdentityCard = "I"

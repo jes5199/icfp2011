@@ -28,16 +28,20 @@ gsToGoal gs = GoalConj $ map slotToGoalItem [0..255]
   where slotToGoalItem num = SlotContains num (getSlotValue gs num)
 
 
-breadthFirstSearch :: Int -> GameState -> [GoalConj] -> Maybe Move
-breadthFirstSearch 0 _ _ = Nothing
-breadthFirstSearch limit gs goals = maybe deeper (Just . fst) satisfiedGoal
-  where choices = concatMap thingsThatCouldMakeThis goals
-        -- if any choice's goal is satisfied, then we do the first move.
-        satisfiedGoal = find ( metGoal gs . snd ) choices
-        -- otherwise, lets see if we can get any of those prereqs
-        deeper = breadthFirstSearch (limit - 1) gs $ map snd choices
+breadthFirstSearch :: GameState -> [GoalConj] -> Maybe Bid
+breadthFirstSearch gs = breadthFirstSearch' 0
+  where breadthFirstSearch' depthSoFar _ | depthSoFar >= horizon = Nothing
+        breadthFirstSearch' depthSoFar goals = maybe deeper extractBidFromSuccessfulSearch satisfiedGoal
+            where choices = concatMap thingsThatCouldMakeThis goals
+                  -- if any choice's goal is satisfied, then we do the first move.
+                  satisfiedGoal = find ( metGoal gs . snd ) choices
+                  -- otherwise, lets see if we can get any of those prereqs
+                  deeper = breadthFirstSearch' (depthSoFar + 1) $ map snd choices
+                  extractBidFromSuccessfulSearch (move, goal) = Just (FiniteCost depthSoFar, [move])
 
-thingsThatCouldMakeThis :: GoalConj -> [(Move, GoalConj)]
+type WorkingBackwardsStep = (Move, GoalConj)
+
+thingsThatCouldMakeThis :: GoalConj -> [WorkingBackwardsStep]
 thingsThatCouldMakeThis (GoalConj goal) = concatMap planSlotContains goal
 
 metGoal :: GameState -> GoalConj -> Bool
@@ -60,9 +64,8 @@ drive gs = if metGoal gs goal
            else [goal]
     where goal = thinkOfGoal gs
 
-contractor :: GameState -> GoalConj -> Maybe [Move]
-contractor gs goal = do move <- breadthFirstSearch horizon gs [goal]
-                        return [move]
+contractor :: GameState -> GoalConj -> Maybe Bid
+contractor gs goal = breadthFirstSearch gs [goal]
 
 --nextMove :: GameState -> Move
 --nextMove gs = myMove
