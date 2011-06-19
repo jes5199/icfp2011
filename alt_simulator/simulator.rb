@@ -1,7 +1,11 @@
+require "brains"
+
 Size = 256
 Starting_vitality = 10000
 Max_vitality = 65535
 Max_applications = 1000
+Max_turns = 100000
+
 class Cells
     def vitality
         @vitality ||= [Starting_vitality]*Size
@@ -213,6 +217,29 @@ class GameState
         swap
       end
   end
+
+class Game
+    attr_accessor :game_state,:players
+    def initialize(players)
+        fail unless [1,2].include? players.length
+        @players = players
+        @game_state = GameState.new( (players.length == 1) ? :only : :alt)
+      end
+    def run
+        (0...Max_turns).each { |turn|
+            player = players[turn % players.length]
+            if player
+                game_state.move(*player.choose_move(game_state))
+              else 
+                game_state.move
+              end
+          }
+      end
+  end
+
+Game.new(ARGV.collect { |player_desc| (player_desc == '-') ? nil : Brain.new(player_desc)}).run
+
+__END__
 
 gs = GameState.new(:only)
 #gs.proponent.field[0] = ['S','get',['S',['S',['K',['help',0,0]],['K',8196]],['I']]]
