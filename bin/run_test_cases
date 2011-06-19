@@ -22,6 +22,7 @@ while [[ $# != 0 ]]; do
       s/attack n-value greater than vitality of \[i\]/Native.Error/
       s/tried to get from a dead cell/Native.Error/
       s/Dead slot application/Native.Error/
+      s/zombie called on cell that isn'"'"'t dead/Native.Error/
     ' "test_results/$1.out" > "test_results/$1.out.clean"
 
     sed '
