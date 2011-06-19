@@ -67,6 +67,12 @@ drive gs = if metGoal gs goal
 contractor :: GameState -> GoalConj -> Maybe Bid
 contractor gs goal = breadthFirstSearch gs [goal]
 
+contractor2 :: Contractor
+contractor2 gs (GoalConj [SlotContains slot value]) = Just $ (FiniteCost (length moves), moves)
+    where moves = Move LeftApplication PutCard slot : fst (runState (buildValue slot value) tempSlots)
+          tempSlots = [0..255] \\ [slot]
+contractor2 _ _ = Nothing
+
 --nextMove :: GameState -> Move
 --nextMove gs = myMove
 --  where goal = thinkOfGoal gs
