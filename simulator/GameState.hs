@@ -1,12 +1,10 @@
 module GameState (Who(..), opponent,
-                  GameState(..), initialState,
+                  GameState(..), initialState, alterFirstBoard,
                   switchPlayer, beginZombieApocolypse, quellZombieApocolypse,
-                  GSPerspective,
-                  perspectiveFor, gsMyFriend, gsMyEnemy,
+                  GSPerspective, perspectiveFor, gsMyFriend, gsMyEnemy,
                   gsGetVitality, gsGetField,
                   gsSetField, gsPayVitalityCost, gsApplyVitalityConsequence,
                   gsSetVitalityOnDeadSlot,
-                  alterFirstBoard,
                   test_GameState) where
 
 import Test.HUnit
@@ -17,11 +15,13 @@ import Slots
 import Move
 import Util
 
+
 data Who = FirstPlayer | SecondPlayer
          deriving (Eq, Show)
 
 opponent FirstPlayer = SecondPlayer
 opponent SecondPlayer = FirstPlayer
+
 
 data GameState = GameState { playerToMove :: Who,
                              firstPlayerSlots :: Slots,
@@ -38,6 +38,11 @@ instance Show GameState where
 initialState :: GameState
 initialState = GameState FirstPlayer initialSide initialSide False
 
+-- This function is an abomination used only for testing (almost)
+alterFirstBoard :: (Slots -> Slots) -> GameState -> GameState
+alterFirstBoard transform gs =
+  gs { firstPlayerSlots = transform (firstPlayerSlots gs) }
+
 switchPlayer :: GameState -> GameState
 switchPlayer state = state { playerToMove = opponent (playerToMove state) }
 
@@ -46,6 +51,7 @@ beginZombieApocolypse gs = gs { zombiesAreOut = True }
 
 quellZombieApocolypse :: GameState -> GameState
 quellZombieApocolypse gs = gs { zombiesAreOut = False }
+
 
 -- This is a perspective on the board, as viewed by some player or zombie.
 -- "player1's view of player 2's board" means actor is FirstPlayer,
@@ -114,9 +120,6 @@ gsApplyVitalityConsequence idx deltaHp pers =
 gsSetVitalityOnDeadSlot :: SlotNumber -> Vitality -> GSTrans
 gsSetVitalityOnDeadSlot idx hp =
   gsTransformSlots (replaceVitalityOnDeadSlot idx hp)
-
-alterFirstBoard :: (Slots -> Slots) -> GameState -> GameState
-alterFirstBoard transform (GameState who firstBoard secondBoard zombies) = GameState who (transform firstBoard) secondBoard zombies
 
 test_GameState = [
     -- Begin tests to get the right perspectives
