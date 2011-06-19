@@ -4,6 +4,7 @@ import SimpleBuilder
 import Translator
 import Value
 import Card
+import Slots
 import Move
 import Parser
 import System(getArgs)
@@ -512,7 +513,7 @@ testCases = [
     assertOpponent "Opponent slot 255 killed" (\pers gs -> gsGetVitality pers gs 255 == 0 )
     runMoveWriter KillerOf255.goblinSappersAtLowEnd
     return () ),
- ("killerOf255", testStrategy KillerOf255.strategy)
+ ("set_up_the_bomb", testStrategy KillerOf255.setUpTheBomb)
  ]
 
 testCaseAtomsToMoves :: String -> [TestCaseAtom] -> [Move]

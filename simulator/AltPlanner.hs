@@ -9,6 +9,7 @@ import Simulator
 import GameState
 import Move -- move is Move Application Card SlotNumber
 import Value
+import Slots
 import SimpleBuilder
 import PlayerModel(PlayerModel(PurePlayer))
 import Planner
