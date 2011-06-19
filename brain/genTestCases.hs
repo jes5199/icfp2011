@@ -400,7 +400,7 @@ testCaseAtomsToMoves testName = testCaseAtomsToMoves' initialState
               | f gs = testCaseAtomsToMoves' gs rest
               | otherwise = error ("Assertion failure in test " ++ testName)
           nullMove = Move LeftApplication IdentityCard 0
-          updateGs move gs = switchPlayer $ fst $ simulate gs move -- TODO: zombies
+          updateGs move gs = switchPlayer $ fst $ simulateTurn (fst $ simulateZombies gs) move
 
 outputTestCase :: String -> TestCaseGenerator () -> IO ()
 outputTestCase testName testCase = do
