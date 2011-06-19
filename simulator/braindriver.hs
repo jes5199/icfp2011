@@ -14,7 +14,7 @@ import qualified KillerOf255
 main :: IO ()
 main = do
     [arg] <- getArgs
-    let our_brain   = makePlanner [AltPlanner.drive, KillerOf255.drive] [AltPlanner.contractor, AltPlanner.contractor2, KillerOf255.contractor] -- ModeledPlayer [(gaMakeThisAt "6" 0),gaIForever] []
+    let our_brain   = makePlanner [AltPlanner.drive, KillerOf255.drive] [AltPlanner.contractor, AltPlanner.contractor2, KillerOf255.contractor]
     let their_brain = ExternalPlayer
     if (arg == "0")
        then play initialState [] our_brain   [] their_brain
@@ -28,7 +28,6 @@ main = do
 play :: GameState ->   [Move] -> PlayerModel ->   [Move] -> PlayerModel -> IO ()
 play state   [] brain   other_plan other_brain = do
     new_plan <- case brain of
-        (ModeledPlayer _ _) -> return (planSteps (chooseGoal brain state ) state)
         (PurePlayer f) -> return (f state)
         (ExternalPlayer) -> do
             applicationDir <- readInt
@@ -44,7 +43,8 @@ play state   [] brain   other_plan other_brain = do
             return [move]
     play state new_plan brain other_plan other_brain
 
-play state   (move:rest_of_plan) brain   other_plan other_brain = do
+play state   whole_plan brain   other_plan other_brain = do
+    let (move:rest_of_plan) = getInterrupts brain state ++ whole_plan
     case brain of
         (ExternalPlayer) -> do return ()
         _ -> do mapM_ putStrLn (printMove move)
@@ -56,4 +56,3 @@ readInt :: IO Int
 readInt = do
     str <- getLine
     return $ read str
-

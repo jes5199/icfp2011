@@ -1,7 +1,7 @@
 module PlayerModel where
 
 import Control.Monad.State
-import Data.List (minimumBy)
+import Data.List (minimumBy, find)
 import SimpleBuilder
 import Translator
 import Value
@@ -15,9 +15,7 @@ import Parser
 --
 -- A PlayerModel encapsulates collection functions that players use
 -- to make choices about their moves
-data PlayerModel = ModeledPlayer { goalAgents :: [ GameState -> [Goal] ],
-                                   priorityAgents :: [ Goal -> Int ] }
-                 | ExternalPlayer
+data PlayerModel = ExternalPlayer
                  | PurePlayer (GameState -> [Move])
 
 
@@ -55,15 +53,6 @@ gaHealTheWounded = undefined
 
 
 --
--- Choose best goal based on all sorts of clever logic
---      For now, use "first thing on the list"
---
-chooseGoal :: PlayerModel -> GameState -> Goal
-chooseGoal brain game_state =
-    let goals = concat (($game_state) `map` (goalAgents brain))
-    in head goals
-
---
 -- Figure out the next steps(s) to accomplish a given goal
 -- For now, do the thing that takes the fewest number of turns
 --
@@ -80,3 +69,23 @@ shortestSequence xs = minimumBy (\x y -> compare (length x) (length y)) xs
 -- Blindly do the whole thing ignoring state
 planStepsBlindly :: Goal -> GameState -> [Move]
 planStepsBlindly (BuildValue loc val) game_state = fst $ runState (buildValue loc val) [1..255]
+
+
+
+getInterrupts :: PlayerModel -> GameState -> [Move]
+getInterrupts (ExternalPlayer) _ = []
+getInterrupts (PurePlayer _) gameState =
+  if getSlotVitality gameState 0 == 0
+  then case findMe gameState (ValueNum 0) of
+         Nothing  -> [ Move RightApplication ZeroCard 199 ]
+         Just x   -> [ Move LeftApplication ReviveCard x, Move RightApplication ZeroCard x ]
+  else []
+
+getSlotVitality gs = gsGetVitality ( gsMyFriend gs ) gs
+getSlotValue gs = gsGetField ( gsMyFriend gs ) gs
+
+findMe :: GameState -> Value -> Maybe SlotNumber
+findMe gs value = find (\x -> getSlotValue gs x == value ) (findLivingCells gs)
+
+findLivingCells gs = filter ( \x -> getSlotVitality gs x > 0 ) [0..255]
+
