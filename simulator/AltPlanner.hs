@@ -98,13 +98,21 @@ planBuildGoal _ = [] -- "I don't see any way to do that."
 -- like buildVine, but only to depth 1
 planVine :: SlotNumber -> Value -> [(Move, Goal)]
 planVine slot vine = planVine' vine
-    where planVine' (ValueCard c) = [(Move RightApplication c slot, cleanSlateGoal)]
-          planVine' (ValueNum v) = planNum v
-          planVine' (ValueApplication (ValueCard c) v) = [(Move LeftApplication c slot  , inSlotGoal v)]
-          planVine' (ValueApplication v (ValueCard c)) = [(Move RightApplication c slot , inSlotGoal v)]
+    where planVine' (ValueCard c) = [(Move RightApplication c slot, cleanSlateGoal slot)]
+          planVine' (ValueNum v) = planNum slot v
+          planVine' (ValueApplication (ValueCard c) v) = [(Move LeftApplication c slot  , inSlotGoal slot v)]
+          planVine' (ValueApplication v (ValueCard c)) = [(Move RightApplication c slot , inSlotGoal slot v)]
           planVine' (ValueApplication v w) = error "planVine: not a vine"
-          inSlotGoal value = [(BuildGoal slot value )]
-          cleanSlateGoal = inSlotGoal (ValueCard IdentityCard)
 
+inSlotGoal slot value = [(BuildGoal slot value )]
+cleanSlateGoal slot = inSlotGoal slot (ValueCard IdentityCard)
+
+planNum :: SlotNumber -> Int -> [(Move, Goal)]
+-- I could make a zero from an Identity
+planNum slot 0 = [(Move RightApplication ZeroCard slot, cleanSlateGoal slot)]
 -- I could make an N if I had N-1, or exactly N/2
-planNum v = undefined
+planNum slot n = if n `mod` 2 == 0 then [ dbl, succ ] else [ succ ]
+  where dbl  = (Move LeftApplication DoubleCard slot, inSlotGoal slot (ValueNum $ n `div` 2) )
+        succ = (Move LeftApplication IncCard    slot, inSlotGoal slot (ValueNum $ n - 1) )
+-- TODO: I could make an N by getting it from elsewhere on the board
+-- TODO: I could make an N by copying it from the opponent's board
