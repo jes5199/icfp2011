@@ -17,12 +17,12 @@ translateValue card = case card of
                         (ValueApplication f x) -> expandMacro (ValueApplication (translateValue f) (translateValue x))
                         (ValueLambda x v) -> expandMacro (ValueLambda x (translateValue v))
                         (ValueVariable x) -> ValueVariable x
-    where expandMacro (ValueLambda varName (ValueVariable x)) | varName == x = ValueCard IdentityCard
+    where expandMacro (ValueLambda varName (ValueVariable x)) | varName == x = valueI
           expandMacro (ValueLambda varName value) | not (value `includes` varName) = makeK value
           expandMacro (ValueLambda varName (ValueApplication f (ValueVariable x)))
               | varName == x && not (f `includes` varName) = f
           expandMacro (ValueLambda varName (ValueApplication f x))
-              = ValueApplication (ValueApplication (ValueCard SCard) (expandMacro (ValueLambda varName f)))
+              = ValueApplication (ValueApplication valueS (expandMacro (ValueLambda varName f)))
                                  (expandMacro (ValueLambda varName x))
           expandMacro (ValueApplication (ValueVariable "lazy") value) = lazify value
           expandMacro value = value
@@ -31,19 +31,19 @@ translateValue card = case card of
           ValueLambda varNameInner value `includes` varName | varNameInner == varName = False
                                                             | otherwise = value `includes` varName
           _ `includes` varName = False
-          lazify (ValueApplication f x) = ValueApplication (ValueApplication (ValueCard SCard) (ValueApplication (ValueApplication (ValueCard SCard) (makeK f)) (makeK x))) (ValueCard IdentityCard)
+          lazify (ValueApplication f x) = ValueApplication (ValueApplication valueS (ValueApplication (ValueApplication valueS (makeK f)) (makeK x))) valueI
           lazify value = value
 
 -- Like translateValue, but translate numbers to sequences of succ, dbl, and zero.
-translateNum 0 = ValueCard ZeroCard
+translateNum 0 = valueZero
 translateNum i
     | i < 0 = error "negative ValueNum"
-    | i `mod` 2 == 1 = ValueApplication (ValueCard SuccCard) (translateNum (i-1))
-    | otherwise = ValueApplication (ValueCard DoubleCard) (translateNum (i `div` 2))
+    | i `mod` 2 == 1 = ValueApplication valueSucc (translateNum (i-1))
+    | otherwise = ValueApplication valueDbl (translateNum (i `div` 2))
 
 -- (makeK v) is like (K v) but it transforms (K I) into put.
-makeK (ValueCard IdentityCard) = ValueCard PutCard
-makeK value = ValueApplication (ValueCard KCard) value
+makeK (ValueCard IdentityCard) = valuePut
+makeK value = ValueApplication valueK value
 
 -- Build a value from a template.  First argument is a string which is
 -- parsed and then passed through translateValue.  Second argument is
@@ -63,12 +63,12 @@ template s vars = assignVars $ translateValue $ parse s
           vars' = [(name, translateValue value) | (name, value) <- vars]
 
 test_Translator = [
-  translateValue (ValueNum 0) ~?= (ValueNum 0),
-  translateValue (ValueNum 1) ~?= (ValueNum 1),
-  translateValue (ValueNum 2) ~?= (ValueNum 2),
-  translateValue (ValueNum 3) ~?= (ValueNum 3),
-  translateValue (ValueNum 4) ~?= (ValueNum 4),
-  translateValue (ValueNum 5) ~?= (ValueNum 5),
+  translateValue (num 0) ~?= (num 0),
+  translateValue (num 1) ~?= (num 1),
+  translateValue (num 2) ~?= (num 2),
+  translateValue (num 3) ~?= (num 3),
+  translateValue (num 4) ~?= (num 4),
+  translateValue (num 5) ~?= (num 5),
   translateValue succ ~?= succ,
   translateNum 0 ~?= zero,
   translateNum 1 ~?= app succ zero,
@@ -76,22 +76,25 @@ test_Translator = [
   translateNum 3 ~?= app succ (app dbl (app succ zero)),
   translateNum 4 ~?= app dbl (app dbl (app succ zero)),
   translateNum 5 ~?= app succ (app dbl (app dbl (app succ zero))),
-  translateValue (ValueLambda "x" (ValueLambda "y" (ValueVariable "y"))) ~?= ValueCard PutCard,
-  translateValue (ValueLambda "x" (ValueVariable "x")) ~?= ValueCard IdentityCard,
-  translateValue (ValueLambda "x" (ValueApplication (ValueCard IncCard) (ValueVariable "x"))) ~?= ValueCard IncCard,
-  translateValue (ValueLambda "x" (ValueLambda "y" (ValueVariable "x"))) ~?= ValueCard KCard,
-  translateValue (ValueLambda "x" (ValueApplication (ValueCard IncCard) (ValueApplication (ValueCard SuccCard) (ValueVariable "x")))) ~?= ValueApplication (ValueApplication (ValueCard SCard) (ValueApplication (ValueCard KCard) (ValueCard IncCard))) (ValueCard SuccCard),
-  translateValue (ValueLambda "x" (ValueLambda "y" (ValueApplication (ValueApplication (ValueCard PutCard) (ValueVariable "x")) (ValueVariable "y")))) ~?= (ValueCard PutCard),
-  translateValue (ValueLambda "x" (ValueLambda "y" (ValueApplication (ValueApplication (ValueCard ZombieCard) (ValueVariable "x")) (ValueVariable "y")))) ~?= (ValueCard ZombieCard),
-  translateValue (ValueLambda "bullet" (ValueApplication (ValueApplication (ValueCard PutCard) (ValueApplication (ValueVariable "gun") (ValueVariable "bullet"))) (ValueVariable "value"))) ~?= (ValueApplication (ValueApplication (ValueCard SCard) (ValueApplication (ValueApplication (ValueCard SCard) (ValueApplication (ValueCard KCard) (ValueCard PutCard))) (ValueVariable "gun"))) (ValueApplication (ValueCard KCard) (ValueVariable "value"))),
-  translateValue (ValueApplication (ValueVariable "lazy") (ValueVariable "x")) ~?= ValueVariable "x",
-  (translateValue (ValueLambda "x" (ValueApplication (ValueApplication (ValueCard GetCard) (ValueVariable "x")) (ValueApplication (ValueApplication (ValueVariable "lazy") (ValueApplication (ValueApplication (ValueApplication (ValueCard HelpCard) (ValueNum 0)) (ValueNum 0)) (ValueNum 8196))) (ValueVariable "x"))))
-   ~?= (ValueApplication (ValueApplication (ValueCard SCard) (ValueCard GetCard)) (ValueApplication (ValueApplication (ValueCard SCard) (ValueApplication (ValueApplication (ValueCard SCard) (ValueApplication (ValueCard KCard) (ValueApplication (ValueApplication (ValueCard HelpCard) (ValueCard ZeroCard)) (ValueCard ZeroCard)))) (ValueApplication (ValueCard KCard) (translateValue (ValueNum 8196))))) (ValueCard IdentityCard)))),
-  template "\\x -> x" [] ~?= ValueCard IdentityCard,
-  template "K x" [("x", ValueNum 0)] ~?= ValueApplication (ValueCard KCard) (ValueCard ZeroCard),
-  template "x K" [("x", ValueCard SCard)] ~?= ValueApplication (ValueCard SCard) (ValueCard KCard)
+  translateValue (lambda "x" (lambda "y" (var "y"))) ~?= valuePut,
+  translateValue (lambda "x" (var "x")) ~?= valueI,
+  translateValue (lambda "x" (app valueInc (var "x"))) ~?= valueInc,
+  translateValue (lambda "x" (lambda "y" (var "x"))) ~?= ValueCard KCard,
+  translateValue (lambda "x" (app valueInc (app valueSucc (var "x")))) ~?= app (app valueS (app valueK valueInc)) valueSucc,
+  translateValue (lambda "x" (lambda "y" (app (app valuePut (var "x")) (var "y")))) ~?= valuePut,
+  translateValue (lambda "x" (lambda "y" (app (app valueZombie (var "x")) (var "y")))) ~?= valueZombie,
+  translateValue (lambda "bullet" (app (app valuePut (app (var "gun") (var "bullet"))) (var "value"))) ~?= (app (app valueS (app (app valueS (app valueK valuePut)) (var "gun"))) (app valueK (var "value"))),
+  translateValue (app (var "lazy") (var "x")) ~?= var "x",
+  (translateValue (lambda "x" (app (app valueGet (var "x")) (app (app (var "lazy") (app (app (app valueHelp (num 0)) (num 0)) (num 8196))) (var "x"))))
+   ~?= (app (app valueS valueGet) (app (app valueS (app (app valueS (app valueK (app (app valueHelp valueZero) valueZero))) (app valueK (translateValue (num 8196))))) valueI))),
+  template "\\x -> x" [] ~?= valueI,
+  template "K x" [("x", num 0)] ~?= app valueK valueZero,
+  template "x K" [("x", valueS)] ~?= app valueS valueK
   ]
     where zero = ValueCard ZeroCard
           succ = ValueCard SuccCard
           dbl = ValueCard DoubleCard
           app = ValueApplication
+          var = ValueVariable
+          lambda = ValueLambda
+          num = ValueNum
