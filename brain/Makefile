@@ -11,3 +11,6 @@ genTestCases: *.hs ../simulator/*.hs
 
 playerOfGames: *.hs ../simulator/*.hs
 	ghc -i../simulator --make -O3 playerOfGames
+
+clean:
+	rm -f *.hi *.o *~ braintester braindriver genTestCases playerOfGames
